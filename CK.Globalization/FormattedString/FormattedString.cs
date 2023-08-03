@@ -14,9 +14,7 @@ using System.Text;
 namespace CK.Core
 {
     /// <summary>
-    /// Captures an interpolated string result along with its placeholders.
-    /// provides the composite format string (https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting)
-    /// that can be used as a template for other placeholder values.
+    /// Captures an interpolated string result along with its formatted placeholders.
     /// <para>
     /// This is implicitly castable as a string: <see cref="Text"/> is returned.
     /// </para>
@@ -35,7 +33,7 @@ namespace CK.Core
 
         readonly string? _text;
         readonly (int Start, int Length)[]? _placeholders;
-        readonly NormalizedCultureInfo? _culture;
+        readonly ExtendedCultureInfo? _culture;
 
         /// <summary>
         /// Gets an empty formatted string: empty text, no placeholders and <see cref="NormalizedCultureInfo.Invariant"/>.
@@ -45,7 +43,10 @@ namespace CK.Core
 
         /// <summary>
         /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>)
-        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/> (that is a thread static property).
+        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/>.
+        /// <para>
+        /// This should be avoided: the culture should be provided explicitly.
+        /// </para>
         /// </summary>
         /// <param name="plainText">The plain text.</param>
         public FormattedString( string plainText )
@@ -55,10 +56,16 @@ namespace CK.Core
 
         /// <summary>
         /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>).
+        /// <para>
+        /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
+        /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
+        /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
         /// <param name="plainText">The plain text.</param>
-        public FormattedString( NormalizedCultureInfo culture, string plainText )
+        public FormattedString( ExtendedCultureInfo culture, string plainText )
         {
             Throw.CheckNotNullArgument( plainText );
             _text = plainText;
@@ -70,6 +77,9 @@ namespace CK.Core
         /// <summary>
         /// Initializes a <see cref="FormattedString"/> with <see cref="Placeholders"/> using
         /// the <see cref="NormalizedCultureInfo.Current"/> to format the placeholder contents.
+        /// <para>
+        /// This should be avoided: the culture should be provided explicitly.
+        /// </para>
         /// </summary>
         /// <param name="text">The interpolated text.</param>
         public FormattedString( [InterpolatedStringHandlerArgument] FormattedStringHandler text )
@@ -82,17 +92,23 @@ namespace CK.Core
         /// <summary>
         /// Initializes a <see cref="FormattedString"/> with <see cref="Placeholders"/> using
         /// the provided <paramref name="culture"/>.
+        /// <para>
+        /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
+        /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
+        /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
-        public FormattedString( NormalizedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text )
+        public FormattedString( ExtendedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text )
         {
             (_text,_placeholders) = text.GetResult();
             _culture = culture;
             Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
         }
 
-        FormattedString( string text, (int Start, int Length)[] placeholders, NormalizedCultureInfo culture )
+        FormattedString( string text, (int Start, int Length)[] placeholders, ExtendedCultureInfo culture )
         {
             _text = text;
             _placeholders = placeholders;
@@ -110,7 +126,7 @@ namespace CK.Core
         /// <param name="placeholders">The <see cref="Placeholders"/>.</param>
         /// <param name="culture">The <see cref="Culture"/>.</param>
         /// <returns>A new formatted string.</returns>
-        public static FormattedString Create( string text, (int Start, int Length)[] placeholders, NormalizedCultureInfo culture )
+        public static FormattedString Create( string text, (int Start, int Length)[] placeholders, ExtendedCultureInfo culture )
         {
             Throw.CheckNotNullArgument( text );
             Throw.CheckNotNullArgument( placeholders );
@@ -125,7 +141,7 @@ namespace CK.Core
         /// <param name="handler">The interpolated string handler.</param>
         /// <param name="culture">The culture.</param>
         /// <returns>A new formatted string.</returns>
-        public static FormattedString Create( ref FormattedStringHandler handler, NormalizedCultureInfo culture )
+        public static FormattedString Create( ref FormattedStringHandler handler, ExtendedCultureInfo culture )
         {
             Throw.CheckNotNullArgument( culture );
             var (t, p) = handler.GetResult();
@@ -161,7 +177,7 @@ namespace CK.Core
         ///     with 2 empty placeholders content leads to an empty Text but this doesn't mean that this FormattedString is empty.
         ///   </item>
         ///   <item>
-        ///     When this is true, <see cref="Culture"/> can be any culture, not necessarily the <see cref="NormalizedCultureInfo.InvariantCulture"/>.
+        ///     When this is true, <see cref="Culture"/> can be any culture, not necessarily the <see cref="NormalizedCultureInfo.Invariant"/>.
         ///   </item>
         /// </list>
         /// </para>
@@ -195,7 +211,7 @@ namespace CK.Core
         /// the culture cannot be restored properly.
         /// </para>
         /// </summary>
-        public NormalizedCultureInfo Culture => _culture ?? NormalizedCultureInfo.Invariant;
+        public ExtendedCultureInfo Culture => _culture ?? NormalizedCultureInfo.Invariant;
 
         /// <summary>
         /// Implicit cast into string.

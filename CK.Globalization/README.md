@@ -36,8 +36,8 @@ Invariant
 ```
 Every culture has 0 or more fallbacks ("fr-FR" fallbacks to "fr").
 To capture this fallbacks and unify the API, we introduce the `ExtendedCultureInfo` that is a generalization
-of the `NormalizedCultureInfo`. The latter normalizes the culture name (as a lower invariant string) and
-carries a basic memory cache of available translations.
+of the `NormalizedCultureInfo`. The latter normalizes the culture name (as a lower invariant string: culture names
+MUST be considered case insensitive) and carries a basic memory cache of available translations.
 
 Note that for us, the 3 cultures on the path "en-US" - "en" - "" (Invariant) are *de facto* the same and cannot
 have any cached translation dictionary.

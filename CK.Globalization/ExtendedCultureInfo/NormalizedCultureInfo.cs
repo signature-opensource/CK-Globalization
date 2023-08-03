@@ -20,7 +20,7 @@ namespace CK.Core
         /// <summary>
         /// Simple relay that calls <see cref="GetNormalizedCultureInfo(CultureInfo)"/> with the <see cref="CultureInfo.CurrentCulture"/>.
         /// </summary>
-        public static NormalizedCultureInfo Current = GetNormalizedCultureInfo( CultureInfo.CurrentCulture );
+        public static NormalizedCultureInfo Current => GetNormalizedCultureInfo( CultureInfo.CurrentCulture );
 
         /// <summary>
         /// Gets the <see cref="CultureInfo"/>.
@@ -96,10 +96,15 @@ namespace CK.Core
         /// <returns>The culture.</returns>
         public static NormalizedCultureInfo GetNormalizedCultureInfo( string name )
         {
+            Throw.CheckNotNullArgument( name );
+            // Fast path.
             if( _all.TryGetValue( name, out var e ) )
             {
                 return e.PrimaryCulture;
             }
+            // Let the CultureInfo.GetCultureInfo does its job on the culture name.
+            // We don't try to optimize here. Either the name is from our normalization
+            // or it is an external name that must be fully handle.
             return GetNormalizedCultureInfo( CultureInfo.GetCultureInfo( name ) );
         }
 
@@ -136,7 +141,7 @@ namespace CK.Core
         {
             Throw.DebugAssert( Monitor.IsEntered( _all ) );
             Throw.DebugAssert( name.ToLowerInvariant() == name );
-            if( _all.TryGetValue( name, out var exist ) )
+            if( all.TryGetValue( name, out var exist ) )
             {
                 return exist.PrimaryCulture;
             }
@@ -145,6 +150,7 @@ namespace CK.Core
             while( parent != CultureInfo.InvariantCulture )
             {
                 fallbacks.Add( DoRegister( parent.Name.ToLowerInvariant(), parent, all ) );
+                parent = parent.Parent;
             }
             var newOne = new NormalizedCultureInfo( cultureInfo, name, fallbacks );
             all.Add( name, newOne );
@@ -153,5 +159,65 @@ namespace CK.Core
             return newOne;
         }
 
+        public static ExtendedCultureInfo GetExtendedCultureInfo( string fullName )
+        {
+            Throw.CheckNotNullOrEmptyArgument( fullName );
+            // Fast path.
+            if( _all.TryGetValue( fullName, out var e ) )
+            {
+                return e.PrimaryCulture;
+            }
+            // Very basic preprocessing should be enough.
+            var fullNames = fullName.ToLowerInvariant()
+                                    .Split( ',', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries );
+            Throw.CheckArgument( "fullName must contain at least one culture name.", fullNames.Length == 0 );
+            // Don't use GetNormalizedCultureInfo( name ) if there's only one culture as it may
+            // consider a "-XXXX" name and return its primary culture.
+            lock( _all )
+            {
+                var fallbacks = new List<NormalizedCultureInfo>();
+                var all = new Dictionary<object, ExtendedCultureInfo>( _all );
+                foreach( var name in fullNames )
+                {
+                    if( all.TryGetValue( name, out var exists ) )
+                    {
+                        AddFallbacks( fallbacks, exists );
+                    }
+                    else
+                    {
+                        // Our "name" may differ here from the returned cultureInfo.Name.
+                        var cultureInfo = CultureInfo.GetCultureInfo( name );
+                        var finalName = cultureInfo.Name.ToLowerInvariant();
+                        if( all.TryGetValue( finalName, out exists ) )
+                        {
+                            AddFallbacks( fallbacks, exists );
+                        }
+                        else
+                        {
+                            var c = DoRegister( finalName, cultureInfo, all );
+                            fallbacks.Add( c );
+                        }
+                    }
+                }
+                if( fallbacks.Count == 1 ) return fallbacks[0];
+                e = new ExtendedCultureInfo( fallbacks );
+                _all.Add( e.Name, e );
+                _all.Add( e.FullName, e );
+                _all = all;
+                return e;
+            }
+
+            static void AddFallbacks( List<NormalizedCultureInfo> fallbacks, ExtendedCultureInfo? exists )
+            {
+                if( exists is NormalizedCultureInfo c )
+                {
+                    fallbacks.Add( c );
+                }
+                else
+                {
+                    fallbacks.AddRange( exists.Fallbacks );
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,9 @@
+using CommunityToolkit.HighPerformance;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace CK.Core
 {
@@ -16,19 +18,21 @@ namespace CK.Core
     ///     </item>
     ///     <item>
     ///     A pure ExtendedCultureInfo is defined by its <see cref="Fallbacks"/>. Its Name is
-    ///     "-XXXXX" where XXXXX is the Djb2 hash code of the <see cref="SerializationName"/>
+    ///     "-XXX" where XXX is the Djb2 hash code of the <see cref="FullName"/>
     ///     (the comma separated normalized culture names).
     ///     </item>
     /// </list>
     /// </summary>
-    public class ExtendedCultureInfo
+    public class ExtendedCultureInfo : IFormatProvider
     {
         readonly string _name;
-        NormalizedCultureInfo[] _fallbacks;
+        readonly string _fullName;
+        readonly NormalizedCultureInfo[] _fallbacks;
 
         internal ExtendedCultureInfo()
         {
             _name = string.Empty;
+            _fullName = string.Empty;
             _fallbacks = new NormalizedCultureInfo[] { (NormalizedCultureInfo)this };
         }
 
@@ -44,6 +48,16 @@ namespace CK.Core
             _name = name;
             fallbacks.Insert( 0, (NormalizedCultureInfo)this );
             _fallbacks = fallbacks.ToArray();
+            _fullName = name;
+        }
+
+        internal ExtendedCultureInfo( List<NormalizedCultureInfo> fallbacks )
+        {
+            Throw.DebugAssert( fallbacks.Count > 1 );
+            _fallbacks = fallbacks.ToArray();
+            _fullName = string.Join( ',', fallbacks.Select( c => c.Name ) );
+            int hash = _fullName.GetDjb2HashCode();
+            _name = '-' + Base64UrlHelper.ToBase64UrlString( MemoryMarshal.CreateReadOnlySpan( ref hash, 1 ).AsBytes() );
         }
 
         /// <summary>
@@ -51,6 +65,12 @@ namespace CK.Core
         /// or an automatic "-xxx" name for a purely extended culture.
         /// </summary>
         public string Name => _name;
+
+        /// <summary>
+        /// Gets the comma separated <see cref="Fallbacks"/> names. This identifies a pure <see cref="ExtendedCultureInfo"/>
+        /// as well as a <see cref="NormalizedCultureInfo"/> since a NormalizedCultureInfo's full name is its name. 
+        /// </summary>
+        public string FullName => _fullName;
 
         /// <summary>
         /// Gets the primary culture.
@@ -68,35 +88,6 @@ namespace CK.Core
         /// </summary>
         public bool IsDefault => _name.Length == 0 || _name == "en" || _name == "en-us";
 
-        /// <summary>
-        /// Sets this <see cref="Fallbacks"/>.
-        /// <list type="bullet">
-        ///     <item>
-        ///     When this is a <see cref="NormalizedCultureInfo"/>, the invariant that the <see cref="PrimaryCulture"/>
-        ///     is this instance is automatically enforced. The <paramref name="fallbacks"/> can be empty.
-        ///     </item>
-        ///     <item>
-        ///     When this is a <see cref="ExtendedCultureInfo"/> the <paramref name="fallbacks"/> must not be empty
-        ///     or an <see cref="ArgumentException"/> is thrown.
-        ///     </item>
-        /// </list>
-        /// </summary>
-        /// <param name="fallbacks">The new fallbacks for this culture.</param>
-        public void SetFallbacks( IEnumerable<NormalizedCultureInfo> fallbacks )
-        {
-            Throw.CheckNotNullArgument( fallbacks );
-            var f = fallbacks.ToList();
-            if( this is NormalizedCultureInfo n )
-            {
-                f.Remove( n );
-                if( f.Count == 0 || f[0] != n ) f.Insert( 0, n );
-            }
-            else
-            {
-                Throw.CheckNotNullOrEmptyArgument( fallbacks );
-            }
-            _fallbacks = f.ToArray();
-        }
-
+        object? IFormatProvider.GetFormat( Type? formatType ) => _fallbacks[0].Culture.GetFormat( formatType );
     }
 }

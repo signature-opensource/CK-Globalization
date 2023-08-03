@@ -154,8 +154,8 @@ namespace CK.Globalization.Tests
         [Test]
         public void with_culture_info()
         {
-            var enUS = CultureInfo.GetCultureInfo( "en-US" );
-            var frFR = CultureInfo.GetCultureInfo( "fr-FR" );
+            var enUS = NormalizedCultureInfo.GetNormalizedCultureInfo( "en-US" );
+            var frFR = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
 
             var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
             var value = 37.12;
@@ -185,10 +185,10 @@ namespace CK.Globalization.Tests
             var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
             var value = 37.12;
 
-            var inTunisia = new FormattedString( $"Date: {d:F}, V: {value:C}" );
-            inTunisia.Text.Should().Be( "Date: Donnerstag, 27. Juli 2023 23:59:59, V: 37,12 €" );
-            inTunisia.GetFormatString().Should().Be( "Date: {0}, V: {1}" );
-            inTunisia.GetPlaceholderContents().Select( a => a.ToString() )
+            var inBerlin = new FormattedString( $"Date: {d:F}, V: {value:C}" );
+            inBerlin.Text.Should().Be( "Date: Donnerstag, 27. Juli 2023 23:59:59, V: 37,12 €" );
+            inBerlin.GetFormatString().Should().Be( "Date: {0}, V: {1}" );
+            inBerlin.GetPlaceholderContents().Select( a => a.ToString() )
                     .Should().BeEquivalentTo( new[] { "Donnerstag, 27. Juli 2023 23:59:59", "37,12 €" } );
         }
 
@@ -198,13 +198,13 @@ namespace CK.Globalization.Tests
             CheckSerialization( FormattedString.Empty );
             CheckSerialization( new FormattedString( "" ) );
             CheckSerialization( new FormattedString( "plain text" ) );
-            CheckSerialization( new FormattedString( CultureInfo.GetCultureInfo( "ar-tn" ), "plain text" ) );
+            CheckSerialization( new FormattedString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
 
-            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ) )
+            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
             {
                 var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
                 var value = 37.12;
-                var f = new FormattedString( culture, $"{culture.Name} - {culture.EnglishName} - {culture.NativeName} - Date: {d:F}, V: {value:C}" );
+                var f = new FormattedString( culture, $"{culture.Name} - {culture.Culture.EnglishName} - {culture.Culture.NativeName} - Date: {d:F}, V: {value:C}" );
                 // Just for fun:
                 // Console.WriteLine( f );
                 CheckSerialization( f );
@@ -247,7 +247,8 @@ namespace CK.Globalization.Tests
         [Test]
         public void FormattedString_Create()
         {
-            var f = FormattedString.Create( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, CultureInfo.CurrentCulture );
+            var c = NormalizedCultureInfo.Current;
+            var f = FormattedString.Create( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
             var args = f.GetPlaceholderContents().Select( c => c.ToString() ).ToArray();
             args[0].Should().Be( "A" );
             args[1].Should().Be( "B" );
@@ -255,13 +256,13 @@ namespace CK.Globalization.Tests
             args[3].Should().Be( "EF" );
             f.GetFormatString().Should().Be( "{0}{1}{2}CD{3}" );
 
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (-1, 1) }, CultureInfo.CurrentCulture ) )
+            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (-1, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (100, 1) }, CultureInfo.CurrentCulture ) )
+            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (100, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 7) }, CultureInfo.CurrentCulture ) )
+            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 7) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 2), (1,2) }, CultureInfo.CurrentCulture ) )
+            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 2), (1,2) }, c ) )
                 .Should().Throw<ArgumentException>();
         }
     }
