@@ -27,8 +27,7 @@ namespace CK.Core
         public abstract string ResName { get; }
 
         /// <summary>
-        /// Gets the culture name (see <see cref="CultureInfo.Name"/>) that has been used
-        /// to format the <see cref="Placeholders"/>.
+        /// Gets the <see cref="ExtendedCultureInfo.Name"/> that has been used to format the <see cref="Placeholders"/>.
         /// </summary>
         public abstract string ContentCulture { get; }
 
@@ -44,7 +43,7 @@ namespace CK.Core
         public abstract string GetFormatString();
 
         /// <summary>
-        /// Gets the culture name (see <see cref="CultureInfo.Name"/>) of the <see cref="GetFormatString()"/>
+        /// Gets the culture name (see <see cref="ExtendedCultureInfo.Name"/>) of the <see cref="GetFormatString()"/>
         /// (the "enveloppe" of the <see cref="Text"/>).
         /// It may differ from the <see cref="ContentCulture"/> (the culture used to format the placeholders' content).
         /// </summary>
