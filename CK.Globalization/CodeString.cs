@@ -11,6 +11,7 @@ namespace CK.Core
     /// Code implementation of <see cref="MCString"/> based on interpolated strings (see <see cref="FormattedString"/>).
     /// The <see cref="FormatCulture"/> is always "en-US": format strings must always be written in american English.
     /// </summary>
+    [SerializationVersion(0)]
     public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
     {
         readonly FormattedString _f;
@@ -36,13 +37,13 @@ namespace CK.Core
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
         /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
         /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
         /// </para>
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">Optional associated resource name. When null, a "SHA." automatic resource name is computed.</param>
-        public CodeString( NormalizedCultureInfo culture, string plainText, string? resName = null )
+        public CodeString( ExtendedCultureInfo culture, string plainText, string? resName = null )
         {
             _f = new FormattedString( culture, plainText );
             _resName = resName ?? _f.GetSHA1BasedResName();
@@ -70,13 +71,13 @@ namespace CK.Core
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
         /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
         /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
         /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
-        public CodeString( NormalizedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text, string? resName = null )
+        public CodeString( ExtendedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text, string? resName = null )
         {
             _f = FormattedString.Create( ref text, culture );
             _resName = resName ?? _f.GetSHA1BasedResName();
@@ -110,7 +111,7 @@ namespace CK.Core
         /// Gets the placeholders' content.
         /// </summary>
         /// <returns>The <see cref="ContentCulture"/> formatted contents for each placeholders.</returns>
-        public IEnumerable<ReadOnlyMemory<char>> GetPlaceholderContents() => _f.GetPlaceholderContents();
+        public ReadOnlyMemory<char>[] GetPlaceholderContents() => _f.GetPlaceholderContents();
 
         /// <summary>
         /// Gets whether this <see cref="GetFormatString"/> is empty: <see cref="Text"/> is empty and there is no <see cref="Placeholders"/>.
@@ -119,7 +120,7 @@ namespace CK.Core
         /// <list type="bullet">
         ///   <item>
         ///     Text can be empty and there may be one or more Placeholders. For instance, the format string <c>{0}{1}</c>
-        ///     with 2 empty placeholders content leads to an empty Text but this doesn't mean that this <see cref="MCString"/> is empty.
+        ///     with 2 empty placeholders content leads to an empty Text but this doesn't mean that this <see cref="CodeString"/> is empty.
         ///   </item>
         ///   <item>
         ///     When this is true, <see cref="ContentCulture"/> can be any culture, not necessarily the <see cref="NormalizedCultureInfo.Invariant"/>).
@@ -131,6 +132,18 @@ namespace CK.Core
 
         /// <inheritdoc cref="FormattedString.GetFormatString"/>
         public string GetFormatString() => _f.GetFormatString();
+
+        /// <summary>
+        /// Implicit cast into string: <see cref="Text"/>.
+        /// </summary>
+        /// <param name="f">This Text.</param>
+        public static implicit operator string( CodeString f ) => f.Text;
+
+        /// <summary>
+        /// Overridden to return this <see cref="Text"/>.
+        /// </summary>
+        /// <returns>This text.</returns>
+        public override string ToString() => _f.Text;
 
         #region Serialization
         /// <summary>

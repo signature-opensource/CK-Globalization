@@ -1,7 +1,11 @@
 # CK-Globalization
 
-Managing cultures is never easy and is complicated by the legacy issues. This is an opinionated library that
-aims to define a simple, good-enough, i18n workflow that minimizes the developer's burden. 
+Managing cultures is never easy and is complicated by the legacy issues (see this good
+[SO answer](https://stackoverflow.com/a/71388328/190380) for an example and refer to https://www.rfc-editor.org/rfc/bcp/bcp47.txt
+for the BCP47 norm that culture namig follows).
+
+This library is an opinionated one that aims to define a simple, good-enough, i18n workflow that minimizes
+the developer's burden. 
 
 It is based on a Code-first approach: the developer writes and emits en-US texts directly in its code, using
 interpolated strings. Placeholders are rendered immediately in the current culture. This current culture
@@ -10,19 +14,21 @@ being if possible an ubiquitous injected scoped service or fallbacks to the thre
 We currently don't exploit the .NET 8 [CompositeFormat](https://learn.microsoft.com/en-us/dotnet/api/system.text.compositeformat).
 Using it requires more work from the developper: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
 must be located first and then written/formatted with an array of objects. These objects must be compatible in terms of types
-and cardinality with the CompositeFormat. Even if solutions that involve code generation exist like [TypealizR](https://github.com/earloc/TypealizR)
+and cardinality with the CompositeFormat (possible runtime errors here).
+Even if solutions that involve code generation exist like [TypealizR](https://github.com/earloc/TypealizR)
 that secures this process by enforcing type safety, this is always more work for the developper.
 
-Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) before formatting,
+Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
 we always format a text with a en-US format but with placeholders rendered in the "current" culture and captures
 the resulting `Text`, the "current" `ContentCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
-An interesting side-effect of this deferred translation is that it is not required to be done on the original
-system: the dictionary of translations can reside on a different system in a distributed system, freeing the
-"edge agent" of this work.
+An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
+the original system: the dictionary of translations can reside on a different system in a distributed system, freeing the
+"edge agent" of the dictionaries/map cost.
 
 ## CultureInfo, NormalizedCultureInfo and ExtendedCultureInfo.
+### About CultureInfo. 
 CultureInfo have a [`Parent`](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.parent),
 a more "general culture". This forms a tree with the [`CultureInfo.Invariant`](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.invariantculture)
 at its root.
@@ -36,12 +42,147 @@ Invariant
 ```
 Every culture has 0 or more fallbacks ("fr-FR" fallbacks to "fr").
 To capture this fallbacks and unify the API, we introduce the `ExtendedCultureInfo` that is a generalization
-of the `NormalizedCultureInfo`. The latter normalizes the culture name (as a lower invariant string: culture names
-MUST be considered case insensitive) and carries a basic memory cache of available translations.
+of the `NormalizedCultureInfo`. The former normalizes the culture name (as a lower invariant string: culture names
+MUST be considered case insensitive) and holds the fallbacks, the latter carries a basic memory cache of
+available translations.
 
-Note that for us, the 3 cultures on the path "en-US" - "en" - "" (Invariant) are *de facto* the same and cannot
+Note that for us, the 3 cultures on the path "en-us" - "en" - "" (Invariant) are *de facto* the same and cannot
 have any cached translation dictionary.
 
+#### Inventing CultureInfo
+CultureInfo can be created freely as long as the name is valid according to the BCP47 rules:
+- By calling: `new CultureInfo( "a-valid-name" )`: the CultureInfo can then be mutated.
+- By calling `CultureInfo.GetCultureInfo( "a-valid-name" )`: in this case, `CultureInfo.IsReadOnly` is true and it cannot be mutated.
 
+The .NET cache behavior is far from perfect. One cannot create a new CultureInfo out of the blue, configure it and then cache it (which
+should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
+insentitive.
+
+```csharp
+[Test]
+public void inventing_cultures()
+{
+    FluentActions.Invoking( () => new CultureInfo( "fr-fr-development" ) )
+        .Should()
+        .Throw<CultureNotFoundException>( "An invalid name (the 'development' subtag is longer than 8 characters) is the only way to not found a culture." );
+
+    // Not cached CultureInfo can be created by newing it.
+    {
+        var cValid = new CultureInfo( "a-valid-name" );
+
+        var cDevFR = new CultureInfo( "fr-fr-dev" );
+        cDevFR.IsReadOnly.Should().BeFalse( "A non cached CultureInfo is mutable." );
+        cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+        cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated subtags." );
+        var cDevFRBack = CultureInfo.GetCultureInfo( "fr-fr-dev" );
+        cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached." );
+    }
+    // CultureInfo is cached when CultureInfo.GetCultureInfo is used.
+    {
+        var cValid = CultureInfo.GetCultureInfo( "a-valid-name" );
+
+        var cDevFR = CultureInfo.GetCultureInfo( "fr-fr-dev" );
+        cDevFR.IsReadOnly.Should().BeTrue( "A cached culture info is read only." );
+        cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+        cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated subtags." );
+        var cDevFRBack = CultureInfo.GetCultureInfo( "fR-fR-dEv" );
+        cDevFRBack.Should().BeSameAs( cDevFR, "...but lookup is case insensitive: this is why our ExtendedCultureInfo.Name is always lowered invariant." );
+    }
+}
+```
+
+We introduce our own cache (reads are lock-free) of `ExtendedCultureInfo`/`NormalizedCultureInfo` that may be used to register
+fully "invented cultures" but this is not its primary goal: its primary objective is efficiency and sound normalization of
+culture names and fallbacks management.
+
+#### The CultureInfo.LCID obsolescence
+This property is very convenient (notably for database mapping) as it provides an integer identifier. Unfortunately, it should
+no more be used as it was bound to Windows NLS sub-system implementation. ICU (that replaces NLS on .NET) has no integer identifier.
+
+We introduce a new identifier, the `ExtendedCultureInfo.Id` that is the DBJ2 hash of our normalized culture name. This is somehow fragile
+since collisions can occur but our tests have shown that they are quite exceptional and for very "artificial" fallbacks. Clashes are
+detected and an explicit identifier assignation is done in such case.
+
+## Culture fallbacks
+### ExtendedCultureInfo and NormalizedCultureInfo 
+For (regular) `NormalizedCultureInfo` fallbacks are based on the `CultureInfo.Parent` path provided by the
+.NET framework and cannot be altered: these are "intrinsic fallbacks".
+
+"Intrinsic fallbacks" must be understood as "I'd prefer a translation adapted to my region (.NET Specific Culture
+concept) if there's one, but I'm fine with any translation in my language (.NET Neutral Culture)".
+
+We call "pure" `ExtendedCultureInfo` the cultures that are not `NormalizedCultureInfo`: these ones are
+defined by their fallbacks and represent a "user preference list" (comma separated list of normalized
+culture names): "jp,es,fr" is japanese first, then spanish and then french before giving up and use
+the en-US default. This capability introduces some complexity and needs some design decisions discussed
+below.
+
+For translations, the `NormalizedCultureInfo` and its intrinsic fallbacks can be "good enough": the placeholders
+are rendered in the primary culture ("es-ES" for instance). If we can't find a composite format from the
+"en-US" code text to "es-ES" nor to "es" then we simply don't translate/reformat and expose the "en-US" text
+with its "es-ES" placeholders. Translations SHOULD exist: the failure to find a translation is an exception,
+a bug or an issue that must be fixed. Translations are a compact set of resources: there should be no "holes"
+in them.
+
+The "user preference list" notion supports another usage: it enables the **selection** of the "best" resource among
+a possibly scarce set of translated resources. A typical use case is a document library that contains some
+translated documents (but not all are translated). A pure `ExtendedCultureInfo` is identified by its comma separated
+fallback names.
+
+### Discussion: Translation vs. Selection, fallbacks normalization 
+Our goal with the `ExtendedCultureInfo` is to support both scenario, even if our primary focus is about
+translations. Unfortunately, these two usages possibly require/imply different interprations of the "user
+preference list".
+
+#### Fallbacks semantics
+In both scenario, it is obvious that a parent culture (intrinsic fallback) appearing before a culture is stupid:
+"es,fr,fr-ca" is either "es,fr-ca,fr" or "es,fr" because whatever is the resource (a document or a translated
+resource), a "fr-ca" resource IS-A "fr" resource.
+
+But then interpretations differ. About the "en-US code default" for instance:
+
+- For translation, due to:
+  - Our choice of "en-US"/"en" code defaults,
+  - **and**, as we are NOT implementing a "general purpose i18n" library, we don't support
+    translating an already translated string (translations always start from a "en-US", code emitted text),
+    there is no point to have any of these defaults in a "user preference list": "en" and "en-us" are
+    automatically removed.
+- For selection, "fr,en,es" is a perfectly valid preference list: our "en-US code default" doesn't make sense in a document library.
+
+> Fallbacks for translation and selection actually differ (at least for the "en" handling).
+
+Let's consider this user preference: "pa-guru-in,es,fr-ca".
+- For translation:
+  - The placeholders have been rendered in "pa-guru-in" (the PrimaryCulture). It doesn't make sense to lookup for "es"
+    if a translation in "pa-guru" or "pa" exists: intrinsic fallbacks should be honored first, at least for the PrimaryCulture.
+  - The lookup list is: "pa-guru-in,pa-guru,pa,es,fr-ca,fr"
+- For selection:
+  - It is less obvious. What is the user intent? The lookup list may be the same as above or should we strictly honor the
+    list by putting the intrinsic fallbacks after it, leading to "pa-guru-in,es,fr-ca,pa-guru,pa,fr"?.
+  - This can be discussed but we'll keep the translation proposal here.
+
+We previously stated that a "more general" culture cannot precede a specific one ("fr,fr-ca" is "fr"). Now let's
+consider the more than one specific case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
+like to have a canadian or switzerland specific resource. But what about this: "fr-ca, es, fr-ch"? This doesn't make sense
+for translations (and is rather strange for selection) but "fr-ch" appears, it would be annoying to purely ignore it.
+
+The normalization described below handles all these case.
+
+#### Normalization
+Normalization of a preference list can be done by applying the following rules:
+- First, cultures are grouped by common parent, preserving the relative order of the children: groups are ordered based on
+  the first occurence of itself or one of its more specific cultures.
+- Then, groups are written, specific culture names coming first, ending with the group's name.
+
+_Note:_ This normalization process is not based on the string names but on the hierarchy provided by the
+CultureInfo objects. 
+
+Examples:
+- "fr,fr-ch,es,fr-ca" is normalized into "fr-ch,fr-ca,fr,es".
+- "fr-fr,es,en-gb,es-bo,pa-guru" becomes "fr-fr,fr,es-bo,es,en-gb,en,pa-guru,pa"
+
+This process is sound: it corrects what can be seen as "stupid input" (without losing any specified cultures) and is consistent
+for translations and selections provided that for translations, we consider the "en" culture to
+end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations).
 
 

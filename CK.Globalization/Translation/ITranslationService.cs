@@ -12,11 +12,11 @@ namespace CK.Core
     public interface ITranslationService : ISingletonAutoService
     {
         /// <summary>
-        /// Does its best to ensure that the <see cref="MCString.FormatCulture"/> is aligned with
-        /// the <see cref="MCString.ContentCulture"/> (regardless of any user preference).
+        /// Does its best to ensure that the <see cref="TransString.FormatCulture"/> is aligned with
+        /// the <see cref="CodeString.ContentCulture"/>.
         /// </summary>
         /// <param name="s">The string to translate.</param>
         /// <returns>A string with a format culture aligned to its content culture if possible.</returns>
-        ValueTask<MCString> TranslateAsync( MCString s );
+        ValueTask<TransString> TranslateAsync( CodeString s );
     }
 }

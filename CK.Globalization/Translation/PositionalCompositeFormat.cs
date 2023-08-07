@@ -11,7 +11,8 @@ namespace CK.Core
     /// This has been designed to be cached and is optimized for the <see cref="Format(ReadOnlyMemory{char}[])"/> operation:
     /// <list type="bullet">
     ///  <item>
-    ///     <see cref="Parse(string)"/> should be tried once and must succeed or an alternate format should be used.
+    ///     <see cref="TryParse(string, out PositionalCompositeFormat, out string?)"/> should be tried once and must
+    ///     succeed or an alternate format should be used.
     ///  </item>
     ///  <item>
     ///     The original format string is not stored. <see cref="GetFormatString"/> recreates a string on demand.

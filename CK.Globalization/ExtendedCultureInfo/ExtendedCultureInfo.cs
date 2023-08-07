@@ -13,81 +13,104 @@ namespace CK.Core
     /// <list type="bullet">
     ///     <item>
     ///     A <see cref="NormalizedCultureInfo"/>: the <see cref="Name"/> is the
-    ///     lowered invariant <see cref="CultureInfo.Name"/> and the fallbacks are immutable and 
-    ///     given by the <see cref="CultureInfo.Parent"/> path.
+    ///     lowered invariant <see cref="CultureInfo.Name"/> and the fallbacks are given
+    ///     by the <see cref="CultureInfo.Parent"/> path.
     ///     </item>
     ///     <item>
     ///     A pure ExtendedCultureInfo is defined by its <see cref="Fallbacks"/>. Its Name is
-    ///     "-XXX" where XXX is the Djb2 hash code of the <see cref="FullName"/>
-    ///     (the comma separated normalized culture names).
+    ///     the comma separated names of its fallback cultures.
     ///     </item>
     /// </list>
     /// </summary>
     public class ExtendedCultureInfo : IFormatProvider
     {
         readonly string _name;
-        readonly string _fullName;
+        readonly NormalizedCultureInfo _primary;
         readonly NormalizedCultureInfo[] _fallbacks;
+        readonly int _id;
 
-        internal ExtendedCultureInfo()
+        internal ExtendedCultureInfo( string name, int id )
         {
-            _name = string.Empty;
-            _fullName = string.Empty;
-            _fallbacks = new NormalizedCultureInfo[] { (NormalizedCultureInfo)this };
+            Throw.DebugAssert( name != null && name.Length == 0 || name == "en" || name == "en-us" );
+            _name = name;
+            _primary = (NormalizedCultureInfo)this;
+            _fallbacks = Array.Empty<NormalizedCultureInfo>();
+            _id = id;
         }
 
         /// <summary>
-        /// Constructor for NormalizedCultureInfo, this instance is inserted as the first fallback:
-        /// this is the PrimaryCulture.
+        /// Constructor for NormalizedCultureInfo.
         /// </summary>
         /// <param name="name">The normalized name.</param>
         /// <param name="fallbacks">Fallbacks.</param>
-        internal ExtendedCultureInfo( string name, List<NormalizedCultureInfo> fallbacks )
+        internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo[] fallbacks )
         {
-            Throw.DebugAssert( name.Length > 0 && name[0] != '-' );
+            Throw.DebugAssert( name.Length > 0 && !name.Contains(',') && !fallbacks.Contains( this ) );
             _name = name;
-            fallbacks.Insert( 0, (NormalizedCultureInfo)this );
-            _fallbacks = fallbacks.ToArray();
-            _fullName = name;
+            _primary = (NormalizedCultureInfo)this;
+            _fallbacks = fallbacks;
+            _id = id;
         }
 
-        internal ExtendedCultureInfo( List<NormalizedCultureInfo> fallbacks )
+        internal ExtendedCultureInfo( List<NormalizedCultureInfo> allCultures, string names, int id )
         {
-            Throw.DebugAssert( fallbacks.Count > 1 );
-            _fallbacks = fallbacks.ToArray();
-            _fullName = string.Join( ',', fallbacks.Select( c => c.Name ) );
-            int hash = _fullName.GetDjb2HashCode();
-            _name = '-' + Base64UrlHelper.ToBase64UrlString( MemoryMarshal.CreateReadOnlySpan( ref hash, 1 ).AsBytes() );
+            Throw.DebugAssert( allCultures.Count > 1 );
+            _name = names;
+            _id = id;
+            _primary = allCultures[0];
+            _fallbacks = allCultures.Skip( 1 ).ToArray();
         }
 
         /// <summary>
         /// Gets the normalized, lowered invariant, <see cref="CultureInfo.Name"/> for a <see cref="NormalizedCultureInfo"/>
-        /// or an automatic "-xxx" name for a purely extended culture.
+        /// or the comma separated names of <see cref="Fallbacks"/> for a pure extended culture.
         /// </summary>
         public string Name => _name;
 
         /// <summary>
-        /// Gets the comma separated <see cref="Fallbacks"/> names. This identifies a pure <see cref="ExtendedCultureInfo"/>
-        /// as well as a <see cref="NormalizedCultureInfo"/> since a NormalizedCultureInfo's full name is its name. 
-        /// </summary>
-        public string FullName => _fullName;
-
-        /// <summary>
         /// Gets the primary culture.
         /// </summary>
-        public NormalizedCultureInfo PrimaryCulture => _fallbacks[0];
+        public NormalizedCultureInfo PrimaryCulture => _primary;
 
         /// <summary>
-        /// Gets the fallbacks. When this is a <see cref="NormalizedCultureInfo"/>, this instance
-        /// is the first item.
+        /// Gets the fallbacks. This is empty for <see cref="NormalizedCultureInfo.Invariant"/>, any neutral culture (like "fr")
+        /// and the <see cref="NormalizedCultureInfo.CodeDefault"/>.
         /// </summary>
         public IReadOnlyList<NormalizedCultureInfo> Fallbacks => _fallbacks;
 
         /// <summary>
-        /// Gets whether this is the default culture: the <see cref="NormalizedCultureInfo.Invariant"/> or the "en" or "en-us" culture.
+        /// Gets whether this is the default culture: the <see cref="NormalizedCultureInfo.Invariant"/>, "en" or "en-us" culture.
         /// </summary>
-        public bool IsDefault => _name.Length == 0 || _name == "en" || _name == "en-us";
+        public bool IsDefault => _name.Length == 0 || ReferenceEquals( _name, "en" ) || ReferenceEquals( _name, "en-us" );
 
-        object? IFormatProvider.GetFormat( Type? formatType ) => _fallbacks[0].Culture.GetFormat( formatType );
+        /// <summary>
+        /// Gets a unique identifier for this culture.
+        /// It is the <see cref="StringExtensions.GetDjb2HashCode(string)"/> hash value.
+        /// </summary>
+        public int Id => _id;
+
+        /// <summary>
+        /// Gets a <see cref="ExtendedCultureInfo"/> for a comma separated fallback names.
+        /// If normalization results in a single <see cref="NormalizedCultureInfo"/>, it is returned.
+        /// </summary>
+        /// <param name="commaSeparatedNames">Comma separated culture names.</param>
+        /// <returns>The extended culture.</returns>
+        public static ExtendedCultureInfo GetExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoGetExtendedCultureInfo( commaSeparatedNames );
+
+        /// <summary>
+        /// Tries to retrive an already registered <see cref="ExtendedCultureInfo"/> from its identifier (the <see cref="ExtendedCultureInfo.Id"/>)
+        /// or returns null.
+        /// </summary>
+        /// <param name="id">The identifier.</param>
+        /// <returns>The culture if found, null otherwise.</returns>
+        public static ExtendedCultureInfo? GetExtendedCultureInfo( int id ) => NormalizedCultureInfo.DoGetExtendedCultureInfo( id );
+
+        /// <summary>
+        /// Overridden to return the <see cref="Name"/>.
+        /// </summary>
+        /// <returns>This culture's Name.</returns>
+        public override string ToString() => _name;
+
+        object? IFormatProvider.GetFormat( Type? formatType ) => _primary.Culture.GetFormat( formatType );
     }
 }

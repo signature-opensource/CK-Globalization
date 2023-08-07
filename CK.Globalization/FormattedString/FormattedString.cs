@@ -60,7 +60,7 @@ namespace CK.Core
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
         /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
         /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
         /// </para>
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
@@ -96,7 +96,7 @@ namespace CK.Core
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
         /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
         /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with is default fallbacks.
+        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
         /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
@@ -193,15 +193,16 @@ namespace CK.Core
         /// Gets the placeholders' content.
         /// </summary>
         /// <returns>A formatted content (with <see cref="Culture"/>) for each placeholders.</returns>
-        public IEnumerable<ReadOnlyMemory<char>> GetPlaceholderContents()
+        public ReadOnlyMemory<char>[] GetPlaceholderContents()
         {
-            if( _placeholders != null )
+            if( _placeholders == null ) return Array.Empty<ReadOnlyMemory<char>>();
+            ReadOnlyMemory<char>[] p = new ReadOnlyMemory<char>[_placeholders.Length];
+            int i = 0;
+            foreach( var (Start, Length) in _placeholders )
             {
-                foreach( var (Start, Length) in _placeholders )
-                {
-                    yield return _text.AsMemory( Start, Length );
-                }
+                p[i++] = _text.AsMemory( Start, Length );
             }
+            return p;
         }
 
         /// <summary>
@@ -214,9 +215,9 @@ namespace CK.Core
         public ExtendedCultureInfo Culture => _culture ?? NormalizedCultureInfo.Invariant;
 
         /// <summary>
-        /// Implicit cast into string.
+        /// Implicit cast into string: <see cref="Text"/>.
         /// </summary>
-        /// <param name="f">This formatted string.</param>
+        /// <param name="f">This Text.</param>
         public static implicit operator string( FormattedString f ) => f._text ?? String.Empty;
 
         /// <summary>
@@ -256,8 +257,8 @@ namespace CK.Core
         /// <returns>A default resource name based on this <see cref="GetFormatString"/>.</returns>
         public string GetSHA1BasedResName()
         {
-            Throw.DebugAssert( Base64.GetMaxEncodedToUtf8Length( 20 ) == 29 );
-            Span<byte> buffer = stackalloc byte[4 + 29];
+            Throw.DebugAssert( Base64.GetMaxEncodedToUtf8Length( 20 ) == 28 );
+            Span<byte> buffer = stackalloc byte[4 + 28];
             _resNamePrefix.CopyTo( buffer );
             var sha = buffer.Slice( 4 );
             WriteFormatSHA1( sha );
@@ -391,7 +392,7 @@ namespace CK.Core
                     catch( CultureNotFoundException )
                     {
                         _culture = NormalizedCultureInfo.Invariant;
-                        ActivityMonitor.StaticLogger.Error( $"NormalizedCultureInfo named '{n}' cannot be resolved whiel deserializing. Using Invariant for FormattedString '{_text}'." );
+                        ActivityMonitor.StaticLogger.Error( $"NormalizedCultureInfo named '{n}' cannot be resolved while deserializing. Using Invariant for FormattedString '{_text}'." );
                     }
                 }
                 else
