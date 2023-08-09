@@ -23,7 +23,7 @@ namespace CK.Core
     public readonly struct PositionalCompositeFormat
     {
         readonly string? _pureFormat;
-        readonly (int Index, int ArgIndex)[]? _placeholders;
+        internal readonly (int Index, int ArgIndex)[]? _placeholders;
         readonly int _formatLength;
         readonly int _expectedArgumentCount;
 
@@ -238,6 +238,21 @@ namespace CK.Core
             int i = 0;
             foreach( var s in args ) a[i++] = s.AsMemory();
             return Format( a );
+        }
+
+        /// <summary>
+        /// Applies this format to a <see cref="FormattedString.GetPlaceholderContents()"/>.
+        /// <para>
+        /// There can be less placeholder contents than <see cref="ExpectedArgumentCount"/>: a missing
+        /// aregument is skipped (replaced by an empty string).
+        /// </para>
+        /// </summary>
+        /// <param name="s">Arguments for the <see cref="Placeholders"/> substitution.</param>
+        /// <returns>A formatted string.</returns>
+        public string Format( in FormattedString s )
+        {
+            Throw.DebugAssert( s.Format( this ) == Format( s.GetPlaceholderContents() ) );
+            return s.Format( this );
         }
 
         /// <summary>

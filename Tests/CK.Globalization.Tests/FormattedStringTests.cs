@@ -10,58 +10,6 @@ using System.Runtime.InteropServices;
 namespace CK.Globalization.Tests
 {
     [TestFixture]
-    public class CodeStringTests
-    {
-        [Test]
-        public void serialization_tests()
-        {
-            CheckSerialization( new CodeString( "" ) );
-            CheckSerialization( new CodeString( "plain text" ) );
-            CheckSerialization( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
-            CheckSerialization( new CodeString( $"This {GetType().Name}." ) );
-            CheckSerialization( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
-
-            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
-            {
-                var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
-                var value = 37.12;
-                var f = new CodeString( culture, $"{culture.Name} - {culture.Culture.EnglishName} - {culture.Culture.NativeName} - Date: {d:F}, V: {value:C}" );
-                // Just for fun:
-                // Console.WriteLine( f );
-                CheckSerialization( f );
-            }
-            static void CheckSerialization( CodeString c )
-            {
-                // Versioned serializable.
-                {
-                    var bytes = c.SerializeVersioned();
-                    var backC = SimpleSerializable.DeserializeVersioned<CodeString>( bytes );
-                    CheckEquals( backC, c );
-                    CheckEquals( SimpleSerializable.DeepCloneVersioned( c ), c );
-                }
-                // Simple serializable.
-                {
-                    var bytes = c.SerializeSimple();
-                    var backC = SimpleSerializable.DeserializeSimple<CodeString>( bytes );
-                    CheckEquals( backC, c );
-
-                    CheckEquals( SimpleSerializable.DeepCloneSimple( c ), c );
-                    CheckEquals( c.DeepClone(), c );
-                }
-            }
-
-            static void CheckEquals( CodeString backC, CodeString c )
-            {
-                backC.Text.Should().Be( c.Text );
-                backC.Placeholders.Should().BeEquivalentTo( c.Placeholders );
-                backC.GetFormatString().Should().Be( c.GetFormatString() );
-                backC.ContentCulture.Should().BeSameAs( c.ContentCulture );
-                backC.GetPlaceholderContents().Select( c => c.ToString() ).Should().BeEquivalentTo( c.GetPlaceholderContents().Select( c => c.ToString() ) );
-            }
-        }
-
-    }
-    [TestFixture]
     public class FormattedStringTests
     {
         [Test]

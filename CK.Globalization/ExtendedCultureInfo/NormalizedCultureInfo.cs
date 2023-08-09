@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace CK.Core
@@ -81,7 +82,7 @@ namespace CK.Core
                 {
                     if( GlobalizationIssues.Track.IsOpen )
                     {
-                        GlobalizationIssues.OnResourceFormatDuplicate( n, f, p, d[n] );
+                        GlobalizationIssues.OnResourceFormatDuplicate( n, p, d[n] );
                     }
                 }
             }
@@ -153,9 +154,11 @@ namespace CK.Core
         // we also test in Release (no #if DEBUG).
         static void ClearCache()
         {
+            GlobalizationIssues.Track.IsOpen = false;
             var all = new Dictionary<object, ExtendedCultureInfo>( _all.Where( IsUnremovable ) );
             _all = all;
             GlobalizationIssues._identifierClashes = Array.Empty<GlobalizationIssues.IdentifierClash>();
+            GlobalizationIssues._codeSringOccurrence.Clear();
 
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
             Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
@@ -259,12 +262,12 @@ namespace CK.Core
             all.Add( cultureInfo, newOne );
             // Register with id Id.
             all.Add( id, newOne );
-            // Register the "full name" if it differs from the name:
-            // the fallback names is as alias of the NormalizedCultureInfo name.
+            // Register the FullName if it differs from the name.
+            // The FullName is not the same as the Name if and only if there are fallbacks.
+            Throw.DebugAssert( (newOne.Fallbacks.Count > 0) == (newOne.FullName != newOne.Name) );
             if( newOne.Fallbacks.Count > 0 )
             {
-                var fullName = string.Join( ',', newOne.Fallbacks.Select( c => c.Name ).Prepend( newOne.Name ) );
-                all.Add( fullName, newOne );
+                all.Add( newOne.FullName, newOne );
             }
             return newOne;
         }
@@ -329,24 +332,40 @@ namespace CK.Core
                             break;
                         }
                     }
-                    if( idxFound >= 0 )
+                    if( idxFound >= -1 )
                     {
-                        allCultures.Insert( idxFound, c );
-                        foreach( var g in c.Fallbacks.Take( idxLenGen ) )
+                        if( idxFound == -1 )
                         {
-                            allCultures.Insert( ++idxFound, g );
+                            allCultures.Add( c );
+                            allCultures.AddRange( c.Fallbacks );
                         }
-                    }
-                    else if( idxFound == -1 )
-                    {
-                        allCultures.Add( c );
-                        allCultures.AddRange( c.Fallbacks );
+                        else
+                        {
+                            allCultures.Insert( idxFound, c );
+                            foreach( var g in c.Fallbacks.Take( idxLenGen ) )
+                            {
+                                allCultures.Insert( ++idxFound, g );
+                            }
+                        }
                     }
                 }
                 Throw.DebugAssert( allCultures.Count > 0 );
+                // Unfortunately, I did'nt find a clean way to compute the Name in the previous pass,
+                // we need another pass. It's easy: culture that are not right after one of their
+                // specializations must appear in the final name.
+                var previous = allCultures[0];
+                var nameBuilder = new StringBuilder( previous.Name );
+                foreach( var c in allCultures.Skip( 1 ) )
+                {
+                    if( FallbackDepth( previous, c ) < 0 )
+                    {
+                        nameBuilder.Append( ',' ).Append( c.Name );
+                    }
+                    previous = c;
+                }
                 // This may not be a pure ExtendedCultureInfo ("fr, fr-fr" => "fr-fr, fr" => "fr-fr").
                 // The fallback names is registered as an alias of NormalizedCultureInfo name.
-                var names = string.Join( ',', allCultures.Select( c => c.Name ) );
+                var names = nameBuilder.ToString();
                 if( !all.TryGetValue( names, out e ) )
                 {
                     int id = ComputeId( all, names );

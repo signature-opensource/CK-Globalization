@@ -185,4 +185,51 @@ This process is sound: it corrects what can be seen as "stupid input" (without l
 for translations and selections provided that for translations, we consider the "en" culture to
 end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations).
 
+## NormalizedCulture cached transtations
+All NormalizedCulture (except the "en", "en-us" and Invariant default ones) can have a cached translation set of resources.
+It can always be set (the new one replaces the current one if any). This is an atomic operation (thread safe):
 
+```csharp
+/// <summary>
+/// Sets a cached set of resource translation formats.
+/// This must not be called for <see cref="ExtendedCultureInfo.IsDefault"/> otherwise
+/// an <see cref="InvalidOperationException"/> is thrown.
+/// <para>
+/// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, <see cref="GlobalizationIssues.ResourceFormatError"/>
+/// are emitted for invalid format strings.
+/// </para>
+/// <para>
+/// Duplicates can exist in the <paramref name="map"/>: the first resource name is kept, the subsequent
+/// ones are discarded and a <see cref="GlobalizationIssues.ResourceFormatDuplicate"/> is emitted (when
+/// the static gate <see cref="GlobalizationIssues.Track"/> is opened).
+/// </para>
+/// </summary>
+/// <param name="map">The map.</param>
+public void SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+```
+The `Format` string is a positional-only composite format (see https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):
+only `{0}`, `{1}` etc. placeholders are allowed, without alignement nor format specifier. This format string is parsed and kept as a structure
+optimized to generate strings. If the format cannot be parsed successfully, a `GlobalizationIssues.ResourceFormatError` is emitted.
+
+As discussed before, translations must be "compact": a resource defined in "es-es" MUST be defined in "es" but because translations can be
+set in any order (specific "es-es" before more generic "es") and setting the set is a lock-free operation, we don't check this
+requirement. If a neutral (top culture like "es") misses a resource, a `GlobalizationIssues.MissingTranslationResource` will be emitted.
+
+## ITranslationService and MCString
+The current translation service can hardly be simpler:
+```csharp
+/// <summary>
+/// Minimal translation service.
+/// </summary>
+public interface ITranslationService : ISingletonAutoService
+{
+    /// <summary>
+    /// Does its best to ensure that the <see cref="MCString.FormatCulture"/> is aligned with
+    /// the <see cref="CodeString.ContentCulture"/>.
+    /// </summary>
+    /// <param name="s">The string to translate.</param>
+    /// <returns>A string with a format culture aligned to its content culture if possible.</returns>
+    ValueTask<MCString> TranslateAsync( CodeString s );
+}
+```
+The `MCString` wraps its source `CodeString` and exposes the `FormatCulture` and the translated `Text`.

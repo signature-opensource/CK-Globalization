@@ -26,8 +26,13 @@ namespace CK.Core
         /// </summary>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">Optional associated resource name. When null, a "SHA." automatic resource name is computed.</param>
-        public CodeString( string plainText, string? resName = null )
-            : this( NormalizedCultureInfo.Current, plainText, resName )
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public CodeString( string plainText,
+                           string? resName = null,
+                           [CallerFilePath]string? filePath = null,
+                           [CallerLineNumber]int lineNumber = 0 )
+            : this( NormalizedCultureInfo.Current, plainText, resName, filePath, lineNumber )
         {
         }
 
@@ -43,10 +48,17 @@ namespace CK.Core
         /// <param name="culture">The culture of this formatted string.</param>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">Optional associated resource name. When null, a "SHA." automatic resource name is computed.</param>
-        public CodeString( ExtendedCultureInfo culture, string plainText, string? resName = null )
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public CodeString( ExtendedCultureInfo culture,
+                           string plainText,
+                           string? resName = null,
+                           [CallerFilePath] string? filePath = null,
+                           [CallerLineNumber] int lineNumber = 0 )
         {
             _f = new FormattedString( culture, plainText );
             _resName = resName ?? _f.GetSHA1BasedResName();
+            if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
         /// <summary>
@@ -58,10 +70,16 @@ namespace CK.Core
         /// </summary>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
-        public CodeString( [InterpolatedStringHandlerArgument] FormattedStringHandler text, string? resName = null )
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public CodeString( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
+                           string? resName = null,
+                           [CallerFilePath] string? filePath = null,
+                           [CallerLineNumber] int lineNumber = 0 )
         {
             _f = FormattedString.Create( ref text, NormalizedCultureInfo.Current );
             _resName = resName ?? _f.GetSHA1BasedResName();
+            if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
         /// <summary>
@@ -77,10 +95,17 @@ namespace CK.Core
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
-        public CodeString( ExtendedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text, string? resName = null )
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public CodeString( ExtendedCultureInfo culture,
+                           [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
+                           string? resName = null,
+                           [CallerFilePath] string? filePath = null,
+                           [CallerLineNumber] int lineNumber = 0 )
         {
             _f = FormattedString.Create( ref text, culture );
             _resName = resName ?? _f.GetSHA1BasedResName();
+            if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
         /// <summary>
@@ -114,24 +139,9 @@ namespace CK.Core
         public ReadOnlyMemory<char>[] GetPlaceholderContents() => _f.GetPlaceholderContents();
 
         /// <summary>
-        /// Gets whether this <see cref="GetFormatString"/> is empty: <see cref="Text"/> is empty and there is no <see cref="Placeholders"/>.
-        /// <para>
-        /// Note that:
-        /// <list type="bullet">
-        ///   <item>
-        ///     Text can be empty and there may be one or more Placeholders. For instance, the format string <c>{0}{1}</c>
-        ///     with 2 empty placeholders content leads to an empty Text but this doesn't mean that this <see cref="CodeString"/> is empty.
-        ///   </item>
-        ///   <item>
-        ///     When this is true, <see cref="ContentCulture"/> can be any culture, not necessarily the <see cref="NormalizedCultureInfo.Invariant"/>).
-        ///   </item>
-        /// </list>
-        /// </para>
+        /// Gets the formatted string.
         /// </summary>
-        public bool IsEmptyFormat => _f.IsEmptyFormat;
-
-        /// <inheritdoc cref="FormattedString.GetFormatString"/>
-        public string GetFormatString() => _f.GetFormatString();
+        public FormattedString FormattedString => _f;
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.

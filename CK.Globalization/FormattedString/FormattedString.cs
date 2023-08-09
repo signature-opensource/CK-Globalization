@@ -223,7 +223,7 @@ namespace CK.Core
         /// <summary>
         /// Writes the 20 bytes SHA1 of the <see cref="GetFormatString()"/> (without computing it).
         /// </summary>
-        /// <param name="destination">Must be at leas 20 bytes length.</param>
+        /// <param name="destination">Must be at least 20 bytes length.</param>
         public void WriteFormatSHA1( Span<byte> destination )
         {
             Throw.CheckArgument( destination.Length >= 20 );
@@ -312,6 +312,50 @@ namespace CK.Core
             return s;
         }
 
+        /// <summary>
+        /// Applies a <see cref="PositionalCompositeFormat"/> to this <see cref="FormattedString"/>'s placeholder contents.
+        /// </summary>
+        /// <param name="format">The format to apply.</param>
+        /// <returns>The formatted string.</returns>
+        public string Format( in PositionalCompositeFormat format )
+        {
+            if( !IsValid || format._placeholders == null ) return string.Empty;
+            var f = format.Format();
+            int length = f.Length;
+            foreach( var p in format._placeholders )
+            {
+                if( p.ArgIndex < _placeholders.Length ) length += _placeholders[p.ArgIndex].Length;
+            }
+            return string.Create( length, (f, format._placeholders, _text, _placeholders), ( span, ctx ) =>
+            {
+                var format = ctx.Item1.AsSpan();
+                int lastSource = 0;
+                int lenF;
+                foreach( var (pI, pN) in ctx.Item2 )
+                {
+                    lenF = pI - lastSource;
+                    if( lenF > 0 )
+                    {
+                        format.Slice( lastSource, lenF ).CopyTo( span );
+                        span = span.Slice( lenF );
+                        lastSource += lenF;
+                    }
+                    if( pN < ctx.Item4.Length )
+                    {
+                        var p = ctx.Item4[pN];
+                        ctx.Item3.AsSpan(p.Start,p.Length).CopyTo( span );
+                        span = span.Slice( p.Length );
+                    }
+                }
+                lenF = format.Length - lastSource;
+                if( lenF > 0 )
+                {
+                    format.Slice( lastSource, lenF ).CopyTo( span );
+                }
+            } );
+        }
+
+
         internal static void CopyWithDoubledBraces( ReadOnlySpan<char> before, Span<char> target, ref int targetIndex )
         {
             int iB = before.IndexOfAny( '{', '}' );
@@ -379,26 +423,7 @@ namespace CK.Core
                     s.Start = r.ReadNonNegativeSmallInt32();
                     s.Length = r.ReadNonNegativeSmallInt32();
                 }
-                var n = r.ReadString();
-                // First idea was to throw if the culture cannot be found but it seems
-                // a better idea to never throw at this level...
-                // If there's only the invariant culture, we also avoid the exception.
-                if( n.Length > 0 && !Util.IsGlobalizationInvariantMode )
-                {
-                    try
-                    {
-                        _culture = NormalizedCultureInfo.GetNormalizedCultureInfo( n );
-                    }
-                    catch( CultureNotFoundException )
-                    {
-                        _culture = NormalizedCultureInfo.Invariant;
-                        ActivityMonitor.StaticLogger.Error( $"NormalizedCultureInfo named '{n}' cannot be resolved while deserializing. Using Invariant for FormattedString '{_text}'." );
-                    }
-                }
-                else
-                {
-                    _culture = NormalizedCultureInfo.Invariant;
-                }
+                _culture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
             }
         }
 

@@ -14,9 +14,9 @@ namespace CK.Core
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public ValueTask<TransString> TranslateAsync( CodeString s )
+        public ValueTask<MCString> TranslateAsync( CodeString s )
         {
-            ValueTask<TransString> result = default;
+            ValueTask<MCString> result = default;
             if( TryTranslate( s.ContentCulture.PrimaryCulture, s, ref result ) )
             {
                 return result;
@@ -30,17 +30,17 @@ namespace CK.Core
             }
             return OnTranslationNotFoundAsync( s );
 
-            static bool TryTranslate( NormalizedCultureInfo c, CodeString s, ref ValueTask<TransString> result )
+            static bool TryTranslate( NormalizedCultureInfo c, CodeString s, ref ValueTask<MCString> result )
             {
                 if( c.IsDefault )
                 {
-                    result = new ValueTask<TransString>( new TransString( s ) );
+                    result = new ValueTask<MCString>( new MCString( s ) );
                     return true;
                 }
                 if( c.TryGetCachedTranslation( s.ResName, out var translation ) )
                 {
-                    var t = translation.Format( s.GetPlaceholderContents() );
-                    result = new ValueTask<TransString>( new TransString( t, s, c ) );
+                    var t = s.FormattedString.Format( translation );
+                    result = new ValueTask<MCString>( new MCString( t, s, c ) );
                     return true;
                 }
                 return false;
@@ -53,9 +53,9 @@ namespace CK.Core
         /// </summary>
         /// <param name="s">The string to translate.</param>
         /// <returns>The resulting translated string.</returns>
-        protected virtual ValueTask<TransString> OnTranslationNotFoundAsync( CodeString s )
+        protected virtual ValueTask<MCString> OnTranslationNotFoundAsync( CodeString s )
         {
-            return new ValueTask<TransString>( new TransString( s ) );
+            return new ValueTask<MCString>( new MCString( s ) );
         }
     }
 }

@@ -30,41 +30,46 @@ namespace CK.Globalization.Tests
         }
 
         // Single entry.
-        [TestCase( "jp", "jp", false )]
+        [TestCase( "jp", "jp", false, "jp" )]
         // Basic list.
-        [TestCase( " jp, fr ", "jp,fr", true )]
-        [TestCase( "en, jp, fr", "en,jp,fr", true )]
+        [TestCase( " jp, fr ", "jp,fr", true, "jp,fr" )]
+        [TestCase( "en, jp, fr", "en,jp,fr", true , "en,jp,fr" )]
         // Basic list (with duplicates).
-        [TestCase( " jp, fr, jp, fr ", "jp,fr", true )]
-        [TestCase( "en, jp, fr, fr, jp, en", "en,jp,fr", true )]
+        [TestCase(" jp, fr, jp, fr ", "jp,fr", true, "jp,fr")]
+        [TestCase("en, jp, fr, fr, jp, en", "en,jp,fr", true, "en,jp,fr")]
         // A NormalizedCultureInfo expressed as its fallbacks.
-        [TestCase( "FR-FR,FR", "fr-fr", false )]
+        [TestCase( "FR-FR,FR", "fr-fr,fr", false, "fr-fr" )]
         // A NormalizedCultureInfo expressed as its fallbacks (with duplicates).
-        [TestCase( "FR-FR,FR,fr-fr", "fr-fr", false )]
+        [TestCase( "FR-FR,FR,fr-fr", "fr-fr,fr", false, "fr-fr" )]
         // Reordering leading to the NormalizedCultureInfo.
-        [TestCase( "fr, fr-FR", "fr-fr", false )]
+        [TestCase( "fr, fr-FR", "fr-fr,fr", false, "fr-fr" )]
         // Simple reordering.
-        [TestCase( "fr, fr-fr, en", "fr-fr,fr,en", true )]
-        [TestCase( "fr, en, fr-fr", "fr-fr,fr,en", true )]
+        [TestCase("fr, fr-fr, en", "fr-fr,fr,en", true, "fr-fr,en")]
+        [TestCase("fr, en, fr-fr", "fr-fr,fr,en", true, "fr-fr,en")]
         // Multiple reordering.
-        [TestCase( "fr, fr-fr, en, fr-ca, en-CA, fr-CH,en-BB", "fr-fr,fr-ca,fr-ch,fr,en-ca,en-bb,en", true )]
+        [TestCase("fr, fr-fr, en, fr-ca, en-CA, fr-CH,en-BB", "fr-fr,fr-ca,fr-ch,fr,en-ca,en-bb,en", true, "fr-fr,fr-ca,fr-ch,en-ca,en-bb")]
         // 3-levels.
-        [TestCase( "pa-Guru-IN,az-Cyrl-AZ", "pa-guru-in,pa-guru,pa,az-cyrl-az,az-cyrl,az", true )]
-        [TestCase( "pa-Guru,az-Cyrl", "pa-guru,pa,az-cyrl,az", true )]
-        [TestCase( "az, pa-Guru-IN, az-Cyrl, en, pa", "az-cyrl,az,pa-guru-in,pa-guru,pa,en", true )]
-        [TestCase( "az, pa, az-Cyrl-AZ, az-Cyrl, pa-Guru-IN", "az-cyrl-az,az-cyrl,az,pa-guru-in,pa-guru,pa", true )]
-        [TestCase( "pa-Guru-IN,en,pa-Guru", "pa-guru-in,pa-guru,pa,en", true )]
+        [TestCase( "pa-Guru-IN,az-Cyrl-AZ", "pa-guru-in,pa-guru,pa,az-cyrl-az,az-cyrl,az", true, "pa-guru-in,az-cyrl-az" )]
+        [TestCase( "pa-Guru,az-Cyrl", "pa-guru,pa,az-cyrl,az", true, "pa-guru,az-cyrl" )]
+        [TestCase( "az, pa-Guru-IN, az-Cyrl, en, pa", "az-cyrl,az,pa-guru-in,pa-guru,pa,en", true, "az-cyrl,pa-guru-in,en" )]
+        [TestCase( "az, pa, az-Cyrl-AZ, az-Cyrl, pa-Guru-IN", "az-cyrl-az,az-cyrl,az,pa-guru-in,pa-guru,pa", true, "az-cyrl-az,pa-guru-in" )]
+        [TestCase( "pa-Guru-IN,en,pa-Guru", "pa-guru-in,pa-guru,pa,en", true, "pa-guru-in,en" )]
         //
-        [TestCase( "st-ls,sl-si", "st-ls,st,sl-si,sl", true )]
-        public void ExtendedCultureInfo_normalization( string names, string expected, bool isExtended )
+        [TestCase( "st-ls,sl-si", "st-ls,st,sl-si,sl", true, "st-ls,sl-si" )]
+        public void ExtendedCultureInfo_normalization( string names, string expectedFullName, bool isExtended, string expectedName )
         {
             var n = ExtendedCultureInfo.GetExtendedCultureInfo( names );
-            n.Name.Should().Be( expected );
-            (isExtended == n is not NormalizedCultureInfo).Should().BeTrue( $"'{names}' => '{expected}'" );
+            n.FullName.Should().Be( expectedFullName );
+            n.Name.Should().Be( expectedName );
+            (isExtended == n is not NormalizedCultureInfo).Should().BeTrue( $"'{names}' => '{n.Name}'" );
+            var n1 = ExtendedCultureInfo.GetExtendedCultureInfo( n.FullName );
+            n1.Should().BeSameAs( n );
             var n2 = ExtendedCultureInfo.GetExtendedCultureInfo( n.Name );
             n2.Should().BeSameAs( n );
             var n3 = ExtendedCultureInfo.GetExtendedCultureInfo( n.Name.ToUpperInvariant() );
             n3.Should().BeSameAs( n );
+            var n4 = ExtendedCultureInfo.GetExtendedCultureInfo( n.FullName.ToUpperInvariant() );
+            n4.Should().BeSameAs( n );
         }
 
         [Test]
@@ -98,9 +103,10 @@ namespace CK.Globalization.Tests
             }
         }
 
-        [TestCase( 707030051, "ca-ad,ca,jv,bo-in,bo,kea,teo-ke,teo,en-vi,en-tt,en", "ebu,es-gq,es,brx-in,brx,hu,fr-fr,fr,en-cc,en")]
-        [TestCase( -1361060459, "kam,shi-latn,shi,vi-vn,vi,uk,kea-cv,kea,vai", "en-gu,en,nmg,ln-cd,ln,sr-cyrl-rs,sr-cyrl,sr" )]
-        [TestCase( -256573857, "en-ch,en,es-ec,es,zh,kln", "as,gu,bn,is-is,is,fr-rw,fr,sw-cd,sw,so-ke,so")]
+        [TestCase( -1149234858, "es-ec,fr-bj,fr-bl,ta-my,ff-latn-ng,tg-tj,aa-er", "kk,ms-sg,bs-latn,zh-hant,lag-tz,th,ru-kg")]
+        [TestCase( 263746875, "en-mo,en-er,en-na,wae-ch,gsw,qu-bo,ff,ha-ne,ta-lk", "en-to,en-at,es-co,es-ph,az-latn-az,tr-cy,kkj,jmc" )]
+        [TestCase( 783236085, "ksh,eo-001,en-fm,ebu-ke,tt-ru", "nnh,fr-gq,pt-br,th-th,qu-pe,prg,sma,mk,ru-md" )]
+        [TestCase( -1634777652, "en-150,en-um,en-tt,haw-us,yo,pt-br,fy-nl,kok-in", "es-pa,gu,ee-tg,gsw" )]
         public void id_clash_detection_test( int idClash, string name1, string name2 )
         {
             // Listen to the issues. There must be only IdentifierClash.

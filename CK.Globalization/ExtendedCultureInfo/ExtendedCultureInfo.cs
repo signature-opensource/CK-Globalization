@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace CK.Core
 {
@@ -27,12 +28,15 @@ namespace CK.Core
         readonly string _name;
         readonly NormalizedCultureInfo _primary;
         readonly NormalizedCultureInfo[] _fallbacks;
+        readonly string _fullName;
         readonly int _id;
 
         internal ExtendedCultureInfo( string name, int id )
         {
             Throw.DebugAssert( name != null && name.Length == 0 || name == "en" || name == "en-us" );
             _name = name;
+            // Exception here: "en-us" has no fallbacks and its FullName is "en-us", not "en-us,en".
+            _fullName = name;
             _primary = (NormalizedCultureInfo)this;
             _fallbacks = Array.Empty<NormalizedCultureInfo>();
             _id = id;
@@ -47,6 +51,9 @@ namespace CK.Core
         {
             Throw.DebugAssert( name.Length > 0 && !name.Contains(',') && !fallbacks.Contains( this ) );
             _name = name;
+            _fullName = fallbacks.Length > 0
+                            ? string.Join( ',', fallbacks.Select( n => n.Name ).Prepend( name ) )
+                            : name;
             _primary = (NormalizedCultureInfo)this;
             _fallbacks = fallbacks;
             _id = id;
@@ -56,16 +63,22 @@ namespace CK.Core
         {
             Throw.DebugAssert( allCultures.Count > 1 );
             _name = names;
+            _fullName = string.Join( ',', allCultures.Select( n => n.Name ) );
             _id = id;
             _primary = allCultures[0];
             _fallbacks = allCultures.Skip( 1 ).ToArray();
         }
 
         /// <summary>
-        /// Gets the normalized, lowered invariant, <see cref="CultureInfo.Name"/> for a <see cref="NormalizedCultureInfo"/>
-        /// or the comma separated names of <see cref="Fallbacks"/> for a pure extended culture.
+        /// Gets the shortest comma separated names normalized in lowered invariant that produces the <see cref="Fallbacks"/>.
+        /// This is the single <see cref="CultureInfo.Name"/> for a <see cref="NormalizedCultureInfo"/>.
         /// </summary>
         public string Name => _name;
+
+        /// <summary>
+        /// Gets the comma separated names normalized in lowered invariant with the <see cref="PrimaryCulture"/> and <see cref="Fallbacks"/>.
+        /// </summary>
+        public string FullName => _fullName;
 
         /// <summary>
         /// Gets the primary culture.
