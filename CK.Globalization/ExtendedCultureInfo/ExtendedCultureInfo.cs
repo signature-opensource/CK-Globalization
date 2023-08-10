@@ -31,14 +31,17 @@ namespace CK.Core
         readonly string _fullName;
         readonly int _id;
 
-        internal ExtendedCultureInfo( string name, int id )
+        internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo? enCulture )
         {
             Throw.DebugAssert( name != null && name.Length == 0 || name == "en" || name == "en-us" );
+            Throw.DebugAssert( (name == "en-us") == (enCulture != null && enCulture.Name == "en") );
             _name = name;
             // Exception here: "en-us" has no fallbacks and its FullName is "en-us", not "en-us,en".
             _fullName = name;
             _primary = (NormalizedCultureInfo)this;
-            _fallbacks = Array.Empty<NormalizedCultureInfo>();
+            _fallbacks = enCulture == null
+                         ? Array.Empty<NormalizedCultureInfo>()
+                         : new NormalizedCultureInfo[] { enCulture };
             _id = id;
         }
 
@@ -86,13 +89,12 @@ namespace CK.Core
         public NormalizedCultureInfo PrimaryCulture => _primary;
 
         /// <summary>
-        /// Gets the fallbacks. This is empty for <see cref="NormalizedCultureInfo.Invariant"/>, any neutral culture (like "fr")
-        /// and the <see cref="NormalizedCultureInfo.CodeDefault"/>.
+        /// Gets the fallbacks. This is empty for <see cref="NormalizedCultureInfo.Invariant"/> and any neutral culture (like "fr").
         /// </summary>
         public IReadOnlyList<NormalizedCultureInfo> Fallbacks => _fallbacks;
 
         /// <summary>
-        /// Gets whether this is the default culture: the <see cref="NormalizedCultureInfo.Invariant"/>, "en" or "en-us" culture.
+        /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/>, "en" or "en-us" culture.
         /// </summary>
         public bool IsDefault => _name.Length == 0 || ReferenceEquals( _name, "en" ) || ReferenceEquals( _name, "en-us" );
 

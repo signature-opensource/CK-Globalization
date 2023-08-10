@@ -45,9 +45,9 @@ namespace CK.Core
 
         sealed class SHAComparer : IEqualityComparer<byte[]>
         {
-            public bool Equals( byte[] x, byte[] y ) => x.AsSpan().SequenceEqual( y );
+            public bool Equals( byte[]? x, byte[]? y ) => x.AsSpan().SequenceEqual( y );
 
-            public int GetHashCode( [DisallowNull] byte[] obj ) => obj.GetDjb2HashCode();
+            public int GetHashCode( byte[] obj ) => obj.GetDjb2HashCode();
         }
 
         static readonly Channel<Issue?> _channel;
@@ -76,20 +76,30 @@ namespace CK.Core
                 Issue? o;
                 while( (o = await _channel.Reader.ReadAsync().ConfigureAwait( false )) != null )
                 {
-                    if( o is CodeStringCreated s )
+                    try
                     {
-                        HandleStringCreated( s.String, s.FilePath, s.LineNumber );
-                        continue;
+                        switch( o )
+                        {
+                            case PrivateCodeStringCreated s:
+                                HandleStringCreated( s.String, s.FilePath, s.LineNumber );
+                                continue;
+                            case PrivateMissingTranslationResource m:
+                                HandleMissingTranslationResource( m.Format, m.CodeString );
+                                continue;
+                            case IdentifierClash c:
+                                Util.InterlockedAdd( ref _identifierClashes, c );
+                                _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
+                                                        ActivityMonitor.Tags.ToBeInvestigated,
+                                                        $"CultureInfo name identifier clash: '{c.Name}' has been associated to '{c.Id}' because of '{c.Clashes.Concatenate( "', '" )}'.",
+                                                        null );
+                                break;
+                        }
+                        await _onNewIssue.SafeRaiseAsync( _monitor, o ).ConfigureAwait( false );
                     }
-                    if( o is IdentifierClash c )
+                    catch( Exception ex )
                     {
-                        Util.InterlockedAdd( ref _identifierClashes, c );
-                        _monitor.UnfilteredLog( LogLevel.Warn|LogLevel.IsFiltered,
-                                                ActivityMonitor.Tags.ToBeInvestigated,
-                                                $"CultureInfo name identifier clash: '{c.Name}' has been associated to '{c.Id}' because of '{c.Clashes.Concatenate("', '")}'.",
-                                                null );
+                        _monitor.Error( "Unhandled exception in GlobalizationIssues.", ex );
                     }
-                    await _onNewIssue.SafeRaiseAsync( _monitor, o ).ConfigureAwait( false );
                 }
             }
         }
@@ -97,9 +107,10 @@ namespace CK.Core
         /// <summary>
         /// Captures the source declaration of a <see cref="CodeString"/>.
         /// </summary>
+        /// <param name="ResName">The <see cref="CodeString.ResName"/>.</param>
         /// <param name="FilePath">File path.</param>
         /// <param name="LineNumber">Line number.</param>
-        public readonly record struct CodeStringSourceLocation( string FilePath, int LineNumber )
+        public readonly record struct CodeStringSourceLocation( string ResName, string FilePath, int LineNumber )
         {
             /// <summary>
             /// Overridden to return "FilePath@LineNumber".
@@ -123,11 +134,13 @@ namespace CK.Core
                 _ =>
                 {
                     isNew = true;
-                    return new[] { new CodeStringSourceLocation( filePath, lineNumber ) };
+                    return new[] { new CodeStringSourceLocation( s.ResName, filePath, lineNumber ) };
                 },
                 ( _, exist ) =>
                 {
-                    var o = new CodeStringSourceLocation( filePath, lineNumber );
+                    // If 2 MCString appears on the same source line, we lose the second one
+                    // unless its resource same differ. This is "by design" and not a big deal.
+                    var o = new CodeStringSourceLocation( s.ResName, filePath, lineNumber );
                     if( !exist.Contains( o ) )
                     {
                         Array.Resize( ref exist, exist.Length + 1 );
@@ -144,9 +157,13 @@ namespace CK.Core
                 else if( s.ResName.StartsWith( "SHA." ) )
                 {
                     _monitor.Warn( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
-                    return;
                 }
             }
+        }
+
+        static void HandleMissingTranslationResource( PositionalCompositeFormat? format, CodeString s )
+        {
+            throw new NotImplementedException();
         }
 
         internal static void OnIdentifierClash( string name, int finalId, List<string> clashes )
@@ -166,7 +183,27 @@ namespace CK.Core
 
         internal static void OnCodeStringCreated( CodeString s, string? filePath, int lineNumber )
         {
-            _channel.Writer.TryWrite( new CodeStringCreated( s, filePath, lineNumber ) );
+            _channel.Writer.TryWrite( new PrivateCodeStringCreated( s, filePath, lineNumber ) );
+        }
+
+        internal static void OnMCStringCreated( in PositionalCompositeFormat format, MCString mc )
+        {
+            if( mc.TranslationLevel < MCString.Quality.Good )
+            {
+                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( format, mc.CodeString ) );
+            }
+            else
+            {
+                _channel.Writer.TryWrite( new PrivateCheckFormat( format, mc.CodeString ) );
+            }
+        }
+
+        internal static void OnMCStringCreated( MCString mc )
+        {
+            if( mc.TranslationLevel < MCString.Quality.Good )
+            {
+                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( null, s ) );
+            }
         }
 
         /// <summary>
@@ -204,8 +241,20 @@ namespace CK.Core
         /// <param name="Registered">The already registered format.</param>
         public sealed record ResourceFormatDuplicate( string ResName, PositionalCompositeFormat Skipped, PositionalCompositeFormat Registered ) : Issue;
 
+        /// <summary>
+        /// A missing resource has been detected.
+        /// </summary>
+        /// <param name="MissingCulture">The culture in which the resource should be defined.</param>
+        /// <param name="Instance">
+        /// The first instance with the <see cref="FormattedString"/> that lacks a resource.
+        /// The same format may be shared by multiple <see cref="CodeStringSourceLocation"/>.
+        /// </param>
+        public sealed record MissingTranslationResource( NormalizedCultureInfo MissingCulture, CodeString Instance ) : Issue;
+
         // Private only.
-        sealed record CodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
+        sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
+        sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, CodeString CodeString ) : Issue;
+        sealed record PrivateCheckFormat( PositionalCompositeFormat? Format, CodeString CodeString ) : Issue;
 
     }
 }

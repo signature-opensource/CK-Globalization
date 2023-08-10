@@ -28,11 +28,10 @@ namespace CK.Globalization.Tests
         public void source_location_tests()
         {
             GlobalizationIssues.Track.IsOpen = true;
-            Thread.Yield();
 
             var c1 = new CodeString( "plaitext" );
             // Let the async loop process the event. 
-            Thread.Sleep( 20 );
+            Thread.Sleep( 40 );
             var c1Loc = GlobalizationIssues.GetSourceLocation( c1 );
             c1Loc[0].FilePath.Should().Be( ThisFile() );
 

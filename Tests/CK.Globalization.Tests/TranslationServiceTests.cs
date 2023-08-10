@@ -120,5 +120,42 @@ namespace CK.Globalization.Tests
             }
         }
 
+        [Test]
+        public async Task translations_quality_with_default_Async()
+        {
+            var s = new DefaultTranslationService();
+
+            {
+                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr" );
+                var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
+                var t = await s.TranslateAsync( c );
+                t.TranslationLevel.Should().Be( MCString.Quality.Awful );
+            }
+            {
+                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en" );
+                var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
+                var t = await s.TranslateAsync( c );
+                t.TranslationLevel.Should().Be( MCString.Quality.Perfect );
+            }
+            {
+                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en-us" );
+                var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
+                var t = await s.TranslateAsync( c );
+                t.TranslationLevel.Should().Be( MCString.Quality.Perfect );
+            }
+            {
+                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en-us" );
+                var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
+                var t = await s.TranslateAsync( c );
+                t.TranslationLevel.Should().Be( MCString.Quality.Bad );
+            }
+            {
+                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en" );
+                var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
+                var t = await s.TranslateAsync( c );
+                t.TranslationLevel.Should().Be( MCString.Quality.Bad );
+            }
+        }
+
     }
 }

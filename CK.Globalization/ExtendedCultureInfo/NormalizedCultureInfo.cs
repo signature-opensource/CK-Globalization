@@ -16,6 +16,8 @@ namespace CK.Core
     public sealed class NormalizedCultureInfo : ExtendedCultureInfo
     {
         readonly CultureInfo _culture;
+        // This is not exposed. It is the InvariantCulture for all the "en" culture.
+        readonly NormalizedCultureInfo _neutral;
         Dictionary<string, PositionalCompositeFormat> _translations;
 
         /// <summary>
@@ -25,8 +27,7 @@ namespace CK.Core
 
         /// <summary>
         /// The default culture is bound to the "en-US" culture by convention.
-        /// Its fallback is empty since "en-US", "en" and Invariant are the same for us
-        /// and cannot have cached translations.
+        /// "en-US", "en" and Invariant cannot have cached translations.
         /// </summary>
         public static readonly NormalizedCultureInfo CodeDefault;
 
@@ -39,6 +40,14 @@ namespace CK.Core
         /// Gets the <see cref="CultureInfo"/>.
         /// </summary>
         public CultureInfo Culture => _culture;
+
+        /// <summary>
+        /// Gets whether this culture share the same top-most neutral culture (the same language)
+        /// with the other one.
+        /// </summary>
+        /// <param name="other">The other culture.</param>
+        /// <returns>True if this and other share the same neutral culture.</returns>
+        public bool HasSameNeutral( NormalizedCultureInfo other ) => _neutral == other._neutral;
 
         /// <summary>
         /// Sets a cached set of resource translation formats from a dictionary of resource name to positional composite
@@ -100,10 +109,18 @@ namespace CK.Core
             return _translations.TryGetValue( resourceName, out format );
         }
 
-        NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations, string name, int id, CultureInfo c )
-            : base( name, id )
+        // Constructor for defaults (Invariant, en, en-us).
+        NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations,
+                               string name,
+                               int id,
+                               CultureInfo c,
+                               NormalizedCultureInfo? invCulture,
+                               NormalizedCultureInfo? enCulture )
+            : base( name, id, enCulture )
         {
+            Throw.DebugAssert( (name.Length != 0) == (invCulture != null) );
             _culture = c;
+            _neutral = invCulture ?? this;
             _translations = definitelyNoTranslations;
         }
 
@@ -111,6 +128,7 @@ namespace CK.Core
             : base( name, id, fallbacks )
         {
             _culture = culture;
+            _neutral = fallbacks.Length > 0 ? fallbacks[0]._neutral : this;
             _translations = _noTranslations;
         }
 
@@ -121,14 +139,14 @@ namespace CK.Core
         {
             _noTranslations = new Dictionary<string, PositionalCompositeFormat>();
             var cInv = CultureInfo.InvariantCulture;
-            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv );
+            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null, null );
             var cEn = CultureInfo.GetCultureInfo( "en" );
             bool isInvariantModeWithPredefinedOnly = cEn == cInv;
             var cEnUS = isInvariantModeWithPredefinedOnly ? cInv : CultureInfo.GetCultureInfo( "en-US" );
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
             Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
-            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn );
-            var enUS = new NormalizedCultureInfo( _noTranslations, "en-us", -1255733531, cEnUS );
+            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant, null );
+            var enUS = new NormalizedCultureInfo( _noTranslations, "en-us", -1255733531, cEnUS, Invariant, en );
             _all = new Dictionary<object, ExtendedCultureInfo>()
             {
                 { "", Invariant },

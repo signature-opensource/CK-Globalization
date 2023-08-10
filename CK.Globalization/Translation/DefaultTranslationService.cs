@@ -34,13 +34,12 @@ namespace CK.Core
             {
                 if( c.IsDefault )
                 {
-                    result = new ValueTask<MCString>( new MCString( s ) );
+                    result = new ValueTask<MCString>( MCString.CreateUntranslated( s ) );
                     return true;
                 }
                 if( c.TryGetCachedTranslation( s.ResName, out var translation ) )
                 {
-                    var t = s.FormattedString.Format( translation );
-                    result = new ValueTask<MCString>( new MCString( t, s, c ) );
+                    result = new ValueTask<MCString>( MCString.Create( c, translation, s ) );
                     return true;
                 }
                 return false;
@@ -55,7 +54,7 @@ namespace CK.Core
         /// <returns>The resulting translated string.</returns>
         protected virtual ValueTask<MCString> OnTranslationNotFoundAsync( CodeString s )
         {
-            return new ValueTask<MCString>( new MCString( s ) );
+            return new ValueTask<MCString>( MCString.CreateUntranslated( s ) );
         }
     }
 }
