@@ -288,7 +288,7 @@ namespace CK.Core
 
         /// <summary>
         /// Describes a resource format error emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
-        /// This issue is collected only if the <see cref="Track"/> static gate is opened.
+        /// This issue is logged (but not collected) only if the <see cref="Track"/> static gate is opened.
         /// </summary>
         /// <param name="Culture">The culture that contains the resource.</param>
         /// <param name="ResName">The resource name.</param>
@@ -301,7 +301,7 @@ namespace CK.Core
 
         /// <summary>
         /// Describes a duplicate resource. Emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
-        /// This issue is collected only if the <see cref="Track"/> static gate is opened.
+        /// This issue is logged (but not collected) only if the <see cref="Track"/> static gate is opened.
         /// </summary>
         /// <param name="Culture">The culture that duplicates the resource.</param>
         /// <param name="ResName">The resource name.</param>

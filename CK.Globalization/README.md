@@ -103,6 +103,12 @@ We introduce a new identifier, the `ExtendedCultureInfo.Id` that is the DBJ2 has
 since collisions can occur but our tests have shown that they are quite exceptional and for very "artificial" fallbacks. Clashes are
 detected and an explicit identifier assignation is done in such case.
 
+> If this happens, this HAS TO BE HANDLED quickly and the clash must be hard coded in this library order
+for the identifier to be shared accross systems.
+
+This mechanism is a bet. Clashes should occur if a really big number of cultures are used. If managing the
+"exceptions" happens to be unbearable, then we may extend the int identifier to a long (64 bits).
+
 ## Culture fallbacks
 ### ExtendedCultureInfo and NormalizedCultureInfo 
 For (regular) `NormalizedCultureInfo` fallbacks are based on the `CultureInfo.Parent` path provided by the
@@ -215,9 +221,11 @@ As discussed before, translations must be "compact": a resource defined in "es-e
 set in any order (specific "es-es" before more generic "es") and setting the set is a lock-free operation, we don't check this
 requirement. If a neutral (top culture like "es") misses a resource, a `GlobalizationIssues.MissingTranslationResource` will be emitted.
 
-## ITranslationService and MCString
-The translation is primarily synchronous and relies on the cached translations but may support
-asynchronous translations if possible or required.
+## ITranslationService and MCString.
+The translation is primarily synchronous and relies on the basic cached translations carried by
+the `NormalizedCultureInfo`. It can be specialized with more advanced caching capabilities and may
+support asynchronous translation.
+
 ```csharp
 public class TranslationService : ISingletonAutoService
 {
@@ -268,8 +276,45 @@ state management.
 
 A `ExtendedCultureInfo` exists in any DI container and methods that need it have simply to require this
 service. An there is more: the `CurrentCultureInfo` is a scoped service that captures the ubiquitous
-`ExtendedCultureInfo` and the `TranslationService`: this CurrentCultureInfo enables MCString to be
+`ExtendedCultureInfo` and the `TranslationService`: this CurrentCultureInfo enables a `MCString` to be
 directly translated:
+
+```csharp
+return MCString.Create( culture, $"Hello {name}!", "SayHello" );
+```
+If the `culture` is a `CurrentCultureInfo` with a french culture and the cached translation on the 'fr'
+`NormalizedCulture` contains the mapping {"SayHello","Bonjour {0}!"}, then the string is immediately
+translated.
+
+Note that this can only use the synchronous `TranslationService.Translate` method. If async translations
+must be done, they have to be deferred (in an async context).
+
+## The ResName is optional but important.
+When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
+In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance
+is the default resource name of the plain text "text" (it is the base64url encoding of the SHA1 of the
+format string).
+
+This resource name can perfectly be used in the translation resources: the developper is not required
+to choose a resource name. Translations can come later and provided without necessarily updating the
+source code... or never if English is fine.
+
+SHA1 automatic resource names never clash by design. When multiple locations in source code create
+the same CodeString, their SHA1 are equal and the same resource will apply to all of them. If a developper
+changes one of them, it will become "untranslated" until a dedicated resource is provided.
+
+Explicit resource names seems better, but the same name can be defined by 2 different developpers (in 2
+modules) with a totally different format string.
+
+SHA1 or explicit, managing resource names requires to take care of: 
+- A change in the number of placeholders (the user will see messages with "holes" in them).
+- The removal of a CodeString (the resource will be defined for ever, polluting the system).
+
+The good news is that all these issues *can be* tracked automatically. The bad news is that it requires
+some work and not all the kind issues are covered.
+
+## The GlobalizationIssues.
+
 
 
 
