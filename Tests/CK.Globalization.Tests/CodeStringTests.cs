@@ -12,7 +12,6 @@ namespace CK.Globalization.Tests
     [TestFixture]
     public class CodeStringTests
     {
-
         [SetUp]
         [TearDown]
         public void ClearCache()
@@ -29,13 +28,13 @@ namespace CK.Globalization.Tests
         {
             GlobalizationIssues.Track.IsOpen = true;
 
-            var c1 = new CodeString( "plaitext" );
+            var c1 = new CodeString( "plaintext" );
             // Let the async loop process the event. 
             Thread.Sleep( 40 );
             var c1Loc = GlobalizationIssues.GetSourceLocation( c1 );
             c1Loc[0].FilePath.Should().Be( ThisFile() );
 
-            var c2 = new CodeString( "plaitext" );
+            var c2 = new CodeString( "plaintext" );
             Thread.Sleep( 20 );
             var c1AndC2Loc = GlobalizationIssues.GetSourceLocation( c1 );
             c1AndC2Loc.Should().HaveCount( 2 );

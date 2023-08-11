@@ -116,26 +116,6 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Creates a <see cref="FormattedString"/>. This is intended to restore an instance from its component:
-        /// this can typically be used by serializers/deserializers.
-        /// <para>
-        /// All parameters are checked (placeholders cannot overlap or cover more than the text).
-        /// </para>
-        /// </summary>
-        /// <param name="text">The <see cref="Text"/>.</param>
-        /// <param name="placeholders">The <see cref="Placeholders"/>.</param>
-        /// <param name="culture">The <see cref="Culture"/>.</param>
-        /// <returns>A new formatted string.</returns>
-        public static FormattedString Create( string text, (int Start, int Length)[] placeholders, ExtendedCultureInfo culture )
-        {
-            Throw.CheckNotNullArgument( text );
-            Throw.CheckNotNullArgument( placeholders );
-            Throw.CheckNotNullArgument( culture );
-            Throw.CheckArgument( CheckPlaceholders( placeholders, text.Length ) );
-            return new FormattedString( text, placeholders, culture );
-        }
-
-        /// <summary>
         /// Intended for wrappers that capture the interpolated string handler.
         /// </summary>
         /// <param name="handler">The interpolated string handler.</param>
@@ -146,6 +126,26 @@ namespace CK.Core
             Throw.CheckNotNullArgument( culture );
             var (t, p) = handler.GetResult();
             return new FormattedString( t, p, culture );
+        }
+
+        /// <summary>
+        /// Creates a <see cref="FormattedString"/>. This is intended to restore an instance from its component:
+        /// this can typically be used by serializers/deserializers.
+        /// <para>
+        /// All parameters are checked (placeholders cannot overlap or cover more than the text).
+        /// </para>
+        /// </summary>
+        /// <param name="text">The <see cref="Text"/>.</param>
+        /// <param name="placeholders">The <see cref="Placeholders"/>.</param>
+        /// <param name="culture">The <see cref="Culture"/>.</param>
+        /// <returns>A new formatted string.</returns>
+        public static FormattedString CreateFromProperties( string text, (int Start, int Length)[] placeholders, ExtendedCultureInfo culture )
+        {
+            Throw.CheckNotNullArgument( text );
+            Throw.CheckNotNullArgument( placeholders );
+            Throw.CheckNotNullArgument( culture );
+            Throw.CheckArgument( CheckPlaceholders( placeholders, text.Length ) );
+            return new FormattedString( text, placeholders, culture );
         }
 
         static bool CheckPlaceholders( (int Start, int Length)[] placeholders, int lenText )

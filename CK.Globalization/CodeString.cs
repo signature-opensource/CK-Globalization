@@ -4,6 +4,8 @@ using System.ComponentModel.Design.Serialization;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core
 {
@@ -16,6 +18,17 @@ namespace CK.Core
     {
         readonly FormattedString _f;
         readonly string _resName;
+
+        CodeString()
+        {
+            // FormattedString.Empy (empty text, no placeholders and Invariant).
+            _resName = String.Empty;
+        }
+
+        /// <summary>
+        /// Gets the empty code string: empty <see cref="ResName"/>, empty text, no placeholders and <see cref="NormalizedCultureInfo.Invariant"/>.
+        /// </summary>
+        public readonly static CodeString Empty = new CodeString();
 
         /// <summary>
         /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>)
@@ -76,14 +89,12 @@ namespace CK.Core
                            string? resName = null,
                            [CallerFilePath] string? filePath = null,
                            [CallerLineNumber] int lineNumber = 0 )
+            : this( NormalizedCultureInfo.Current, ref text, resName, filePath, lineNumber )
         {
-            _f = FormattedString.Create( ref text, NormalizedCultureInfo.Current );
-            _resName = resName ?? _f.GetSHA1BasedResName();
-            if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
         /// <summary>
-        /// Initializes a <see cref="FormattedString"/> with <see cref="Placeholders"/> using
+        /// Initializes a <see cref="CodeString"/> with <see cref="Placeholders"/> using
         /// the provided <paramref name="culture"/>.
         /// <para>
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
@@ -102,6 +113,15 @@ namespace CK.Core
                            string? resName = null,
                            [CallerFilePath] string? filePath = null,
                            [CallerLineNumber] int lineNumber = 0 )
+            : this( culture, ref text, resName, filePath, lineNumber )
+        {
+        }
+
+        CodeString( ExtendedCultureInfo culture,
+                    ref FormattedStringHandler text,
+                    string? resName,
+                    string? filePath,
+                    int lineNumber )
         {
             _f = FormattedString.Create( ref text, culture );
             _resName = resName ?? _f.GetSHA1BasedResName();
@@ -115,6 +135,7 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the resource name that identifies this string.
+        /// This is the empty string for the <see cref="Empty"/> string.
         /// <para>
         /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="GetFormatString"/>
         /// used when no resource name is provided.
@@ -142,6 +163,36 @@ namespace CK.Core
         /// Gets the formatted string.
         /// </summary>
         public FormattedString FormattedString => _f;
+
+        /// <summary>
+        /// Intended for wrappers that capture the interpolated string handler.
+        /// </summary>
+        /// <param name="handler">The interpolated string handler.</param>
+        /// <param name="culture">The culture.</param>
+        /// <param name="resName">Optional associated resource name.</param>
+        /// <param name="filePath">Source file path.</param>
+        /// <param name="lineNumber">Source line number.</param>
+        /// <returns>A new code string.</returns>
+        public static CodeString Create( ref FormattedStringHandler handler,
+                                         ExtendedCultureInfo culture,
+                                         string? resName,
+                                         string? filePath,
+                                         int lineNumber )
+        {
+            return new CodeString( culture, ref handler, resName, filePath, lineNumber );
+        }
+
+        /// <summary>
+        /// Intended to restore an instance from its component: this can typically be used by serializers/deserializers.
+        /// </summary>
+        /// <param name="formattedString">The <see cref="FormattedString"/>.</param>
+        /// <param name="resName">The <see cref="ResName"/>.</param>
+        /// <returns>A new code string.</returns>
+        public static CodeString CreateFromProperties( in FormattedStringHandler formattedString, string resName )
+        {
+            Throw.CheckNotNullArgument( resName );
+            return new CodeString( formattedString, resName );
+        }
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.

@@ -247,7 +247,7 @@ namespace CK.Globalization.Tests
         public void FormattedString_Create()
         {
             var c = NormalizedCultureInfo.Current;
-            var f = FormattedString.Create( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
+            var f = FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
             var args = f.GetPlaceholderContents().Select( c => c.ToString() ).ToArray();
             args[0].Should().Be( "A" );
             args[1].Should().Be( "B" );
@@ -255,13 +255,13 @@ namespace CK.Globalization.Tests
             args[3].Should().Be( "EF" );
             f.GetFormatString().Should().Be( "{0}{1}{2}CD{3}" );
 
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (-1, 1) }, c ) )
+            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (-1, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (100, 1) }, c ) )
+            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (100, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 7) }, c ) )
+            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 7) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.Create( "ABCDEF", new[] { (0, 2), (1,2) }, c ) )
+            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 2), (1,2) }, c ) )
                 .Should().Throw<ArgumentException>();
         }
     }

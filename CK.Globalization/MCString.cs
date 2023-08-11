@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace CK.Core
 {
     /// <summary>
-    /// Cpatures a translated <see cref="CodeString"/>.
+    /// Captures a translated <see cref="CodeString"/>.
     /// </summary>
     public sealed class MCString
     {
@@ -48,6 +49,19 @@ namespace CK.Core
             Perfect
         }
 
+        /// <summary>
+        /// Gets the empty string: <see cref="FormatCulture"/> is <see cref="NormalizedCultureInfo.Invariant"/>
+        /// and bound to <see cref="CodeString.Empty"/>.
+        /// </summary>
+        public readonly static MCString Empty = new MCString();
+
+        MCString()
+        {
+            _text = string.Empty;
+            _code = CodeString.Empty;
+            _format = NormalizedCultureInfo.Invariant;
+        }
+
         MCString( CodeString code )
         {
             _text = code.Text;
@@ -63,10 +77,68 @@ namespace CK.Core
         }
 
         /// <summary>
+        /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
+        /// and <see cref="CurrentCultureInfo.TranslationService"/>.
+        /// </summary>
+        /// <param name="culture">The culture used to format placeholders' content.</param>
+        /// <param name="text">The text.</param>
+        /// <param name="resName">Optional associated resource name.</param>
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public static MCString Create( CurrentCultureInfo culture,
+                                       string text,
+                                       string? resName = null,
+                                       [CallerFilePath] string? filePath = null,
+                                       [CallerLineNumber] int lineNumber = 0 )
+        {
+            var c = new CodeString( culture.CurrentCulture, text, resName, filePath, lineNumber );
+            return culture.TranslationService.Translate( c );
+        }
+
+        /// <summary>
+        /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
+        /// and <see cref="CurrentCultureInfo.TranslationService"/>.
+        /// </summary>
+        /// <param name="culture">The culture used to format placeholders' content.</param>
+        /// <param name="text">The interpolated text.</param>
+        /// <param name="resName">Optional associated resource name.</param>
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public static MCString Create( CurrentCultureInfo culture,
+                                       [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
+                                       string? resName = null,
+                                       [CallerFilePath] string? filePath = null,
+                                       [CallerLineNumber] int lineNumber = 0 )
+        {
+            return Create( culture, ref text, resName, filePath, lineNumber );
+        }
+
+        /// <summary>
+        /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
+        /// and <see cref="CurrentCultureInfo.TranslationService"/>.
+        /// Intended for wrappers that capture the interpolated string handler. 
+        /// </summary>
+        /// <param name="culture">The culture used to format placeholders' content.</param>
+        /// <param name="text">The interpolated text.</param>
+        /// <param name="resName">Optional associated resource name.</param>
+        /// <param name="filePath">Automatically set by the compiler.</param>
+        /// <param name="lineNumber">Automatically set by the compiler.</param>
+        public static MCString Create( CurrentCultureInfo culture,
+                                       ref FormattedStringHandler text,
+                                       string? resName = null,
+                                       [CallerFilePath] string? filePath = null,
+                                       [CallerLineNumber] int lineNumber = 0 )
+        {
+            var c = CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber );
+            return culture.TranslationService.Translate( c );
+        }
+
+        /// <summary>
         /// Creates a new translated string.
         /// <para>
-        /// There's no real reason to create a MCString directly: only the <see cref="ITranslationService"/>
+        /// There's no real reason to create a MCString directly: only a translation service
         /// should call this.
+        /// Translation issues are tracked if <see cref="GlobalizationIssues.Track"/> is opened.
         /// </para>
         /// </summary>
         /// <param name="formatCulture">The format's culture.</param>
@@ -75,8 +147,8 @@ namespace CK.Core
         /// <returns>The translated string.</returns>
         public static MCString Create( NormalizedCultureInfo formatCulture, in PositionalCompositeFormat format, CodeString s )
         {
-            var t = s.FormattedString.Format( format );
-            var mc = new MCString( t, s, formatCulture );
+            var text = s.FormattedString.Format( format );
+            var mc = new MCString( text, s, formatCulture );
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnMCStringCreated( in format, mc );
             return mc;
         }
@@ -84,19 +156,28 @@ namespace CK.Core
         /// <summary>
         /// Initializes a non translated string. The <see cref="FormatCulture"/> is the
         /// <see cref="NormalizedCultureInfo.CodeDefault"/>: no translation has been done.
+        /// Translation issues are tracked if <see cref="GlobalizationIssues.Track"/> is opened.
         /// <para>
-        /// There's no real reason to create a MCString directly: only the <see cref="ITranslationService"/>
+        /// There's no real reason to create a MCString directly: only a translation service
         /// should call this.
         /// </para>
         /// </summary>
         /// <param name="code">The string from source code.</param>
         /// <returns>The untranslated string.</returns>
-        public static MCString CreateUntranslated( CodeString s )
+        public static MCString Create( CodeString s )
         {
             var mc = new MCString( s );
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnMCStringCreated( mc );
             return mc;
         }
+
+        /// <summary>
+        /// Initializes a non translated string that is a simple wrapper around <paramref name="s"/>
+        /// without tracking any translation issue.
+        /// </summary>
+        /// <param name="code">The string from source code.</param>
+        /// <returns>The untranslated string.</returns>
+        public static MCString CreateUntracked( CodeString s ) => new MCString( s );    
 
         /// <summary>
         /// Gets the translated text.
@@ -122,7 +203,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the translation quality. See <see cref="Quality"/>.
         /// </summary>
-        public Quality TranslationLevel
+        public Quality TranslationQuality
         {
             get
             {
@@ -141,6 +222,18 @@ namespace CK.Core
                 if( c is not NormalizedCultureInfo && c.Fallbacks.Any( c => c.HasSameNeutral( f ) ) ) return Quality.Bad;
                 // Awful: no match, using en-us Code Default AND the user has no "en" in its preference.
                 return Quality.Awful;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether a translation is welcome: the <see cref="TranslationQuality"/> is <see cref="Quality.Bad"/> or <see cref="Quality.Awful"/>.
+        /// </summary>
+        public bool IsTranslationWelcome
+        {
+            get
+            {
+                Throw.DebugAssert( !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _format ) == TranslationQuality < Quality.Good );
+                return !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _format );
             }
         }
 

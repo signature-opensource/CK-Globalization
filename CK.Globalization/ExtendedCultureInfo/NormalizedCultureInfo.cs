@@ -54,9 +54,10 @@ namespace CK.Core
         /// string formats. See <see cref="SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
         /// </summary>
         /// <param name="map">The map.</param>
-        public void SetCachedTranslations( IEnumerable<KeyValuePair<string,string>> map )
+        /// <returns>0 issues or one or more <see cref="GlobalizationIssues.TranslationFormatError"/> or <see cref="GlobalizationIssues.TranslationDuplicateResource"/>.</returns>
+        public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<KeyValuePair<string,string>> map )
         {
-            SetCachedTranslations( map.Select( kv => (kv.Key,kv.Value) ) );
+            return SetCachedTranslations( map.Select( kv => (kv.Key, kv.Value) ) );
         }
 
         /// <summary>
@@ -64,38 +65,46 @@ namespace CK.Core
         /// This must not be called for <see cref="ExtendedCultureInfo.IsDefault"/> otherwise
         /// an <see cref="InvalidOperationException"/> is thrown.
         /// <para>
-        /// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, <see cref="GlobalizationIssues.ResourceFormatError"/>
-        /// are emitted for invalid format strings.
+        /// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, the returned issues are also emitted and logged.
         /// </para>
         /// <para>
         /// Duplicates can exist in the <paramref name="map"/>: the first resource name is kept, the subsequent
-        /// ones are discarded and a <see cref="GlobalizationIssues.ResourceFormatDuplicate"/> is emitted (when
+        /// ones are discarded and a <see cref="GlobalizationIssues.TranslationDuplicateResource"/> is emitted (when
         /// the static gate <see cref="GlobalizationIssues.Track"/> is opened).
         /// </para>
         /// </summary>
         /// <param name="map">The map.</param>
-        public void SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+        /// <returns>0 issues or one or more <see cref="GlobalizationIssues.TranslationFormatError"/> or <see cref="GlobalizationIssues.TranslationDuplicateResource"/>.</returns>
+        public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
         {
             Throw.CheckState( IsDefault is false );
+            List<GlobalizationIssues.Issue>? issues = null;
             var d = new Dictionary<string, PositionalCompositeFormat>();
             foreach( var (n, f) in map )
             {
                 if( !PositionalCompositeFormat.TryParse( f, out var p, out var error ) )
                 {
-                    if( GlobalizationIssues.Track.IsOpen )
-                    {
-                        GlobalizationIssues.OnResourceFormatError( n, f, error );
-                    }
+                    issues = AddIssue( issues, new GlobalizationIssues.TranslationFormatError( this, n, f, error ) );
                 }
                 else if( !d.TryAdd( n, p ) )
                 {
-                    if( GlobalizationIssues.Track.IsOpen )
-                    {
-                        GlobalizationIssues.OnResourceFormatDuplicate( n, p, d[n] );
-                    }
+                    issues = AddIssue( issues, new GlobalizationIssues.TranslationDuplicateResource( this, n, p, d[n] ) );
                 }
             }
             _translations = d;
+            return issues ?? new List<GlobalizationIssues.Issue>();
+
+            static List<GlobalizationIssues.Issue> AddIssue( List<GlobalizationIssues.Issue>? issues, GlobalizationIssues.Issue issue )
+            {
+                issues ??= new List<GlobalizationIssues.Issue>();
+                issues.Add( issue );
+                if( GlobalizationIssues.Track.IsOpen )
+                {
+                    GlobalizationIssues.OnTranslation( issue );
+                }
+
+                return issues;
+            }
         }
 
         /// <summary>
@@ -175,8 +184,10 @@ namespace CK.Core
             GlobalizationIssues.Track.IsOpen = false;
             var all = new Dictionary<object, ExtendedCultureInfo>( _all.Where( IsUnremovable ) );
             _all = all;
-            GlobalizationIssues._identifierClashes = Array.Empty<GlobalizationIssues.IdentifierClash>();
+            GlobalizationIssues._identifierClashes = Array.Empty<GlobalizationIssues.CultureIdentifierClash>();
             GlobalizationIssues._codeSringOccurrence.Clear();
+            GlobalizationIssues._missingTranslations = null;
+            GlobalizationIssues._formatArgumentError = null;
 
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
             Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );

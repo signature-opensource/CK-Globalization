@@ -23,6 +23,7 @@ namespace CK.Core
     ///     </item>
     /// </list>
     /// </summary>
+    [EndpointScopedService( isUbiquitousEndpointInfo:  true )]
     public class ExtendedCultureInfo : IFormatProvider
     {
         readonly string _name;

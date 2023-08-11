@@ -216,20 +216,60 @@ set in any order (specific "es-es" before more generic "es") and setting the set
 requirement. If a neutral (top culture like "es") misses a resource, a `GlobalizationIssues.MissingTranslationResource` will be emitted.
 
 ## ITranslationService and MCString
-The current translation service can hardly be simpler:
+The translation is primarily synchronous and relies on the cached translations but may support
+asynchronous translations if possible or required.
 ```csharp
-/// <summary>
-/// Minimal translation service.
-/// </summary>
-public interface ITranslationService : ISingletonAutoService
+public class TranslationService : ISingletonAutoService
 {
     /// <summary>
-    /// Does its best to ensure that the <see cref="MCString.FormatCulture"/> is aligned with
-    /// the <see cref="CodeString.ContentCulture"/>.
+    /// Does its best to ensure that the returned <see cref="MCString.FormatCulture"/> is aligned with
+    /// the <see cref="CodeString.ContentCulture"/> based on the available memory cached translations.
+    /// <para>
+    /// This is a synchronous method that works on the cached memory translations.
+    /// </para>
     /// </summary>
     /// <param name="s">The string to translate.</param>
     /// <returns>A string with a format culture aligned to its content culture if possible.</returns>
-    ValueTask<MCString> TranslateAsync( CodeString s );
+    public virtual MCString Translate( CodeString s ) { ... }
+
+    /// <summary>
+    /// Gets whether <see cref="TranslateAsync(CodeString)"/> should be called because
+    /// external translations repository may be exploited.
+    /// <para>
+    /// Always false for this default implementation.
+    /// </para>
+    /// </summary>
+    public virtual bool SupportAsyncTranslation => false;
+
+    /// <summary>
+    /// Asynchronous translation that can use external translations repository to retrieve a missing translation.
+    /// <para>
+    /// This default implementation simply calls the synchronous <see cref="Translate(CodeString)"/>.
+    /// This may be overridden if translations may be obtained from external
+    /// repositories (and an async call is made to this method before returning
+    /// a MCString).
+    /// </para>
+    /// </summary>
+    /// <param name="s">The code string to translate.</param>
+    /// <returns>A string with a format culture aligned to its content culture if possible.</returns>
+    public virtual ValueTask<MCString> TranslateAsync( CodeString s )
+    {
+        return new ValueTask<MCString>( Translate( s ) );
+    }
 }
 ```
-The `MCString` wraps its source `CodeString` and exposes the `FormatCulture` and the translated `Text`.
+The translated `MCString` wraps its source `CodeString` and exposes the `FormatCulture`, the translated `Text`
+and a translation quality.
+
+## The ExtendedCultureInfo is an Ubiquitous Endpoint Service.
+The notion of "current culture" should better be named "ambient culture". As usual, this "ambient" notion
+should be handled explicitly rather than relying on thread static, async-local-is-evil and other global
+state management.
+
+A `ExtendedCultureInfo` exists in any DI container and methods that need it have simply to require this
+service. An there is more: the `CurrentCultureInfo` is a scoped service that captures the ubiquitous
+`ExtendedCultureInfo` and the `TranslationService`: this CurrentCultureInfo enables MCString to be
+directly translated:
+
+
+

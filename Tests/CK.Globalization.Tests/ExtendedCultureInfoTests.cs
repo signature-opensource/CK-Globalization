@@ -110,8 +110,8 @@ namespace CK.Globalization.Tests
         public void id_clash_detection_test( int idClash, string name1, string name2 )
         {
             // Listen to the issues. There must be only IdentifierClash.
-            GlobalizationIssues.IdentifierClash? clashDetected = null;
-            PerfectEvent.SequentialEventHandler<GlobalizationIssues.Issue> detector = ( m, issue ) => clashDetected = (GlobalizationIssues.IdentifierClash)issue;
+            GlobalizationIssues.CultureIdentifierClash? clashDetected = null;
+            PerfectEvent.SequentialEventHandler<GlobalizationIssues.Issue> detector = ( m, issue ) => clashDetected = (GlobalizationIssues.CultureIdentifierClash)issue;
             GlobalizationIssues.OnNewIssue.Sync += detector;
             try
             {

@@ -12,6 +12,27 @@ using System.Xml.Linq;
 
 namespace CK.Core
 {
+    /// <summary>
+    /// Tracks and collects globalization issues:
+    /// <list type="bullet">
+    ///     <item>
+    ///     Calls to <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/> can raise <see cref="TranslationDuplicateResource"/>
+    ///     and <see cref="TranslationFormatError"/> these issues are only emitted by <see cref="OnNewIssue"/> and logged. They are not collected.
+    ///     </item>
+    ///     <item>
+    ///     <see cref="MissingTranslationResource"/> is emitted whenever a <see cref="MCString.Quality.Bad"/> or <see cref="MCString.Quality.Awful"/> translation
+    ///     is detected.
+    ///     </item>
+    ///     <item>
+    ///     <see cref="FormatArgumentCountError"/> is emitted whenever a translation format expects less or more arguments than a CodeString placeholders contains.
+    ///     is detected.
+    ///     </item>
+    ///     <item>
+    ///     The worst case: <see cref="CultureIdentifierClash"/> is always raised, even if the static gate <see cref="Track"/> is closed. This is a serious issue
+    ///     that must be urgently adressed.
+    ///     </item>
+    /// </list>
+    /// </summary>
     public static class GlobalizationIssues
     {
         /// <summary>
@@ -25,10 +46,10 @@ namespace CK.Core
         public static PerfectEvent<Issue> OnNewIssue => _onNewIssue.PerfectEvent;
 
         /// <summary>
-        /// Gets the list of <see cref="IdentifierClash"/> that occurred.
+        /// Gets the list of <see cref="CultureIdentifierClash"/> that occurred.
         /// These are always collected, regardless of whether <see cref="Track"/> is opened or not.
         /// </summary>
-        public static IReadOnlyList<IdentifierClash> IdentifierClashes => _identifierClashes;
+        public static IReadOnlyList<CultureIdentifierClash> IdentifierClashes => _identifierClashes;
 
         /// <summary>
         /// Gets the source locations where a <see cref="CodeString"/> format has been created.
@@ -52,9 +73,12 @@ namespace CK.Core
 
         static readonly Channel<Issue?> _channel;
         static readonly IActivityMonitor _monitor;
-        static PerfectEventSender<Issue> _onNewIssue;
+        static readonly PerfectEventSender<Issue> _onNewIssue;
         // Internal for tests (ClearCache).
-        internal static IdentifierClash[] _identifierClashes;
+        internal readonly record struct ResKey( NormalizedCultureInfo Culture, string ResName );
+        internal static Dictionary<ResKey, CodeString>? _missingTranslations;
+        internal static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
+        internal static CultureIdentifierClash[] _identifierClashes;
         internal static readonly ConcurrentDictionary<byte[], CodeStringSourceLocation[]> _codeSringOccurrence;
 
         static GlobalizationIssues()
@@ -62,10 +86,10 @@ namespace CK.Core
             Track = new StaticGate( "CK.Core.GlobalizationIssues.Track", false );
             _channel = Channel.CreateUnbounded<Issue?>( new UnboundedChannelOptions { SingleReader = true } );
             _monitor = new ActivityMonitor( nameof( GlobalizationIssues ) );
+            _monitor.AutoTags = ActivityMonitor.Tags.Register( "Globalization" );
             _onNewIssue = new PerfectEventSender<Issue>();
-            _identifierClashes = Array.Empty<IdentifierClash>();
+            _identifierClashes = Array.Empty<CultureIdentifierClash>();
             _codeSringOccurrence = new ConcurrentDictionary<byte[], CodeStringSourceLocation[]>( new SHAComparer() );
-
             _ = Task.Run( RunAsync );
             AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
@@ -82,18 +106,29 @@ namespace CK.Core
                         {
                             case PrivateCodeStringCreated s:
                                 HandleStringCreated( s.String, s.FilePath, s.LineNumber );
+                                // This one emits no issue.
                                 continue;
                             case PrivateMissingTranslationResource m:
-                                HandleMissingTranslationResource( m.Format, m.CodeString );
+                                // May emit one MissingTranslationResource issue and may be one FormatArgumentCountError issue.
+                                await HandleMissingTranslationResourceAsync( m.Format, m.MCString );
                                 continue;
-                            case IdentifierClash c:
+                            case PrivateFormatArgumentCountError d:
+                                // May emit a FormatArgumentCountError issue.
+                                await HandleFormatArgumentCountErrorAsync( d.Format, d.MCString );
+                                continue;
+                            case CultureIdentifierClash c:
                                 Util.InterlockedAdd( ref _identifierClashes, c );
                                 _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
                                                         ActivityMonitor.Tags.ToBeInvestigated,
-                                                        $"CultureInfo name identifier clash: '{c.Name}' has been associated to '{c.Id}' because of '{c.Clashes.Concatenate( "', '" )}'.",
+                                                        c.ToString(),
                                                         null );
                                 break;
+                            default:
+                                Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource );
+                                _monitor.Warn( o.ToString() );
+                                break;
                         }
+                        Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource || o is CultureIdentifierClash );
                         await _onNewIssue.SafeRaiseAsync( _monitor, o ).ConfigureAwait( false );
                     }
                     catch( Exception ex )
@@ -161,24 +196,47 @@ namespace CK.Core
             }
         }
 
-        static void HandleMissingTranslationResource( PositionalCompositeFormat? format, CodeString s )
+        static async Task HandleMissingTranslationResourceAsync( PositionalCompositeFormat? format, MCString s )
         {
-            throw new NotImplementedException();
+            _missingTranslations ??= new Dictionary<ResKey, CodeString>();
+            var c = s.CodeString;
+            var primary = c.ContentCulture.PrimaryCulture;
+            if( _missingTranslations.TryAdd( new ResKey( primary, c.ResName ), c ) )
+            {
+                var issue = new MissingTranslationResource( c );
+                _monitor.Warn( issue.ToString() );
+                await _onNewIssue.SafeRaiseAsync( _monitor, issue );
+            }
+            if( format.HasValue && format.Value.ExpectedArgumentCount != c.FormattedString.Placeholders.Count )
+            {
+                await HandleFormatArgumentCountErrorAsync( format.Value, s );
+            }
+        }
+
+        static Task HandleFormatArgumentCountErrorAsync( in PositionalCompositeFormat format, MCString s )
+        {
+            _formatArgumentError ??= new Dictionary<ResKey, FormatArgumentCountError>();
+            // Use ContainsKey to avoid a useless issue allocation.
+            var key = new ResKey( s.FormatCulture, s.CodeString.ResName );
+            if( !_formatArgumentError.ContainsKey( key ) )
+            {
+                var issue = new FormatArgumentCountError( format, s );
+                _formatArgumentError.Add( key, issue );
+                _monitor.Warn( issue.ToString() );
+                return _onNewIssue.SafeRaiseAsync( _monitor, issue );
+            }
+            return Task.CompletedTask;
         }
 
         internal static void OnIdentifierClash( string name, int finalId, List<string> clashes )
         {
-            _channel.Writer.TryWrite( new IdentifierClash( name, finalId, clashes.ToArray() ) );
+            _channel.Writer.TryWrite( new CultureIdentifierClash( name, finalId, clashes.ToArray() ) );
         }
 
-        internal static void OnResourceFormatError( string n, string f, string error )
+        internal static void OnTranslation( Issue i )
         {
-            _channel.Writer.TryWrite( new ResourceFormatError( n, f, error ) );
-        }
-
-        internal static void OnResourceFormatDuplicate( string n, PositionalCompositeFormat s, PositionalCompositeFormat r )
-        {
-            _channel.Writer.TryWrite( new ResourceFormatDuplicate( n, s, r ) );
+            Throw.DebugAssert( i is TranslationDuplicateResource || i is TranslationFormatError );
+            _channel.Writer.TryWrite( i );
         }
 
         internal static void OnCodeStringCreated( CodeString s, string? filePath, int lineNumber )
@@ -188,21 +246,21 @@ namespace CK.Core
 
         internal static void OnMCStringCreated( in PositionalCompositeFormat format, MCString mc )
         {
-            if( mc.TranslationLevel < MCString.Quality.Good )
+            if( mc.IsTranslationWelcome )
             {
-                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( format, mc.CodeString ) );
+                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( format, mc ) );
             }
-            else
+            else if( format.ExpectedArgumentCount != mc.CodeString.FormattedString.Placeholders.Count )
             {
-                _channel.Writer.TryWrite( new PrivateCheckFormat( format, mc.CodeString ) );
+                _channel.Writer.TryWrite( new PrivateFormatArgumentCountError( format, mc ) );
             }
         }
 
         internal static void OnMCStringCreated( MCString mc )
         {
-            if( mc.TranslationLevel < MCString.Quality.Good )
+            if( mc.IsTranslationWelcome )
             {
-                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( null, s ) );
+                _channel.Writer.TryWrite( new PrivateMissingTranslationResource( null, mc ) );
             }
         }
 
@@ -221,40 +279,105 @@ namespace CK.Core
         /// </param>
         /// <param name="Id">The final identifier that has been eventually assigned to <paramref name="Name"/>.</param>
         /// <param name="Clashes">One or more clashing names that shifted the <paramref name="Id"/> by 1.</param>
-        public sealed record IdentifierClash( string Name, int Id, IReadOnlyList<string> Clashes ) : Issue;
+        public sealed record CultureIdentifierClash( string Name, int Id, IReadOnlyList<string> Clashes ) : Issue
+        {
+            public override string ToString()
+                => $"CultureInfo name identifier clash: '{Name}' has been associated to '{Id}' because of '{Clashes.Concatenate( "', '" )}'.";
+
+        }
 
         /// <summary>
         /// Describes a resource format error emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
         /// This issue is collected only if the <see cref="Track"/> static gate is opened.
         /// </summary>
+        /// <param name="Culture">The culture that contains the resource.</param>
         /// <param name="ResName">The resource name.</param>
         /// <param name="Format">The invalid format.</param>
-        /// <param name="Error">The error message.</param>
-        public sealed record ResourceFormatError( string ResName, string Format, string Error ) : Issue;
+        /// <param name="Error">The error message that contains the invalid <see cref="Format"/>.</param>
+        public sealed record TranslationFormatError( NormalizedCultureInfo Culture, string ResName, string Format, string Error ) : Issue
+        {
+            public override string ToString() => $"Invalid format for '{ResName}' in '{Culture.Name}': {Error}";
+        }
 
         /// <summary>
         /// Describes a duplicate resource. Emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
         /// This issue is collected only if the <see cref="Track"/> static gate is opened.
         /// </summary>
+        /// <param name="Culture">The culture that duplicates the resource.</param>
         /// <param name="ResName">The resource name.</param>
         /// <param name="Skipped">The skipped format.</param>
         /// <param name="Registered">The already registered format.</param>
-        public sealed record ResourceFormatDuplicate( string ResName, PositionalCompositeFormat Skipped, PositionalCompositeFormat Registered ) : Issue;
+        public sealed record TranslationDuplicateResource( NormalizedCultureInfo Culture,
+                                                           string ResName,
+                                                           PositionalCompositeFormat Skipped,
+                                                           PositionalCompositeFormat Registered ) : Issue
+        {
+            public override string ToString() => $"Duplicate resource '{ResName}' in '{Culture.Name}'. Skipped: '{Skipped.GetFormatString()}'.";
+        }
 
         /// <summary>
         /// A missing resource has been detected.
         /// </summary>
-        /// <param name="MissingCulture">The culture in which the resource should be defined.</param>
         /// <param name="Instance">
-        /// The first instance with the <see cref="FormattedString"/> that lacks a resource.
+        /// The first instance with the <see cref="FormattedString"/> that lacks a translation.
         /// The same format may be shared by multiple <see cref="CodeStringSourceLocation"/>.
         /// </param>
-        public sealed record MissingTranslationResource( NormalizedCultureInfo MissingCulture, CodeString Instance ) : Issue;
+        public sealed record MissingTranslationResource( CodeString Instance ) : Issue
+        {
+            /// <summary>
+            /// The culture in which the resource should be defined.
+            /// </summary>
+            public NormalizedCultureInfo MissingCulture => Instance.ContentCulture.PrimaryCulture;
+
+            /// <summary>
+            /// The resource name to be defined.
+            /// </summary>
+            public string ResName => Instance.ResName;
+
+            public override string ToString()
+                => $"Missing translation for '{ResName}' in '{MissingCulture.FullName}' at {GetSourceLocation( Instance ).Select( l => l.ToString() ).Concatenate()}.";
+        }
+
+        /// <summary>
+        /// A <see cref="PositionalCompositeFormat"/> has not the same number of expected arguments as the code
+        /// string has <see cref="FormattedString.Placeholders"/>.
+        /// </summary>
+        /// <param name="Format">The invalid format.</param>
+        /// <param name="Instance">
+        /// The first translated that raised the issue.
+        /// The same format may be shared by multiple <see cref="CodeStringSourceLocation"/>.
+        /// </param>
+        public sealed record FormatArgumentCountError( PositionalCompositeFormat Format, MCString Instance ) : Issue
+        {
+            /// <summary>
+            /// The resource culture.
+            /// </summary>
+            public NormalizedCultureInfo FormatCulture => Instance.FormatCulture;
+
+            /// <summary>
+            /// The resource name.
+            /// </summary>
+            public string ResName => Instance.CodeString.ResName;
+
+            /// <summary>
+            /// The number of arguments that <see cref="Format"/> expects.
+            /// </summary>
+            public int ExpectedArgumentCount => Format.ExpectedArgumentCount;
+
+            /// <summary>
+            /// The number of actual placeholders in the CodeString.
+            /// </summary>
+            public int PlaceholderCount => Instance.CodeString.FormattedString.Placeholders.Count;
+
+            public override string ToString()
+                => $"Translation '{ResName}' in '{FormatCulture}' expects {ExpectedArgumentCount} arguments " +
+                   $"but CodeString has {PlaceholderCount} placeholders at {GetSourceLocation( Instance.CodeString ).Select( l => l.ToString() ).Concatenate()}.";
+        }
 
         // Private only.
         sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
-        sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, CodeString CodeString ) : Issue;
-        sealed record PrivateCheckFormat( PositionalCompositeFormat? Format, CodeString CodeString ) : Issue;
+        sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
+        sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
 
     }
 }

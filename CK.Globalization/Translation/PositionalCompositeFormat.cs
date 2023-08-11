@@ -36,7 +36,7 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Empty object is the <c>default</c>.
+        /// Invalid object is the <c>default</c>.
         /// </summary>
         public static PositionalCompositeFormat Invalid => default;
 
@@ -68,9 +68,9 @@ namespace CK.Core
         /// </summary>
         /// <param name="format">The format string to parse. Must not be null or empty.</param>
         /// <param name="compositeFormat">A non default composite format on success.</param>
-        /// <param name="error">A non null error string on error.</param>
+        /// <param name="errorPhrase">A non null error phrase on error that contains the invalid <paramref name="format"/> string.</param>
         /// <returns>True on success, false otherwise.</returns>
-        public static bool TryParse( string format, out PositionalCompositeFormat compositeFormat, [NotNullWhen(false)]out string? error )
+        public static bool TryParse( string format, out PositionalCompositeFormat compositeFormat, [NotNullWhen(false)]out string? errorPhrase )
         {
             Throw.CheckNotNullOrEmptyArgument( format );
             // The pureFormat is necessarily smaller than the format.
@@ -81,7 +81,7 @@ namespace CK.Core
                 int head = s.IndexOfAny( '{', '}' );
                 if( head < 0 )
                 {
-                    error = null;
+                    errorPhrase = null;
                     compositeFormat = new PositionalCompositeFormat( format, Array.Empty<(int, int)>(), 0, format.Length );
                     return true;
                 }
@@ -94,7 +94,7 @@ namespace CK.Core
                 for(; ; )
                 {
                     start = s[head];
-                    if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out error );
+                    if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out errorPhrase );
                     c = s[head];
                     if( c == start )
                     {
@@ -103,15 +103,15 @@ namespace CK.Core
                         sPure = sPure.Slice( 1 );
                         if( ++head == s.Length ) break;
                     }
-                    else if( c == '}' ) return OnError( $"Unexpected '}}' in '{format}' at {head}.", out compositeFormat, out error );
+                    else if( c == '}' ) return OnError( $"Unexpected '}}' in '{format}' at {head}.", out compositeFormat, out errorPhrase );
                     else
                     {
                         int ix = c - '0';
                         if( ix < 0 || ix >= 10 )
                         {
-                            return OnErrorInvalidIndex( format, out compositeFormat, out error, head );
+                            return OnErrorInvalidIndex( format, out compositeFormat, out errorPhrase, head );
                         }
-                        if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out error );
+                        if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out errorPhrase );
                         c = s[head];
                         if( c != '}' )
                         {
@@ -122,9 +122,9 @@ namespace CK.Core
                                 // This is crucial since we recreate the format string. 
                                 if( ix == 0 )
                                 {
-                                    return OnError( $"Argument number must not start with 0 in '{format}' at {head - 1}.", out compositeFormat, out error );
+                                    return OnError( $"Argument number must not start with 0 in '{format}' at {head - 1}.", out compositeFormat, out errorPhrase );
                                 }
-                                if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out error );
+                                if( ++head == s.Length ) return OnErrorEndOfString( format, out compositeFormat, out errorPhrase );
                                 ix = ix * 10 + d2;
                                 c = s[head];
                             }
@@ -132,8 +132,8 @@ namespace CK.Core
                         if( c != '}' )
                         {
                             return c == ',' || c == ':'
-                                    ? OnError( $"No alignment nor format specifier are allowed, expected '}}' in '{format}' at {head}.", out compositeFormat, out error )
-                                    : OnError( $"Expected '}}' in '{format}' at {head}.", out compositeFormat, out error );
+                                    ? OnError( $"No alignment nor format specifier are allowed, expected '}}' in '{format}' at {head}.", out compositeFormat, out errorPhrase )
+                                    : OnError( $"Expected '}}' in '{format}' at {head}.", out compositeFormat, out errorPhrase );
                         }
                         if( maxArgIndex < ix ) maxArgIndex = ix;
                         p.Add( ( pureFormat.Length - sPure.Length, ix ) );
@@ -151,7 +151,7 @@ namespace CK.Core
                     sPure = sPure.Slice( h );
                     head += h;
                 }
-                error = null;
+                errorPhrase = null;
                 compositeFormat = new PositionalCompositeFormat( new string( pureFormat.AsSpan( 0, pureFormat.Length - sPure.Length ) ),
                                                                  p.ToArray(),
                                                                  maxArgIndex + 1,

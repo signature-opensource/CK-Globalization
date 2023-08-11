@@ -1,173 +1,93 @@
-//using FluentAssertions;
-//using NUnit.Framework;
-//using System;
-//using System.Globalization;
+using CK.Core;
+using FluentAssertions;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 
-//namespace CK.Core.Tests
-//{
-//    [TestFixture]
-//    public class ResultMessageTests
-//    {
-//        [Test]
-//        public void ResultMessage_Error()
-//        {
-//            FluentActions.Invoking( () => ResultMessage.Error( "" ) ).Should().Throw<ArgumentException>();
+namespace CK.Globalization.Tests
+{
+    [TestFixture]
+    public class ResultMessageTests
+    {
+        [SetUp]
+        [TearDown]
+        public void ClearCache()
+        {
+            typeof( NormalizedCultureInfo )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .Invoke( null, null );
+        }
 
-//            var m1 = ResultMessage.Error( "text" );
-//            m1.Message.Text.Should().Be( "text" );
-//            m1.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m1.Type.Should().Be( ResultMessageType.Error );
-//            m1.MessageCode.Should().BeNull();
-//            CheckSerialization( m1 );
+        [Test]
+        public void ResultMessage_Error()
+        {
+            var m1 = ResultMessage.Error( "text" );
+            m1.IsTranslationWelcome.Should().BeTrue();
+            m1.Message.Text.Should().Be( "text" );
+            m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m1.Level.Should().Be( ResultMessageLevel.Error );
+            m1.ResName.Should().StartWith( "SHA." );
+            CheckSerialization( m1 );
 
-//            var m2 = ResultMessage.Error( "text", "Code" );
-//            m2.Message.Text.Should().Be( "text" );
-//            m2.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m2.Type.Should().Be( ResultMessageType.Error );
-//            m2.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m2 );
+            var m2 = ResultMessage.Error( "text", "Res.Name" );
+            m2.IsTranslationWelcome.Should().BeTrue();
+            m2.Message.Text.Should().Be( "text" );
+            m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m2.Level.Should().Be( ResultMessageLevel.Error );
+            m2.ResName.Should().Be( "Res.Name" );
+            CheckSerialization( m2 );
 
-//            int v = 3712;
+            int v = 3712;
 
-//            var m3 = ResultMessage.Error( $"Hello {v}!", "Policy.Salutation" ); //==> "Hello {0}!"
-//            m3.Message.Text.Should().Be( "Hello 3712!" );
-//            m3.Message.GetFormatString().Should().Be( "Hello {0}!" );
-//            m3.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m3.Type.Should().Be( ResultMessageType.Error );
-//            m3.MessageCode.Should().Be( "Policy.Salutation" );
-//            CheckSerialization( m3 );
+            var m3 = ResultMessage.Error( $"Hello {v}!", "Policy.Salutation" ); //==> "Hello {0}!"
+            m3.IsTranslationWelcome.Should().BeTrue();
+            m3.Message.Text.Should().Be( "Hello 3712!" );
+            m3.Message.CodeString.FormattedString.GetFormatString().Should().Be( "Hello {0}!" );
+            m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m3.Level.Should().Be( ResultMessageLevel.Error );
+            m3.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerialization( m3 );
 
-//            var culture = CultureInfo.GetCultureInfo( "aa" );
+            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
-//            var m4 = ResultMessage.Error( culture, $"{v} Goodbye {v}", "Policy.Salutation" ); //==> "{0} Goodbye {1}"
-//            m3.Message.GetFormatString().Should().Be( "{0} Goodbye {1}" );
-//            m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
-//            m4.Message.Culture.Should().BeSameAs( culture );
-//            m4.Type.Should().Be( ResultMessageType.Error );
-//            m4.MessageCode.Should().Be( "Policy.Salutation" );
-//            CheckSerialization( m4 );
+            var m4 = ResultMessage.Error( aaCulture, $"{v} Goodbye {v}", "Policy.Salutation" ); //==> "{0} Goodbye {1}"
+            m4.IsTranslationWelcome.Should().BeTrue();
+            m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
+            m4.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m4.Level.Should().Be(ResultMessageLevel.Error);
+            m4.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerialization( m4 );
 
-//            static void CheckSerialization( ResultMessage m )
-//            {
-//                var cS = m.DeepClone();
-//                cS.Message.Should().BeEquivalentTo( m.Message );
-//                cS.MessageCode.Should().Be( m.MessageCode );
-//                cS.Type.Should().Be( m.Type );
-//                cS.ToString().Should().Be( m.ToString() );
+            aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "AH! {0} H'lo {1}" } } );
+            var current = new CurrentCultureInfo( new TranslationService(), aaCulture );
 
-//                var cV = SimpleSerializable.DeepCloneVersioned( m );
-//                cV.Message.Should().BeEquivalentTo( m.Message );
-//                cV.MessageCode.Should().Be( m.MessageCode );
-//                cV.Type.Should().Be( m.Type );
-//                cV.ToString().Should().Be( m.ToString() );
-//            }
-//        }
+            var m5 = ResultMessage.Error( current, $"{v} Goodbye {v}", "Policy.Salutation" );
+            m5.IsTranslationWelcome.Should().BeFalse();
+            m5.Message.Text.Should().Be( "AH! 3712 H'lo 3712" );
+            m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
+            m5.Level.Should().Be( ResultMessageLevel.Error );
+            m5.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerialization( m5 );
 
-//        [Test]
-//        public void ResultMessage_Warn()
-//        {
-//            FluentActions.Invoking( () => ResultMessage.Warn( "" ) ).Should().Throw<ArgumentException>();
+            static void CheckSerialization( ResultMessage m )
+            {
+                var cS = m.DeepClone();
+                cS.Message.Text.Should().Be( m.Message.Text );
+                cS.Message.TranslationQuality.Should().Be( m.Message.TranslationQuality );
+                cS.ResName.Should().Be( m.ResName );
+                cS.Level.Should().Be( m.Level );
+                cS.ToString().Should().Be( m.ToString() );
 
-//            var m1 = ResultMessage.Warn( "text" );
-//            m1.Message.Text.Should().Be( "text" );
-//            m1.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m1.Type.Should().Be( ResultMessageType.Warn );
-//            m1.MessageCode.Should().BeNull();
-//            CheckSerialization( m1 );
+                var cV = SimpleSerializable.DeepCloneVersioned( m );
+                cV.Message.Text.Should().Be( m.Message.Text );
+                cV.Message.TranslationQuality.Should().Be( m.Message.TranslationQuality );
+                cV.ResName.Should().Be( m.ResName );
+                cV.Level.Should().Be( m.Level );
+                cV.ToString().Should().Be( m.ToString() );
+            }
+        }
 
-//            var m2 = ResultMessage.Warn( "text", "Code" );
-//            m2.Message.Text.Should().Be( "text" );
-//            m2.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m2.Type.Should().Be( ResultMessageType.Warn );
-//            m2.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m2 );
 
-//            int v = 3712;
-
-//            var m3 = ResultMessage.Warn( $"t{v}", "Code" );
-//            m3.Message.Text.Should().Be( "t3712" );
-//            m3.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m3.Type.Should().Be( ResultMessageType.Warn );
-//            m3.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m3 );
-
-//            var culture = CultureInfo.GetCultureInfo( "aa" );
-
-//            var m4 = ResultMessage.Warn( culture, $"{v}X{v}", "Code" );
-//            m4.Message.Text.Should().Be( "3712X3712" );
-//            m4.Message.Culture.Should().BeSameAs( culture );
-//            m4.Type.Should().Be( ResultMessageType.Warn );
-//            m4.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m4 );
-
-//            static void CheckSerialization( ResultMessage m )
-//            {
-//                var cS = m.DeepClone();
-//                cS.Message.Should().BeEquivalentTo( m.Message );
-//                cS.MessageCode.Should().Be( m.MessageCode );
-//                cS.Type.Should().Be( m.Type );
-//                cS.ToString().Should().Be( m.ToString() );
-
-//                var cV = SimpleSerializable.DeepCloneVersioned( m );
-//                cV.Message.Should().BeEquivalentTo( m.Message );
-//                cV.MessageCode.Should().Be( m.MessageCode );
-//                cV.Type.Should().Be( m.Type );
-//                cV.ToString().Should().Be( m.ToString() );
-//            }
-//        }
-
-//        [Test]
-//        public void ResultMessage_Info()
-//        {
-//            FluentActions.Invoking( () => ResultMessage.Info( "" ) ).Should().Throw<ArgumentException>();
-
-//            var m1 = ResultMessage.Info( "text" );
-//            m1.Message.Text.Should().Be( "text" );
-//            m1.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m1.Type.Should().Be( ResultMessageType.Info );
-//            m1.MessageCode.Should().BeNull();
-//            CheckSerialization( m1 );
-
-//            var m2 = ResultMessage.Info( "text", "Code" );
-//            m2.Message.Text.Should().Be( "text" );
-//            m2.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m2.Type.Should().Be( ResultMessageType.Info );
-//            m2.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m2 );
-
-//            int v = 3712;
-
-//            var m3 = ResultMessage.Info( $"t{v}", "Code" );
-//            m3.Message.Text.Should().Be( "t3712" );
-//            m3.Message.Culture.Should().BeSameAs( CultureInfo.CurrentCulture );
-//            m3.Type.Should().Be( ResultMessageType.Info );
-//            m3.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m3 );
-
-//            var culture = CultureInfo.GetCultureInfo( "aa" );
-
-//            var m4 = ResultMessage.Info( culture, $"{v}X{v}", "Code" );
-//            m4.Message.Text.Should().Be( "3712X3712" );
-//            m4.Message.Culture.Should().BeSameAs( culture );
-//            m4.Type.Should().Be( ResultMessageType.Info );
-//            m4.MessageCode.Should().Be( "Code" );
-//            CheckSerialization( m4 );
-
-//            static void CheckSerialization( ResultMessage m )
-//            {
-//                var cS = m.DeepClone();
-//                cS.Message.Should().BeEquivalentTo( m.Message );
-//                cS.MessageCode.Should().Be( m.MessageCode );
-//                cS.Type.Should().Be( m.Type );
-//                cS.ToString().Should().Be( m.ToString() );
-
-//                var cV = SimpleSerializable.DeepCloneVersioned( m );
-//                cV.Message.Should().BeEquivalentTo( m.Message );
-//                cV.MessageCode.Should().Be( m.MessageCode );
-//                cV.Type.Should().Be( m.Type );
-//                cV.ToString().Should().Be( m.ToString() );
-//            }
-//        }
-
-//    }
-//}
+    }
+}
