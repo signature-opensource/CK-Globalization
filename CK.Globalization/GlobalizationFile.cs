@@ -22,7 +22,7 @@ namespace CK.Core
         static void HandleLocalFolder( IActivityMonitor monitor, NormalizedPath localeRootPath, NormalizedPath subPath )
         {
             var cName = subPath.LastPart;
-            if( !Regex.IsMatch( cName, @"^(?!-)[0-9a-zA-Z]{0,8}((-[0-9a-zA-Z]{1,8})+)*$" ) )
+            if( !NormalizedCultureInfo.IsValidCultureName( cName ) )
             {
                 monitor.Warn( $"Skipping directory '{subPath}' that has an invalid culture name." );
                 return;
@@ -51,10 +51,10 @@ namespace CK.Core
             try
             {
                 Dictionary<string, string>? d;
-                using( var content = File.OpenRead(pJ) )
+                using( var content = File.OpenRead( pJ ) )
                 {
                     d = JsonSerializer.Deserialize<Dictionary<string, string>>( pJ );
-                    if( d == null  )
+                    if( d == null )
                     {
                         monitor.Error( $"Invalid file '{pJ}'. Null has been deserialized. Skipping directory." );
                         return;
@@ -79,5 +79,6 @@ namespace CK.Core
                 monitor.Error( $"While processing file '{pJ}'.", ex );
             }
         }
+
     }
 }

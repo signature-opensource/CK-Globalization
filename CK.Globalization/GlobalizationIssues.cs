@@ -25,7 +25,6 @@ namespace CK.Core
     ///     </item>
     ///     <item>
     ///     <see cref="FormatArgumentCountError"/> is emitted whenever a translation format expects less or more arguments than a CodeString placeholders contains.
-    ///     is detected.
     ///     </item>
     ///     <item>
     ///     The worst case: <see cref="CultureIdentifierClash"/> is always raised, even if the static gate <see cref="Track"/> is closed. This is a serious issue
@@ -33,7 +32,7 @@ namespace CK.Core
     ///     </item>
     /// </list>
     /// </summary>
-    public static class GlobalizationIssues
+    public static partial class GlobalizationIssues
     {
         /// <summary>
         /// The "CK.Core.GlobalizationIssues.Track" static gate is closed by default.
@@ -191,7 +190,8 @@ namespace CK.Core
                 }
                 else if( s.ResName.StartsWith( "SHA." ) )
                 {
-                    _monitor.Warn( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
+                    // This may also be a Warn...
+                    _monitor.Info( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
                 }
             }
         }
@@ -378,6 +378,7 @@ namespace CK.Core
         sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
         sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
         sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
+        sealed record PrivateGetReport( TaskCompletionSource<Report> TCS ) : Issue;
 
     }
 }

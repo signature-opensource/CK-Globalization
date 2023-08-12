@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace CK.Core
@@ -205,6 +206,10 @@ namespace CK.Core
         /// <summary>
         /// Gets a cached normalized culture info from its name or creates it.
         /// The name must be a valid BCP47 language tag otherwise a <see cref="CultureNotFoundException"/> is raised.
+        /// <para>
+        /// This doesn't use <see cref="IsValidCultureName(string)"/>, this relies solely on <see cref="CultureInfo.GetCultureInfo(string)"/>
+        /// that validates and normalizes the casing as much as it can. If GetCultureInfo accepts the name, it is fine.
+        /// </para>
         /// </summary>
         /// <param name="name">The culture name.</param>
         /// <returns>The culture.</returns>
@@ -261,6 +266,20 @@ namespace CK.Core
                 _all = all;
                 return c;
             }
+        }
+
+        /// <summary>
+        /// Basic check of a BCP47 language tag (see https://www.rfc-editor.org/rfc/rfc5646.txt).
+        /// <para>
+        /// This can be used by external code to avoid creating NormalizedCultureInfo with uncontrolled names,
+        /// but eventually <see cref="CultureInfo.GetCultureInfo(string)"/> decides.
+        /// </para>
+        /// </summary>
+        /// <param name="name">A potential culture name.</param>
+        /// <returns>True if this name is a vald name, false otherwise.</returns>
+        public static bool IsValidCultureName( string name )
+        {
+            return !String.IsNullOrWhiteSpace( name ) && Regex.IsMatch( name, @"^(?!-)[0-9a-zA-Z]{0,8}((-[0-9a-zA-Z]{1,8})+)*$" );
         }
 
         static NormalizedCultureInfo DoRegister( string name, CultureInfo cultureInfo, Dictionary<object, ExtendedCultureInfo> all )

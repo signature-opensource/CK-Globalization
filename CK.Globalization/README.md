@@ -9,7 +9,8 @@ the developer's burden.
 
 It is based on a Code-first approach: the developer writes and emits en-US texts directly in its code, using
 interpolated strings. Placeholders are rendered immediately in the current culture. This current culture
-being if possible an ubiquitous injected scoped service or fallbacks to the thread static [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
+being if possible an injected scoped service (the `CurrentCultureInfo`) or fallbacks to the thread
+static [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
 
 We currently don't exploit the .NET 8 [CompositeFormat](https://learn.microsoft.com/en-us/dotnet/api/system.text.compositeformat).
 Using it requires more work from the developper: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
@@ -57,6 +58,10 @@ CultureInfo can be created freely as long as the name is valid according to the 
 The .NET cache behavior is far from perfect. One cannot create a new CultureInfo out of the blue, configure it and then cache it (which
 should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
 insentitive.
+
+The `static bool NormalizedCultureInfo.IsValidCultureName( string name )` helper is available to check culture
+name syntax but ultimately the framework's `CultureInfo.GetCultureInfo( string name )` decides (and may throw
+the badly named `CultureNotFoundException`: InvalidCultureNameException would be better).
 
 ```csharp
 [Test]
@@ -314,7 +319,45 @@ The good news is that all these issues *can be* tracked automatically. The bad n
 some work and not all the kind issues are covered.
 
 ## The GlobalizationIssues.
+The `GlobalizationIssues` static class centralizes the collect of issues and raises `OnNewIssue` event.
+It is driven by a StaticGate:
+```csharp
+/// <summary>
+/// The "CK.Core.GlobalizationIssues.Track" static gate is closed by default.
+/// </summary>
+public static readonly StaticGate Track;
+```
+Issues that are dynamically analyzed are:
 
+- Calls to `NormalizedCultureInfo.SetCachedTranslations` can raise `TranslationDuplicateResource`
+  and `TranslationFormatError` these issues are only emitted by <see cref="OnNewIssue"/> and logged.
+  They are not collected (they are also returned to the caller of SetCachedTranslations).
+- `MissingTranslationResource` is emitted whenever a Bad or Awful translation is detected.
+- `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments
+  than a CodeString placeholders contains.
+- The worst case: `CultureIdentifierClash` is always raised, even if the static gate `Track` is closed.
+  This is a serious issue that must be urgently adressed.
 
+`MissingTranslationResource` and `FormatArgumentCountError` events are memorized and the corresponding event
+is raised only once.
+
+All dynamic issues (except the `TranslationDuplicateResource` and `TranslationFormatError`) can be retrieved thanks
+to the `GetReportAsync` method:
+```csharp
+/// <summary>
+/// Obtains a <see cref="Report"/> with the detected issues so far.
+/// </summary>
+/// <returns>The current issues.</returns>
+public static Task<Report> GetReportAsync() { ... }
+```
+
+The `GlobalizationIssues.Report` exposes the dynamic issues plus 3 other computed issues:
+
+- `AutomaticResourceNamesCanUseExistingResName` when anutomatic "SHA.XXX" resource name can reuse
+  an existing explicit ResName.
+- `ResourceNamesCanBeMerged` when different resource names are used for the same CodeString format:
+  they may be merged.
+- `SameResNameWithDifferentFormat` when the same resource name identifies different CodeString formats.
+  This is bad and should be corrected.
 
 
