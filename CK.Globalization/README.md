@@ -198,25 +198,10 @@ end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations
 
 ## NormalizedCulture cached transtations
 All NormalizedCulture (except the "en", "en-us" and Invariant default ones) can have a cached translation set of resources.
-It can always be set (the new one replaces the current one if any). This is an atomic operation (thread safe):
+It can always be set (the new one replaces the current one). This is a thread safe atomic operation:
 
 ```csharp
-/// <summary>
-/// Sets a cached set of resource translation formats.
-/// This must not be called for <see cref="ExtendedCultureInfo.IsDefault"/> otherwise
-/// an <see cref="InvalidOperationException"/> is thrown.
-/// <para>
-/// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, <see cref="GlobalizationIssues.ResourceFormatError"/>
-/// are emitted for invalid format strings.
-/// </para>
-/// <para>
-/// Duplicates can exist in the <paramref name="map"/>: the first resource name is kept, the subsequent
-/// ones are discarded and a <see cref="GlobalizationIssues.ResourceFormatDuplicate"/> is emitted (when
-/// the static gate <see cref="GlobalizationIssues.Track"/> is opened).
-/// </para>
-/// </summary>
-/// <param name="map">The map.</param>
-public void SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
 ```
 The `Format` string is a positional-only composite format (see https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):
 only `{0}`, `{1}` etc. placeholders are allowed, without alignement nor format specifier. This format string is parsed and kept as a structure
@@ -294,6 +279,8 @@ translated.
 Note that this can only use the synchronous `TranslationService.Translate` method. If async translations
 must be done, they have to be deferred (in an async context).
 
+This immediate translation capability is available on the `ResultMessage` helper.
+
 ## The ResName is optional but important.
 When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
 In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance
@@ -316,7 +303,10 @@ SHA1 or explicit, managing resource names requires to take care of:
 - The removal of a CodeString (the resource will be defined for ever, polluting the system).
 
 The good news is that all these issues *can be* tracked automatically. The bad news is that it requires
-some work and not all the kind issues are covered.
+some work of course to analyze and correct these issues. The worst case is when a CodeString disappears:
+ideally a Code Analyzer would discover all the CodeString and generate an embedded resource with the list
+of all the CodeString, source code location and hash of the format string.
+Currently this analysis is done dynamically.
 
 ## The GlobalizationIssues.
 The `GlobalizationIssues` static class centralizes the collect of issues and raises `OnNewIssue` event.
@@ -359,5 +349,12 @@ The `GlobalizationIssues.Report` exposes the dynamic issues plus 3 other compute
   they may be merged.
 - `SameResNameWithDifferentFormat` when the same resource name identifies different CodeString formats.
   This is bad and should be corrected.
+
+## Future
+A static Code Analyzer should discover CodeString and generate a resource file that contains the CodeString
+source location, the format string and its hash. A CKSetup component could then detect `AutomaticResourceNamesCanUseExistingResName`,
+`ResourceNamesCanBeMerged` and `SameResNameWithDifferentFormat` when compiling the final application and a new
+`TranslationUselessResource` could then be immediately emitted when setting a translation cache.
+
 
 
