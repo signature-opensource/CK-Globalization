@@ -1,21 +1,22 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
-using System.Globalization;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
+    // Testing ResultMessage tests MCString.
     [TestFixture]
-    public class ResultMessageTests
+    public class ResultMessageAndMCStringTests
     {
         [SetUp]
         [TearDown]
         public void ClearCache()
         {
             typeof( NormalizedCultureInfo )
-                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
                 .Invoke( null, null );
         }
 
@@ -28,7 +29,7 @@ namespace CK.Globalization.Tests
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m1.Level.Should().Be( ResultMessageLevel.Error );
             m1.ResName.Should().StartWith( "SHA." );
-            CheckSerialization( m1 );
+            CheckSerializations( m1 );
 
             var m2 = ResultMessage.Error( "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
@@ -36,7 +37,7 @@ namespace CK.Globalization.Tests
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m2.Level.Should().Be( ResultMessageLevel.Error );
             m2.ResName.Should().Be( "Res.Name" );
-            CheckSerialization( m2 );
+            CheckSerializations( m2 );
 
             int v = 3712;
 
@@ -47,7 +48,7 @@ namespace CK.Globalization.Tests
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( ResultMessageLevel.Error );
             m3.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m3 );
+            CheckSerializations( m3 );
 
             var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
@@ -55,9 +56,9 @@ namespace CK.Globalization.Tests
             m4.IsTranslationWelcome.Should().BeTrue();
             m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
             m4.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m4.Level.Should().Be(ResultMessageLevel.Error);
+            m4.Level.Should().Be( ResultMessageLevel.Error );
             m4.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m4 );
+            CheckSerializations( m4 );
 
             aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "AH! {0} H'lo {1}" } } );
             var current = new CurrentCultureInfo( new TranslationService(), aaCulture );
@@ -68,7 +69,7 @@ namespace CK.Globalization.Tests
             m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
             m5.Level.Should().Be( ResultMessageLevel.Error );
             m5.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m5 );
+            CheckSerializations( m5 );
         }
 
         [Test]
@@ -80,7 +81,7 @@ namespace CK.Globalization.Tests
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m1.Level.Should().Be( ResultMessageLevel.Warn );
             m1.ResName.Should().StartWith( "SHA." );
-            CheckSerialization( m1 );
+            CheckSerializations( m1 );
 
             var m2 = ResultMessage.Warn( "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
@@ -88,7 +89,7 @@ namespace CK.Globalization.Tests
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m2.Level.Should().Be( ResultMessageLevel.Warn );
             m2.ResName.Should().Be( "Res.Name" );
-            CheckSerialization( m2 );
+            CheckSerializations( m2 );
 
             int v = 3712;
 
@@ -99,7 +100,7 @@ namespace CK.Globalization.Tests
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( ResultMessageLevel.Warn );
             m3.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m3 );
+            CheckSerializations( m3 );
 
             var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
@@ -107,9 +108,9 @@ namespace CK.Globalization.Tests
             m4.IsTranslationWelcome.Should().BeTrue();
             m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
             m4.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m4.Level.Should().Be(ResultMessageLevel.Warn);
+            m4.Level.Should().Be( ResultMessageLevel.Warn );
             m4.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m4 );
+            CheckSerializations( m4 );
 
             aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "AH! {0} H'lo {1}" } } );
             var current = new CurrentCultureInfo( new TranslationService(), aaCulture );
@@ -120,7 +121,7 @@ namespace CK.Globalization.Tests
             m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
             m5.Level.Should().Be( ResultMessageLevel.Warn );
             m5.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m5 );
+            CheckSerializations( m5 );
         }
 
         [Test]
@@ -132,7 +133,7 @@ namespace CK.Globalization.Tests
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m1.Level.Should().Be( ResultMessageLevel.Info );
             m1.ResName.Should().StartWith( "SHA." );
-            CheckSerialization( m1 );
+            CheckSerializations( m1 );
 
             var m2 = ResultMessage.Info( "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
@@ -140,7 +141,7 @@ namespace CK.Globalization.Tests
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m2.Level.Should().Be( ResultMessageLevel.Info );
             m2.ResName.Should().Be( "Res.Name" );
-            CheckSerialization( m2 );
+            CheckSerializations( m2 );
 
             int v = 3712;
 
@@ -151,7 +152,7 @@ namespace CK.Globalization.Tests
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( ResultMessageLevel.Info );
             m3.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m3 );
+            CheckSerializations( m3 );
 
             var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
@@ -159,9 +160,9 @@ namespace CK.Globalization.Tests
             m4.IsTranslationWelcome.Should().BeTrue();
             m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
             m4.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m4.Level.Should().Be(ResultMessageLevel.Info);
+            m4.Level.Should().Be( ResultMessageLevel.Info );
             m4.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m4 );
+            CheckSerializations( m4 );
 
             aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "AH! {0} H'lo {1}" } } );
             var current = new CurrentCultureInfo( new TranslationService(), aaCulture );
@@ -172,10 +173,10 @@ namespace CK.Globalization.Tests
             m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
             m5.Level.Should().Be( ResultMessageLevel.Info );
             m5.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerialization( m5 );
+            CheckSerializations( m5 );
         }
 
-        static void CheckSerialization( ResultMessage m )
+        static void CheckSerializations( ResultMessage m )
         {
             var cS = m.DeepClone();
             cS.Message.Text.Should().Be( m.Message.Text );
@@ -190,8 +191,10 @@ namespace CK.Globalization.Tests
             cV.ResName.Should().Be( m.ResName );
             cV.Level.Should().Be( m.Level );
             cV.ToString().Should().Be( m.ToString() );
+
+            TestHelper.JsonIdempotenceCheck( m, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadResultMessageFromJsonArray );
+            TestHelper.JsonIdempotenceCheck( m.Message, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadMCStringFromJsonArray );
         }
-
-
     }
+
 }

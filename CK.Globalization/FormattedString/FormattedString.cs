@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace CK.Core
 {
@@ -378,7 +379,7 @@ namespace CK.Core
         /// <returns>This text.</returns>
         public override string ToString() => Text;
 
-        #region Serialization
+        #region Binary serialization
         /// <summary>
         /// Simple deserialization constructor.
         /// </summary>

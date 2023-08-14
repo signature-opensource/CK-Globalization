@@ -4,6 +4,7 @@ using System.ComponentModel.Design.Serialization;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -128,6 +129,12 @@ namespace CK.Core
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
+        CodeString( in FormattedString formattedString, string resName )
+        {
+            _f = formattedString;
+            _resName = resName;
+        }
+
         /// <summary>
         /// Gets the formatted text.
         /// </summary>
@@ -188,7 +195,7 @@ namespace CK.Core
         /// <param name="formattedString">The <see cref="FormattedString"/>.</param>
         /// <param name="resName">The <see cref="ResName"/>.</param>
         /// <returns>A new code string.</returns>
-        public static CodeString CreateFromProperties( in FormattedStringHandler formattedString, string resName )
+        public static CodeString CreateFromProperties( in FormattedString formattedString, string resName )
         {
             Throw.CheckNotNullArgument( resName );
             return new CodeString( formattedString, resName );
@@ -206,7 +213,7 @@ namespace CK.Core
         /// <returns>This text.</returns>
         public override string ToString() => _f.Text;
 
-        #region Serialization
+        #region Binary serialization
         /// <summary>
         /// Simple deserialization constructor.
         /// </summary>

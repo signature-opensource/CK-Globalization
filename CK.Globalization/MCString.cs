@@ -11,7 +11,7 @@ namespace CK.Core
     {
         readonly string _text;
         readonly CodeString _code;
-        readonly NormalizedCultureInfo _format;
+        readonly NormalizedCultureInfo _formatCulture;
 
         /// <summary>
         /// Qualifies the translation from the <see cref="CodeString"/> to <see cref="FormatCulture"/>.
@@ -59,21 +59,21 @@ namespace CK.Core
         {
             _text = string.Empty;
             _code = CodeString.Empty;
-            _format = NormalizedCultureInfo.Invariant;
+            _formatCulture = NormalizedCultureInfo.Invariant;
         }
 
         MCString( CodeString code )
         {
             _text = code.Text;
             _code = code;
-            _format = NormalizedCultureInfo.CodeDefault;
+            _formatCulture = NormalizedCultureInfo.CodeDefault;
         }
 
         MCString( string text, CodeString code, NormalizedCultureInfo format )
         {
             _text = text;
             _code = code;
-            _format = format;
+            _formatCulture = format;
         }
 
         /// <summary>
@@ -177,7 +177,23 @@ namespace CK.Core
         /// </summary>
         /// <param name="code">The string from source code.</param>
         /// <returns>The untranslated string.</returns>
-        public static MCString CreateUntracked( CodeString s ) => new MCString( s );    
+        public static MCString CreateUntracked( CodeString s ) => new MCString( s );
+
+        /// <summary>
+        /// Intended to restore an instance from its component: this can typically be used by serializers/deserializers.
+        /// Translation issues are not tracked when calling this.
+        /// </summary>
+        /// <param name="text">The <see cref="Text"/>.</param>
+        /// <param name="s">The <see cref="CodeString"/>.</param>
+        /// <param name="formatCulture">The <see cref="FormatCulture"/>.</param>
+        /// <returns>A new code string.</returns>
+        public static MCString CreateFromProperties( string text, CodeString s, NormalizedCultureInfo formatCulture )
+        {
+            Throw.CheckNotNullArgument( s );
+            Throw.CheckNotNullArgument( text );
+            Throw.CheckNotNullArgument( formatCulture );
+            return new MCString( text, s, formatCulture );
+        }
 
         /// <summary>
         /// Gets the translated text.
@@ -192,7 +208,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the format culture.
         /// </summary>
-        public NormalizedCultureInfo FormatCulture => _format;
+        public NormalizedCultureInfo FormatCulture => _formatCulture;
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.
@@ -209,7 +225,7 @@ namespace CK.Core
             {
                 var c = _code.ContentCulture;
                 var primary = c.PrimaryCulture;
-                var f = _format;
+                var f = _formatCulture;
                 // Perfect: We found the exact culture.
                 if( primary == f || (f.IsDefault && primary.IsDefault)) return Quality.Perfect;
                 // Good: either we found a parent culture, or a sibling culture. The latter case
@@ -232,8 +248,8 @@ namespace CK.Core
         {
             get
             {
-                Throw.DebugAssert( !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _format ) == TranslationQuality < Quality.Good );
-                return !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _format );
+                Throw.DebugAssert( !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture ) == TranslationQuality < Quality.Good );
+                return !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture );
             }
         }
 
@@ -271,7 +287,7 @@ namespace CK.Core
             Throw.CheckData( version == 0 );
             _code = new CodeString( r, 0 );
             _text = r.ReadString();
-            _format = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
+            _formatCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
         }
 
         /// <inheritdoc />
@@ -283,7 +299,7 @@ namespace CK.Core
             Throw.DebugAssert( SerializationVersionAttribute.GetRequiredVersion( typeof( CodeString ) ) == 0 );
             _code.WriteData( w );
             w.Write( _text );
-            w.Write( _format.Name );
+            w.Write( _formatCulture.Name );
         }
         #endregion
 

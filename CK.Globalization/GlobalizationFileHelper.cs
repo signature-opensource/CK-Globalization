@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks.Dataflow;
 
 namespace CK.Core
 {
-    static class GlobalizationFile
+    public static class GlobalizationFileHelper
     {
         public static void SetLocaleTranslationFiles( IActivityMonitor monitor, NormalizedPath localeRootPath )
         {

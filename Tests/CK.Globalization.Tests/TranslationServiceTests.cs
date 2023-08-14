@@ -16,7 +16,7 @@ namespace CK.Globalization.Tests
         public void ClearCache()
         {
             typeof( NormalizedCultureInfo )
-                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
                 .Invoke( null, null );
         }
 

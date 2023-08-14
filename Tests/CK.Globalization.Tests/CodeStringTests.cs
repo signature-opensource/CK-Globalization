@@ -1,11 +1,14 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
@@ -17,11 +20,11 @@ namespace CK.Globalization.Tests
         public void ClearCache()
         {
             typeof( NormalizedCultureInfo )
-                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
                 .Invoke( null, null );
         }
 
-        static string ThisFile( [CallerFilePath] string? f = null ) => f;
+        static string ThisFile( [CallerFilePath] string? f = null ) => f!;
 
         [Test]
         public void source_location_tests()
@@ -46,11 +49,11 @@ namespace CK.Globalization.Tests
         [Test]
         public void serialization_tests()
         {
-            CheckSerialization( new CodeString( "" ) );
-            CheckSerialization( new CodeString( "plain text" ) );
-            CheckSerialization( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
-            CheckSerialization( new CodeString( $"This {GetType().Name}." ) );
-            CheckSerialization( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
+            CheckSerializations( new CodeString( "" ) );
+            CheckSerializations( new CodeString( "plain text" ) );
+            CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
+            CheckSerializations( new CodeString( $"This {GetType().Name}." ) );
+            CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
 
             foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
             {
@@ -59,9 +62,9 @@ namespace CK.Globalization.Tests
                 var f = new CodeString( culture, $"{culture.Name} - {culture.Culture.EnglishName} - {culture.Culture.NativeName} - Date: {d:F}, V: {value:C}" );
                 // Just for fun:
                 // Console.WriteLine( f );
-                CheckSerialization( f );
+                CheckSerializations( f );
             }
-            static void CheckSerialization( CodeString c )
+            static string CheckSerializations( CodeString c )
             {
                 // Versioned serializable.
                 {
@@ -79,6 +82,11 @@ namespace CK.Globalization.Tests
                     CheckEquals( SimpleSerializable.DeepCloneSimple( c ), c );
                     CheckEquals( c.DeepClone(), c );
                 }
+                // Json
+                string? text = null;
+                TestHelper.JsonIdempotenceCheck( c, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadCodeStringFromJsonArray, t => text = t );
+                Debug.Assert( text != null );
+                return text;
             }
 
             static void CheckEquals( CodeString backC, CodeString c )

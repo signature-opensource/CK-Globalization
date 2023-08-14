@@ -3,16 +3,8 @@ using CommunityToolkit.HighPerformance;
 using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Xml.Linq;
 
 namespace CK.Globalization.Tests
 {
@@ -25,7 +17,7 @@ namespace CK.Globalization.Tests
         public void ClearCache()
         {
             typeof( NormalizedCultureInfo )
-                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
                 .Invoke( null, null );
         }
 

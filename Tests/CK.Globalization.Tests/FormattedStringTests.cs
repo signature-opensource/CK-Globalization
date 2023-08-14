@@ -1,11 +1,12 @@
 using CK.Core;
+using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
@@ -192,12 +193,13 @@ namespace CK.Globalization.Tests
         }
 
         [Test]
-        public void serialization_tests()
+        public void serializations_tests()
         {
-            CheckSerialization( FormattedString.Empty );
-            CheckSerialization( new FormattedString( "" ) );
-            CheckSerialization( new FormattedString( "plain text" ) );
-            CheckSerialization( new FormattedString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
+            CheckSerializations( FormattedString.Empty ).Should().Be( """["","",[]]""" );
+            CheckSerializations( new FormattedString( "" ) ).Should().Be( $"""["","{NormalizedCultureInfo.Current.Name}",[]]""" );
+            CheckSerializations( new FormattedString( "plain text" ) ).Should().Be( $"""["plain text","{NormalizedCultureInfo.Current.Name}",[]]""" );
+            CheckSerializations( new FormattedString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) )
+                .Should().Be( $"""["plain text","ar-tn",[]]""" ); ;
 
             foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
             {
@@ -206,9 +208,10 @@ namespace CK.Globalization.Tests
                 var f = new FormattedString( culture, $"{culture.Name} - {culture.Culture.EnglishName} - {culture.Culture.NativeName} - Date: {d:F}, V: {value:C}" );
                 // Just for fun:
                 // Console.WriteLine( f );
-                CheckSerialization( f );
+                CheckSerializations( f );
             }
-            static void CheckSerialization( FormattedString f )
+
+            static string CheckSerializations( FormattedString f )
             {
                 // Versioned serializable.
                 {
@@ -226,6 +229,11 @@ namespace CK.Globalization.Tests
                     CheckEquals( SimpleSerializable.DeepCloneSimple( f ), f );
                     CheckEquals( f.DeepClone(), f );
                 }
+                // Json
+                string? text = null;
+                TestHelper.JsonIdempotenceCheck( f, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadFormattedStringFromJsonArray, t => text = t );
+                Debug.Assert( text != null );
+                return text;
             }
 
             static void CheckEquals( FormattedString backF, FormattedString f )
@@ -244,7 +252,7 @@ namespace CK.Globalization.Tests
         }
 
         [Test]
-        public void FormattedString_Create()
+        public void FormattedString_CreateFromProperties()
         {
             var c = NormalizedCultureInfo.Current;
             var f = FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
@@ -255,14 +263,19 @@ namespace CK.Globalization.Tests
             args[3].Should().Be( "EF" );
             f.GetFormatString().Should().Be( "{0}{1}{2}CD{3}" );
 
+            string? text = null;
+            TestHelper.JsonIdempotenceCheck( f, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadFormattedStringFromJsonArray, t => text = t );
+            text.Should().Be( """["ABCDEF","fr-fr",[0,1,1,1,2,0,4,2]]""" );
+
             FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (-1, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
             FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (100, 1) }, c ) )
                 .Should().Throw<ArgumentException>();
             FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 7) }, c ) )
                 .Should().Throw<ArgumentException>();
-            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 2), (1,2) }, c ) )
+            FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 2), (1, 2) }, c ) )
                 .Should().Throw<ArgumentException>();
         }
+
     }
 }
