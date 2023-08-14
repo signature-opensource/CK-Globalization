@@ -21,6 +21,13 @@ namespace CK.Globalization.Tests
         }
 
         [Test]
+        public void default_ResultMessage_serialization()
+        {
+            ResultMessage def = default;
+            CheckSerializations( def );
+        }
+
+        [Test]
         public void ResultMessage_Error()
         {
             var m1 = ResultMessage.Error( "text" );

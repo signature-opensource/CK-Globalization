@@ -502,8 +502,8 @@ namespace CK.Core
             Throw.CheckData( version == 0 );
             // 0 versions for both: let's use the more efficient versioned serializable interface.
             Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );
-            _message = new MCString( r, 0 );
             _level = (ResultMessageLevel)r.ReadByte();
+            _message = _level != ResultMessageLevel.None ? new MCString( r, 0 ) : MCString.Empty;
         }
 
 
@@ -511,8 +511,8 @@ namespace CK.Core
         public void WriteData( ICKBinaryWriter w )
         {
             Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );
-            _message.WriteData( w );
             w.Write( (byte)_level );
+            if( _level != ResultMessageLevel.None ) _message.WriteData( w );
         }
         #endregion
 
@@ -520,6 +520,6 @@ namespace CK.Core
         /// Gets the <c>"Level - ResName - Text message"</c> string.
         /// </summary>
         /// <returns>This message's type and text.</returns>
-        public override string ToString() => $"{_level} - {ResName} {_message.Text}";
+        public override string ToString() => $"{_level} - {ResName} {Text}";
     }
 }

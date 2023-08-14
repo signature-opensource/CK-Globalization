@@ -30,7 +30,7 @@ namespace CK.Core
         public static void WriteJsonArrayContent( Utf8JsonWriter w, ResultMessage v )
         {
             w.WriteNumberValue( (int)v.Level );
-            WriteJsonArrayContent( w, v.Message );
+            if( v.Level != ResultMessageLevel.None ) WriteJsonArrayContent( w, v.Message );
         }
 
         public static ResultMessage ReadResultMessageFromJsonArray( ref Utf8JsonReader r )
@@ -45,6 +45,7 @@ namespace CK.Core
         {
             var level = (ResultMessageLevel)r.GetInt32();
             r.Read();
+            if( level == ResultMessageLevel.None ) return default;
             var s = ReadMCStringFromJsonArrayContent( ref r );
             return new ResultMessage( level, s );
         }
