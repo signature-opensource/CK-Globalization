@@ -1,18 +1,23 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core
 {
     /// <summary>
     /// Captures (once for all!) a info/warning/error <see cref="Level"/> and a <see cref="Message"/> that
     /// is a <see cref="MCString"/>.
+    /// <para>
+    /// The simplified projection of a UserMessage is a <see cref="SimpleUserMessage"/>: this is implicitly castable as a SimpleUserMessage.
+    /// </para>
     /// </summary>
     [SerializationVersion( 0 )]
     public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
     {
         readonly MCString _message;
-        readonly UserMessageLevel _level;
+        readonly byte _level;
+        readonly byte _depth;
 
         /// <summary>
         /// Initializes a new <see cref="UserMessage"/>.
@@ -20,11 +25,13 @@ namespace CK.Core
         /// <param name="level">The result message's type (<see cref="UserMessageLevel.Info"/>, <see cref="UserMessageLevel.Warn"/>
         /// or <see cref="UserMessageLevel.Error"/>). Cannot be <see cref="UserMessageLevel.None"/>.</param>
         /// <param name="message">The message.</param>
-        public UserMessage( UserMessageLevel level, MCString message )
+        /// <param name="depth">Optional depth.</param>
+        public UserMessage( UserMessageLevel level, MCString message, byte depth = 0 )
         {
             Throw.CheckArgument( level != UserMessageLevel.None );
-            _level = level;
+            _level = (byte)level;
             _message = message;
+            _depth = depth;
         }
 
         /// <summary>
@@ -34,18 +41,44 @@ namespace CK.Core
         public bool IsValid => _message != null;
 
         /// <summary>
+        /// Returns a new message with a given <see cref="Level"/>.
+        /// </summary>
+        /// <param name="level">The message level.</param>
+        /// <returns>The same <see cref="Message"/> with the <paramref name="level"/>.</returns>
+        public UserMessage With( UserMessageLevel level )
+        {
+            Throw.CheckArgument( level != UserMessageLevel.None );
+            return new UserMessage( level, Message, _depth );
+        }
+
+        /// <summary>
+        /// Returns a new message with a given <see cref="Depth"/>.
+        /// </summary>
+        /// <param name="depth">The message depth.</param>
+        /// <returns>The same <see cref="Message"/> with the <paramref name="depth"/>.</returns>
+        public UserMessage With( byte depth )
+        {
+            return new UserMessage( (UserMessageLevel)_level, Message, depth );
+        }
+
+        /// <summary>
         /// Gets this result message's level (<see cref="UserMessageLevel.Info"/>, <see cref="UserMessageLevel.Warn"/>
         /// or <see cref="UserMessageLevel.Error"/>).
         /// <para>
         /// This is <see cref="UserMessageLevel.None"/> when <see cref="IsValid"/> is false.
         /// </para>
         /// </summary>
-        public UserMessageLevel Level => _level;
+        public UserMessageLevel Level => (UserMessageLevel)_level;
 
         /// <summary>
         /// Gets this message's text.
         /// </summary>
         public string Text => _message?.Text ?? String.Empty;
+
+        /// <summary>
+        /// Gets the depth of this message.
+        /// </summary>
+        public byte Depth => _depth;
 
         /// <summary>
         /// Gets this message's resource name. It should be like a resource name: "UserManagent.BadEmail",
@@ -63,10 +96,29 @@ namespace CK.Core
         /// </summary>
         public bool IsTranslationWelcome => _message?.IsTranslationWelcome ?? false;
 
+        /// <summary>
+        /// Simplifies this message by returning a <see cref="SimpleUserMessage"/>.
+        /// <para>
+        /// Note that this method is exposed to ease its discovery but can be omitted since
+        /// a UserMessage is implicitly castable into a SimpleUserMessage.
+        /// </para>
+        /// </summary>
+        /// <returns>A <see cref="SimpleUserMessage"/>.</returns>
+        public SimpleUserMessage AsSimpleUserMessage() => IsValid ? new SimpleUserMessage( Level, Message, Depth ) : default;
+
+        /// <summary>
+        /// Implicit cast into <see cref="SimpleUserMessage"/>.
+        /// </summary>
+        /// <param name="m">This UserMessage.</param>
+        public static implicit operator SimpleUserMessage( UserMessage m ) => m.AsSimpleUserMessage();
+
+
         #region Create (with level).
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="level">The message level.</param>
         /// <param name="plainText">The plain text.</param>
@@ -120,7 +172,9 @@ namespace CK.Core
 
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="level">The message level.</param>
         /// <param name="text">The interpolated text.</param>
@@ -177,7 +231,9 @@ namespace CK.Core
         #region Error
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -225,7 +281,9 @@ namespace CK.Core
 
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -276,7 +334,9 @@ namespace CK.Core
         #region Warn
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -324,7 +384,9 @@ namespace CK.Core
 
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -375,7 +437,9 @@ namespace CK.Core
         #region Info
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -423,7 +487,9 @@ namespace CK.Core
 
         /// <summary>
         /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
+        /// <para>
         /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
+        /// </para>
         /// </summary>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
@@ -471,7 +537,6 @@ namespace CK.Core
 
         #endregion
 
-
         #region Serialization
         /// <summary>
         /// Simple deserialization constructor.
@@ -500,8 +565,16 @@ namespace CK.Core
             Throw.CheckData( version == 0 );
             // 0 versions for both: let's use the more efficient versioned serializable interface.
             Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );
-            _level = (UserMessageLevel)r.ReadByte();
-            _message = _level != UserMessageLevel.None ? new MCString( r, 0 ) : MCString.Empty;
+            _level = r.ReadByte();
+            if( _level != 0 )
+            {
+                _depth = r.ReadByte();
+                _message = new MCString( r, 0 );
+            }
+            else
+            {
+                _message = MCString.Empty;
+            }
         }
 
 
@@ -509,15 +582,19 @@ namespace CK.Core
         public void WriteData( ICKBinaryWriter w )
         {
             Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );
-            w.Write( (byte)_level );
-            if( _level != UserMessageLevel.None ) _message.WriteData( w );
+            w.Write( _level );
+            if( _level != 0 )
+            {
+                w.Write( _depth );
+                _message.WriteData( w );
+            }
         }
         #endregion
 
         /// <summary>
         /// Gets the <c>"Level - ResName - Text message"</c> string.
         /// </summary>
-        /// <returns>This message's type and text.</returns>
+        /// <returns>This message's level and text.</returns>
         public override string ToString() => $"{_level} - {ResName} {Text}";
     }
 }

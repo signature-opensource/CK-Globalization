@@ -4,9 +4,14 @@ using System.Runtime.CompilerServices;
 
 namespace CK.Core
 {
+
     /// <summary>
     /// Captures a translated <see cref="CodeString"/>.
+    /// <para>
+    /// The simplified projection of a MCString is a string: this is implicitly castable as a string, <see cref="Text"/> is returned.
+    /// </para>
     /// </summary>
+    [SerializationVersion( 0 )]
     public sealed class MCString
     {
         readonly string _text;
@@ -132,6 +137,7 @@ namespace CK.Core
             var c = CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber );
             return culture.TranslationService.Translate( c );
         }
+
 
         /// <summary>
         /// Creates a new translated string.

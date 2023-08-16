@@ -7,6 +7,7 @@ using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
+
     // Testing UserMessage tests MCString.
     [TestFixture]
     public class UserMessageAndMCStringTests
@@ -21,10 +22,12 @@ namespace CK.Globalization.Tests
         }
 
         [Test]
-        public void default_UserMessage_serialization()
+        public void default_UserMessage_and_SimpleUserMessage_serialization()
         {
             UserMessage def = default;
             CheckSerializations( def );
+            SimpleUserMessage sDef = default;
+            TestHelper.JsonIdempotenceCheck( sDef, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
         }
 
         [Test]
@@ -119,12 +122,13 @@ namespace CK.Globalization.Tests
             m4.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m4 );
 
-            aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "AH! {0} H'lo {1}" } } );
+            var name = "Albert";
+            aaCulture.SetCachedTranslations( new Dictionary<string, string> { { "Policy.Salutation", "Hello {0}." } } );
             var current = new CurrentCultureInfo( new TranslationService(), aaCulture );
 
-            var m5 = UserMessage.Warn( current, $"{v} Goodbye {v}", "Policy.Salutation" );
+            var m5 = UserMessage.Warn( current, $"Hi {name}!", "Policy.Salutation" );
             m5.IsTranslationWelcome.Should().BeFalse();
-            m5.Message.Text.Should().Be( "AH! 3712 H'lo 3712" );
+            m5.Message.Text.Should().Be( "Hello Albert." );
             m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
             m5.Level.Should().Be( UserMessageLevel.Warn );
             m5.ResName.Should().Be( "Policy.Salutation" );
@@ -201,6 +205,8 @@ namespace CK.Globalization.Tests
 
             TestHelper.JsonIdempotenceCheck( m, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadUserMessageFromJsonArray );
             TestHelper.JsonIdempotenceCheck( m.Message, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadMCStringFromJsonArray );
+
+            TestHelper.JsonIdempotenceCheck( m.AsSimpleUserMessage(), GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
         }
     }
 

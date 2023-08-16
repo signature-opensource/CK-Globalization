@@ -5,19 +5,17 @@ using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace CK.Core
 {
     /// <summary>
     /// Captures an interpolated string result along with its formatted placeholders.
     /// <para>
-    /// This is implicitly castable as a string: <see cref="Text"/> is returned.
+    /// The simplified projection of a FormattedString is a string: this is implicitly castable as a string, <see cref="Text"/> is returned.
     /// </para>
     /// <para>
     /// Note: We don't use <see cref="Range"/> here because there's no use of any "FromEnd". a simple

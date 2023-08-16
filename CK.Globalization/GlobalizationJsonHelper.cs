@@ -19,6 +19,45 @@ namespace CK.Core
             r.Read();
         }
 
+        #region SimpleUserMessage
+        public static void WriteAsJsonArray( Utf8JsonWriter w, SimpleUserMessage v )
+        {
+            w.WriteStartArray();
+            WriteJsonArrayContent( w, v );
+            w.WriteEndArray();
+        }
+
+        public static void WriteJsonArrayContent( Utf8JsonWriter w, SimpleUserMessage v )
+        {
+            w.WriteNumberValue( (int)v.Level );
+            if( v.Level != UserMessageLevel.None )
+            {
+                w.WriteNumberValue( (int)v.Depth );
+                w.WriteStringValue( v.Message );
+            }
+        }
+
+        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArray( ref Utf8JsonReader r )
+        {
+            ReadStartArray( ref r, "UserMessage" );
+            var s = ReadSimpleUserMessageFromJsonArrayContent( ref r );
+            ReadEndArray( ref r, "UserMessage" );
+            return s;
+        }
+
+        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArrayContent( ref Utf8JsonReader r )
+        {
+            var level = (UserMessageLevel)r.GetInt32();
+            r.Read();
+            if( level == UserMessageLevel.None ) return default;
+            var depth = (byte)r.GetInt32();
+            r.Read();
+            var s = r.GetString() ?? string.Empty;
+            r.Read();
+            return new SimpleUserMessage( level, s, depth );
+        }
+        #endregion
+
         #region UserMessage
         public static void WriteAsJsonArray( Utf8JsonWriter w, UserMessage v )
         {
@@ -30,7 +69,11 @@ namespace CK.Core
         public static void WriteJsonArrayContent( Utf8JsonWriter w, UserMessage v )
         {
             w.WriteNumberValue( (int)v.Level );
-            if( v.Level != UserMessageLevel.None ) WriteJsonArrayContent( w, v.Message );
+            if( v.Level != UserMessageLevel.None )
+            {
+                w.WriteNumberValue( (int)v.Depth );
+                WriteJsonArrayContent( w, v.Message );
+            }
         }
 
         public static UserMessage ReadUserMessageFromJsonArray( ref Utf8JsonReader r )
@@ -46,8 +89,10 @@ namespace CK.Core
             var level = (UserMessageLevel)r.GetInt32();
             r.Read();
             if( level == UserMessageLevel.None ) return default;
+            var depth = (byte)r.GetInt32();
+            r.Read();
             var s = ReadMCStringFromJsonArrayContent( ref r );
-            return new UserMessage( level, s );
+            return new UserMessage( level, s, depth );
         }
 
         #endregion

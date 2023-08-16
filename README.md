@@ -281,6 +281,27 @@ must be done, they have to be deferred (in an async context).
 
 This immediate translation capability is available on the `ResultMessage` helper.
 
+## Globalization types marshalling.
+The 5 fundamental types `ExtendedCultureInfo`, `NormalizedCultureInfo`, `FormattedString`, `CodeString`
+and `ResultMessage` are serializable both with the simple and versioned simple binary serialization.
+
+However, we don't always want to carry all the information these types hold. In such case, these types
+can be "simplified":
+- The culture informations are are always marshalled by their name (simple string): calling
+  `ExtendedCultureInfo.GetExtendedCultureInfo( name )` restores the corresponding culture info (be it
+  a `NormalizedCultureInfo` or not).
+- The formatted and code strings can be considered as simple strings, they can be implictly cast into string
+  (that is their respective `Text` property).
+- The latter one can be implictly cast into `SimpleUserMessage` that holds the `Level`, `Depth` and
+  `Message` as a string.
+
+With these projected types, all culture related information on strings is lost. They can typically be used
+when exchanging with a "front" application that doesn't have to worry about translations.
+
+Json support is available for all these objects in the static `GlobalizationJsonHelper` helper (Json
+serialization doesn't pollute the API). The Json format uses array of values to be as compact as
+possible.
+
 ## The ResName is optional but important.
 When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
 In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance

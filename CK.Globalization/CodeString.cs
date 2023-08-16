@@ -13,6 +13,9 @@ namespace CK.Core
     /// <summary>
     /// Code implementation of <see cref="MCString"/> based on interpolated strings (see <see cref="FormattedString"/>).
     /// The <see cref="FormatCulture"/> is always "en-US": format strings must always be written in american English.
+    /// <para>
+    /// The simplified projection of a CodeString is a string: this is implicitly castable as a string, <see cref="Text"/> is returned.
+    /// </para>
     /// </summary>
     [SerializationVersion(0)]
     public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
@@ -204,7 +207,7 @@ namespace CK.Core
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.
         /// </summary>
-        /// <param name="f">This Text.</param>
+        /// <param name="f">This CodeString.</param>
         public static implicit operator string( CodeString f ) => f.Text;
 
         /// <summary>
