@@ -19,35 +19,35 @@ namespace CK.Core
             r.Read();
         }
 
-        #region ResultMessage
-        public static void WriteAsJsonArray( Utf8JsonWriter w, ResultMessage v )
+        #region UserMessage
+        public static void WriteAsJsonArray( Utf8JsonWriter w, UserMessage v )
         {
             w.WriteStartArray();
             WriteJsonArrayContent( w, v );
             w.WriteEndArray();
         }
 
-        public static void WriteJsonArrayContent( Utf8JsonWriter w, ResultMessage v )
+        public static void WriteJsonArrayContent( Utf8JsonWriter w, UserMessage v )
         {
             w.WriteNumberValue( (int)v.Level );
-            if( v.Level != ResultMessageLevel.None ) WriteJsonArrayContent( w, v.Message );
+            if( v.Level != UserMessageLevel.None ) WriteJsonArrayContent( w, v.Message );
         }
 
-        public static ResultMessage ReadResultMessageFromJsonArray( ref Utf8JsonReader r )
+        public static UserMessage ReadUserMessageFromJsonArray( ref Utf8JsonReader r )
         {
-            ReadStartArray( ref r, "ResultMessage" );
-            var s = ReadResultMessageFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "ResultMessage" );
+            ReadStartArray( ref r, "UserMessage" );
+            var s = ReadUserMessageFromJsonArrayContent( ref r );
+            ReadEndArray( ref r, "UserMessage" );
             return s;
         }
 
-        public static ResultMessage ReadResultMessageFromJsonArrayContent( ref Utf8JsonReader r )
+        public static UserMessage ReadUserMessageFromJsonArrayContent( ref Utf8JsonReader r )
         {
-            var level = (ResultMessageLevel)r.GetInt32();
+            var level = (UserMessageLevel)r.GetInt32();
             r.Read();
-            if( level == ResultMessageLevel.None ) return default;
+            if( level == UserMessageLevel.None ) return default;
             var s = ReadMCStringFromJsonArrayContent( ref r );
-            return new ResultMessage( level, s );
+            return new UserMessage( level, s );
         }
 
         #endregion

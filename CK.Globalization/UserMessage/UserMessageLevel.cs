@@ -1,9 +1,9 @@
 ﻿namespace CK.Core
 {
     /// <summary>
-    /// Defines the <see cref="ResultMessage.Level"/>.
+    /// Defines the <see cref="UserMessage.Level"/>.
     /// </summary>
-    public enum ResultMessageLevel
+    public enum UserMessageLevel
     {
         /// <summary>
         /// Not applicable.
