@@ -18,7 +18,7 @@ namespace CK.Core
         /// <param name="ex">The exception.</param>
         /// <param name="culture">The current culture.</param>
         /// <returns>A list of one or more messages.</returns>
-        public static IReadOnlyList<UserMessage> GetUserMessages( this Exception ex, CurrentCultureInfo culture )
+        public static List<UserMessage> GetUserMessages( this Exception ex, CurrentCultureInfo culture )
         {
             List<UserMessage> messages = new List<UserMessage>();
             var e = ex;
@@ -27,7 +27,7 @@ namespace CK.Core
         }
 
         /// <inheritdoc cref="GetUserMessages(Exception, CurrentCultureInfo)"/>
-        public static IReadOnlyList<UserMessage> GetUserMessages( this Exception ex, ExtendedCultureInfo culture )
+        public static List<UserMessage> GetUserMessages( this Exception ex, ExtendedCultureInfo culture )
         {
             List<UserMessage> messages = new List<UserMessage>();
             var e = ex;
