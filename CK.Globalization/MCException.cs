@@ -145,10 +145,12 @@ namespace CK.Core
         public new MCString Message { get; }
 
         /// <summary>
-        /// Returns a <see cref="UserMessageLevel.Error"/> message.
+        /// Returns a <see cref="UserMessageLevel.Error"/> message, using the captured <see cref="Message"/> format culture.
         /// </summary>
         /// <returns>A <see cref="UserMessageLevel.Error"/> message.</returns>
         public UserMessage AsUserMessage() => new UserMessage( UserMessageLevel.Error, Message );
+
+        public UserMessage AsUserMessage( ExtendedCultureInfo culture ) => new UserMessage( UserMessageLevel.Error, MCString.Create( Message );
 
     }
 }

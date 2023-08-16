@@ -26,12 +26,10 @@ namespace CK.Core
             return messages;
         }
 
-        /// <inheritdoc cref="GetUserMessages(Exception, CurrentCultureInfo)"/>
-        public static List<UserMessage> GetUserMessages( this Exception ex, ExtendedCultureInfo culture )
+        public static List<UserMessage> GetUserMessages( this Exception ex )
         {
-            Throw.CheckNotNullArgument( culture != null );
             List<UserMessage> messages = new List<UserMessage>();
-            Collect( messages.Add, 0, ex, culture, null );
+            Collect( messages.Add, 0, ex, null );
             return messages;
         }
 
@@ -53,39 +51,41 @@ namespace CK.Core
             Collect( collector, 0, ex, null, culture );
         }
 
-        /// <inheritdoc cref="GetUserMessages(Exception, CurrentCultureInfo, Action{UserMessage})"/>
-        public static void GetUserMessages( this Exception ex, ExtendedCultureInfo culture, Action<UserMessage> collector)
+        public static void GetUserMessages( this Exception ex, Action<UserMessage> collector)
         {
-            Throw.CheckNotNullArgument( culture != null );
             Throw.CheckNotNullArgument( collector );
-            Collect( collector, 0, ex, culture, null );
+            Collect( collector, 0, ex, null );
         }
 
-        static void Collect( Action<UserMessage> collector, byte depth, Exception e, ExtendedCultureInfo? culture, CurrentCultureInfo? current )
+        static void Collect( Action<UserMessage> collector, byte depth, Exception e, CurrentCultureInfo? current )
         {
             if( e is MCException mC )
             {
-                collector( mC.AsUserMessage().With( depth ) );
-                if( mC.InnerException != null ) Collect( collector, ++depth, mC.InnerException, culture, current );
+                collector( mC.AsUserMessage( current ).With( depth ) );
+                if( mC.InnerException != null ) Collect( collector, ++depth, mC.InnerException, current );
             }
             else if( e is AggregateException a )
             {
-                AddUserMessage( collector, depth++, culture, current, a.Message );
-                foreach( var sub in a.InnerExceptions ) Collect( collector, depth, sub, culture, current );
+                AddUserMessage( collector, depth++, current, a.Message );
+                foreach( var sub in a.InnerExceptions ) Collect( collector, depth, sub, current );
             }
             else
             {
-                AddUserMessage( collector, depth, culture, current, e.Message );
-                if( e.InnerException != null ) Collect( collector, ++depth, e.InnerException, culture, current );
+                AddUserMessage( collector, depth, current, e.Message );
+                if( e.InnerException != null ) Collect( collector, ++depth, e.InnerException, current );
             }
 
-            static void AddUserMessage( Action<UserMessage> collector, byte depth, ExtendedCultureInfo? culture, CurrentCultureInfo? current, string text )
+            static void AddUserMessage( Action<UserMessage> collector, byte depth, CurrentCultureInfo? current, string text )
             {
-                if( culture != null ) collector( UserMessage.Error( culture, text ).With( depth ) );
+                if( current != null )
+                {
+                    collector( UserMessage.Error( current, text ).With( depth ) );
+                }
                 else
                 {
-                    Throw.DebugAssert( current != null );
-                    collector( UserMessage.Error( current, text ).With( depth ) );
+                    // We CANNOT know the content culture of text. Even by looking up the current culture:
+                    // this depends on the existence of the resx.
+                    new UserMessage(UserMessageLevel.Error, MCString.CreateNonTranslatable( NormalizedCultureInfo.CodeDefault, text ) ).With( depth );
                 }
             }
         }
