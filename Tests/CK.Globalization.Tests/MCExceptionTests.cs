@@ -7,6 +7,7 @@ using System.Collections.Generic;
 namespace CK.Globalization.Tests
 {
     [TestFixture]
+    [SetCulture( "fr-FR" )]
     public class MCExceptionTests
     {
         [SetUp]

@@ -1,5 +1,4 @@
 using CK.Core;
-using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System;
@@ -13,6 +12,7 @@ using static CK.Testing.MonitorTestHelper;
 namespace CK.Globalization.Tests
 {
     [TestFixture]
+    [SetCulture( "fr-FR" )]
     public class CodeStringTests
     {
         [SetUp]

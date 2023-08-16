@@ -11,6 +11,7 @@ using static CK.Testing.MonitorTestHelper;
 namespace CK.Globalization.Tests
 {
     [TestFixture]
+    [SetCulture( "fr-FR" )]
     public class FormattedStringTests
     {
         [Test]

@@ -186,13 +186,27 @@ namespace CK.Core
         public static MCString CreateUntracked( CodeString s ) => new MCString( s );
 
         /// <summary>
+        /// Creates a non translatable string.
+        /// Translation issues are not tracked when calling this.
+        /// </summary>
+        /// <param name="text">The <see cref="Text"/>.</param>
+        /// <param name="formatCulture">The <see cref="FormatCulture"/>.</param>
+        /// <returns>A new non translatable string.</returns>
+        public static MCString CreateNonTranslatable( NormalizedCultureInfo formatCulture, string text )
+        {
+            Throw.CheckNotNullArgument( text );
+            Throw.CheckNotNullArgument( formatCulture );
+            return new MCString( text, CodeString.Empty, formatCulture );
+        }
+
+        /// <summary>
         /// Intended to restore an instance from its component: this can typically be used by serializers/deserializers.
         /// Translation issues are not tracked when calling this.
         /// </summary>
         /// <param name="text">The <see cref="Text"/>.</param>
         /// <param name="s">The <see cref="CodeString"/>.</param>
         /// <param name="formatCulture">The <see cref="FormatCulture"/>.</param>
-        /// <returns>A new code string.</returns>
+        /// <returns>A new string.</returns>
         public static MCString CreateFromProperties( string text, CodeString s, NormalizedCultureInfo formatCulture )
         {
             Throw.CheckNotNullArgument( s );
@@ -208,6 +222,10 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the original string from source code.
+        /// <para>
+        /// This can be the <see cref="CodeString.Empty"/> singleton even if this has a <see cref="Text"/> and a <see cref="FormatCulture"/>
+        /// when <see cref="Create(NormalizedCultureInfo,string)"/> has been called: this string is not translatable.
+        /// </para>
         /// </summary>
         public CodeString CodeString => _code;
 
@@ -229,6 +247,7 @@ namespace CK.Core
         {
             get
             {
+                if( _code == CodeString.Empty ) return Quality.Perfect;
                 var c = _code.ContentCulture;
                 var primary = c.PrimaryCulture;
                 var f = _formatCulture;
@@ -248,14 +267,22 @@ namespace CK.Core
         }
 
         /// <summary>
+        /// Gets whether this <see cref="MCString"/> can be translated: its <see cref="CodeString"/> is not the <see cref="CodeString.Empty"/> one.
+        /// </summary>
+        public bool IsTranslatable => _code != CodeString.Empty;
+
+        /// <summary>
         /// Gets whether a translation is welcome: the <see cref="TranslationQuality"/> is <see cref="Quality.Bad"/> or <see cref="Quality.Awful"/>.
+        /// <para>
+        /// When <see cref="IsTranslatable"/> is false, translations are not welcome.
+        /// </para>
         /// </summary>
         public bool IsTranslationWelcome
         {
             get
             {
-                Throw.DebugAssert( !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture ) == TranslationQuality < Quality.Good );
-                return !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture );
+                Throw.DebugAssert( !IsTranslatable || !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture ) == TranslationQuality < Quality.Good );
+                return IsTranslatable && !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture );
             }
         }
 
@@ -291,9 +318,9 @@ namespace CK.Core
         public MCString( ICKBinaryReader r, int version )
         {
             Throw.CheckData( version == 0 );
-            _code = new CodeString( r, 0 );
             _text = r.ReadString();
             _formatCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
+            _code = new CodeString( r, 0 );
         }
 
         /// <inheritdoc />
@@ -303,9 +330,9 @@ namespace CK.Core
             // 0 version also for CodeString: let's use the more efficient versioned serializable interface.
             // This is called by tests. The 2 versions should always be aligned.
             Throw.DebugAssert( SerializationVersionAttribute.GetRequiredVersion( typeof( CodeString ) ) == 0 );
-            _code.WriteData( w );
             w.Write( _text );
             w.Write( _formatCulture.Name );
+            _code.WriteData( w );
         }
         #endregion
 

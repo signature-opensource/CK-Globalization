@@ -3,13 +3,14 @@ using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.Globalization;
 using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
-
     // Testing UserMessage tests MCString.
     [TestFixture]
+    [SetCulture( "fr-FR" )]
     public class UserMessageAndMCStringTests
     {
         [SetUp]
@@ -26,8 +27,17 @@ namespace CK.Globalization.Tests
         {
             UserMessage def = default;
             CheckSerializations( def );
+            def.Message.IsTranslatable.Should().BeFalse( "default user message is not translatable." );
             SimpleUserMessage sDef = default;
             TestHelper.JsonIdempotenceCheck( sDef, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
+        }
+
+        [Test]
+        public void non_translatable_MCString_is_Perfect_since_it_cannot_be_translated()
+        {
+            var s = MCString.CreateNonTranslatable( NormalizedCultureInfo.GetNormalizedCultureInfo("ar-tn"), "I'm a non translatable string." );
+            s.IsTranslatable.Should().BeFalse();
+            s.TranslationQuality.Should().Be( MCString.Quality.Perfect );
         }
 
         [Test]
