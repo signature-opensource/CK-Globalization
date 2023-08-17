@@ -150,7 +150,5 @@ namespace CK.Core
         /// <returns>A <see cref="UserMessageLevel.Error"/> message.</returns>
         public UserMessage AsUserMessage() => new UserMessage( UserMessageLevel.Error, Message );
 
-        public UserMessage AsUserMessage( ExtendedCultureInfo culture ) => new UserMessage( UserMessageLevel.Error, MCString.Create( Message );
-
     }
 }

@@ -3,6 +3,8 @@
 Its goal is to define a "user message" by providing:
 - A `[MCString](../MCString.cs) Message` property .
 - A `UserMessageLevel Level` property that is an enum `Info`/`Warn`/`Error`.
+- An optional `byte Depth` that enables a list of user messages to be "stuctured". This Depth
+  can be set with `With( byte depth )` when needed.
 
 Static factory methods can be used to create `UserMessage` from a plain text, an
 interpolated string, with an explicit `ExtendedCultureInfo` (ar a `NormalizedCultureInfo` that specializes
@@ -20,10 +22,10 @@ Example:
   /// <param name="lineNumber">Automatically set by the compiler.</param>
   /// <returns>A new Result message.</returns>
   public static UserMessage Info( ExtendedCultureInfo culture,
-                                    [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
-                                    string? resName = null,
-                                    [CallerFilePath] string? filePath = null,
-                                    [CallerLineNumber] int lineNumber = 0 )
+                                  [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
+                                  string? resName = null,
+                                  [CallerFilePath] string? filePath = null,
+                                  [CallerLineNumber] int lineNumber = 0 )
 ```
 
 The backend developer should return a user message (or a list of result messages) whenever
