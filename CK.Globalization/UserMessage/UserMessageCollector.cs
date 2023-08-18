@@ -57,7 +57,7 @@ namespace CK.Core
 
         /// <summary>
         /// Writes these <see cref="UserMessages"/> as logs.
-        /// The logges text is the <see cref="CodeString.FormattedString"/> and Error/Warn/Info and Open/Close groups
+        /// The logged text is the <see cref="CodeString.Text"/> and Error/Warn/Info and Open/Close groups
         /// reflect the user messages structure.
         /// </summary>
         /// <param name="monitor">The target monitor.</param>
@@ -71,7 +71,7 @@ namespace CK.Core
                 if( d < m.Depth )
                 {
                     Throw.DebugAssert( d == m.Depth - 1 );
-                    monitor.OpenGroup( (LogLevel)m.Level, m.Message.CodeString.FormattedString.Text );
+                    monitor.OpenGroup( (LogLevel)m.Level, m.Message.CodeString );
                     ++d;
                 }
                 else
@@ -81,7 +81,7 @@ namespace CK.Core
                         monitor.CloseGroup();
                         --d;
                     }
-                    monitor.Log( (LogLevel)m.Level, m.Message.CodeString.FormattedString.Text );
+                    monitor.Log( (LogLevel)m.Level, m.Message.CodeString );
                 }
             }
             while( d > 0 )
