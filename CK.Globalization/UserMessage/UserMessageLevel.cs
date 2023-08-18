@@ -1,4 +1,4 @@
-﻿namespace CK.Core
+namespace CK.Core
 {
     /// <summary>
     /// Defines the <see cref="UserMessage.Level"/>.
@@ -13,16 +13,16 @@
         /// <summary>
         /// Information message.
         /// </summary>
-        Info = 4,
+        Info = LogLevel.Info,
 
         /// <summary>
         /// Warning.
         /// </summary>
-        Warn = 8,
+        Warn = LogLevel.Warn,
 
         /// <summary>
         /// Error message.
         /// </summary>
-        Error = 16
+        Error = LogLevel.Error
     }
 }

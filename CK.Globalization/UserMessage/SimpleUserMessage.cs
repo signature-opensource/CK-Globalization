@@ -84,7 +84,7 @@ namespace CK.Core
         /// Gets the <c>"Level - Message"</c> string.
         /// </summary>
         /// <returns>This message's level and text.</returns>
-        public override string ToString() => $"{_level} - {Message}";
+        public override string ToString() => $"{Level} - {Message}";
 
         #region Serialization
         /// <summary>

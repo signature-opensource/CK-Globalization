@@ -1,13 +1,12 @@
 using CK.Core;
-using CK.Testing;
 using FluentAssertions;
 using NUnit.Framework;
 using System.Collections.Generic;
-using System.Globalization;
 using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
+
     // Testing UserMessage tests MCString.
     [TestFixture]
     [SetCulture( "fr-FR" )]

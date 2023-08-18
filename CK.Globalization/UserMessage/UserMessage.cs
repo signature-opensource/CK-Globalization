@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core
 {
@@ -594,7 +593,8 @@ namespace CK.Core
         /// <summary>
         /// Gets the <c>"Level - ResName - Text message"</c> string.
         /// </summary>
-        /// <returns>This message's level and text.</returns>
-        public override string ToString() => $"{_level} - {ResName} {Text}";
+        /// <returns>This message's Level, ResName and Text.</returns>
+        public override string ToString() => $"{Level} - {ResName} {Text}";
+
     }
 }

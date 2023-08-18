@@ -46,4 +46,9 @@ or when `culture` is a `ExtendedCultureInfo`, the message is not (yet) translate
 later, typically when the result is sent back to the caller, and even on the caller side if the `UserMessage`
 has been marshalled with all its information.
 
+## UserMessageCollector: a simple ValidationContext.
+The `UserMessageCollector` is a small helper that collects multiple user messages. Its API mimics the
+`IActivityMonitor` one with `Error`, `Warn`, `Info`, `OpenError`, `OpenWarn` and `OpenInfo`.
 
+It can be used as a simple "ValidationContext" that enables code to return errors but also warnings and
+informations.
