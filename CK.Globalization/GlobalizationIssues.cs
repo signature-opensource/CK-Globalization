@@ -73,12 +73,20 @@ namespace CK.Core
         static readonly Channel<Issue?> _channel;
         static readonly IActivityMonitor _monitor;
         static readonly PerfectEventSender<Issue> _onNewIssue;
-        // Internal for tests (ClearCache).
         internal readonly record struct ResKey( NormalizedCultureInfo Culture, string ResName );
-        internal static Dictionary<ResKey, CodeString>? _missingTranslations;
-        internal static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
-        internal static CultureIdentifierClash[] _identifierClashes;
-        internal static readonly ConcurrentDictionary<byte[], CodeStringSourceLocation[]> _codeSringOccurrence;
+        static Dictionary<ResKey, CodeString>? _missingTranslations;
+        static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
+        static CultureIdentifierClash[] _identifierClashes;
+        static readonly ConcurrentDictionary<byte[], CodeStringSourceLocation[]> _codeSringOccurrence;
+
+        // Internal for tests (ClearCache).
+        internal static void ClearIssueCache()
+        {
+            _identifierClashes = Array.Empty<CultureIdentifierClash>();
+            _codeSringOccurrence.Clear();
+            _missingTranslations = null;
+            _formatArgumentError = null;
+        }
 
         static GlobalizationIssues()
         {
@@ -378,7 +386,7 @@ namespace CK.Core
         sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
         sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
         sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
-        sealed record PrivateGetReport( TaskCompletionSource<Report> TCS ) : Issue;
+        sealed record PrivateGetReport( TaskCompletionSource<Report> TCS, bool Reset ) : Issue;
 
     }
 }

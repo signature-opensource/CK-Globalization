@@ -185,10 +185,7 @@ namespace CK.Core
             GlobalizationIssues.Track.IsOpen = false;
             var all = new Dictionary<object, ExtendedCultureInfo>( _all.Where( IsUnremovable ) );
             _all = all;
-            GlobalizationIssues._identifierClashes = Array.Empty<GlobalizationIssues.CultureIdentifierClash>();
-            GlobalizationIssues._codeSringOccurrence.Clear();
-            GlobalizationIssues._missingTranslations = null;
-            GlobalizationIssues._formatArgumentError = null;
+            GlobalizationIssues.ClearIssueCache();
 
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
             Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );

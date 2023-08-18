@@ -94,13 +94,15 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Obtains a <see cref="Report"/> with the detected issues so far.
+        /// Obtains a <see cref="Report"/> with the detected issues so far and clears the
+        /// collected information or keeps them.
         /// </summary>
+        /// <param name="reset">True to reset the collected information.</param>
         /// <returns>The current issues.</returns>
-        public static Task<Report> GetReportAsync()
+        public static Task<Report> GetReportAsync( bool reset )
         {
             var tcs = new TaskCompletionSource<Report>();
-            _channel.Writer.TryWrite( new PrivateGetReport( tcs ) );
+            _channel.Writer.TryWrite( new PrivateGetReport( tcs, reset ) );
             return tcs.Task;
         }
 
@@ -176,6 +178,8 @@ namespace CK.Core
                                               automaticResourceNamesCanUseExistingResName?.ToArray() ?? Array.Empty<AutomaticResourceNamesCanUseExistingResName>(),
                                               resourceNamesCanBeMerged?.ToArray() ?? Array.Empty<ResourceNamesCanBeMerged>(),
                                               sameResNameWithDifferentFormatList ) );
+
+            if( report.Reset ) ClearIssueCache();
 
             static void AddByResName( ref Dictionary<string, CodeStringSourceLocation[]>? sameResNameWithDifferentFormat,
                                       Dictionary<string, CodeStringSourceLocation[]> byDefinedResNameWithDifferentFormat,
