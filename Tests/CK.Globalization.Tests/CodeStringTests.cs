@@ -94,7 +94,7 @@ namespace CK.Globalization.Tests
                 backC.Text.Should().Be( c.Text );
                 backC.Placeholders.Should().BeEquivalentTo( c.Placeholders );
                 backC.FormattedString.GetFormatString().Should().Be( c.FormattedString.GetFormatString() );
-                backC.ContentCulture.Should().BeSameAs( c.ContentCulture );
+                backC.TargetCulture.Should().BeSameAs( c.TargetCulture );
                 backC.GetPlaceholderContents().Select( c => c.ToString() ).Should().BeEquivalentTo( c.GetPlaceholderContents().Select( c => c.ToString() ) );
             }
         }

@@ -75,6 +75,7 @@ namespace CK.Globalization.Tests
             m4.IsTranslationWelcome.Should().BeTrue();
             m4.Message.Text.Should().Be( "3712 Goodbye 3712" );
             m4.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m4.Message.CodeString.TargetCulture.Should().BeSameAs( aaCulture );
             m4.Level.Should().Be( UserMessageLevel.Error );
             m4.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m4 );
@@ -86,9 +87,21 @@ namespace CK.Globalization.Tests
             m5.IsTranslationWelcome.Should().BeFalse();
             m5.Message.Text.Should().Be( "AH! 3712 H'lo 3712" );
             m5.Message.FormatCulture.Should().BeSameAs( aaCulture );
+            m5.Message.CodeString.TargetCulture.Should().BeSameAs( aaCulture );
             m5.Level.Should().Be( UserMessageLevel.Error );
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
+
+
+            current = null;
+            var m6 = UserMessage.Error( current, $"{v} Goodbye {v}", "Policy.Salutation" );
+            m6.IsTranslationWelcome.Should().BeTrue();
+            m6.Message.Text.Should().Be( "3712 Goodbye 3712" );
+            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
+            m6.Level.Should().Be( UserMessageLevel.Error );
+            m6.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerializations( m6 );
         }
 
         [Test]
@@ -142,6 +155,16 @@ namespace CK.Globalization.Tests
             m5.Level.Should().Be( UserMessageLevel.Warn );
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
+
+            current = null;
+            var m6 = UserMessage.Warn( current, $"Hi {name}!", "Policy.Salutation" );
+            m6.IsTranslationWelcome.Should().BeTrue();
+            m6.Message.Text.Should().Be( "Hi Albert!" );
+            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
+            m6.Level.Should().Be( UserMessageLevel.Warn );
+            m6.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerializations( m6 );
         }
 
         [Test]
@@ -194,6 +217,16 @@ namespace CK.Globalization.Tests
             m5.Level.Should().Be( UserMessageLevel.Info );
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
+
+            current = null;
+            var m6 = UserMessage.Info( current, $"{v} Goodbye {v}", "Policy.Salutation" );
+            m6.IsTranslationWelcome.Should().BeTrue();
+            m6.Message.Text.Should().Be( "3712 Goodbye 3712" );
+            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
+            m6.Level.Should().Be( UserMessageLevel.Info );
+            m6.ResName.Should().Be( "Policy.Salutation" );
+            CheckSerializations( m6 );
         }
 
         static void CheckSerializations( UserMessage m )

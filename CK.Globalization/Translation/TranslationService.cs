@@ -11,7 +11,7 @@ namespace CK.Core
     {
         /// <summary>
         /// Does its best to ensure that the returned <see cref="MCString.FormatCulture"/> is aligned with
-        /// the <see cref="CodeString.ContentCulture"/> based on the available memory cached translations.
+        /// the <see cref="CodeString.TargetCulture"/> based on the available memory cached translations.
         /// <para>
         /// This is a synchronous method that works on the cached memory translations.
         /// </para>
@@ -20,10 +20,10 @@ namespace CK.Core
         /// <returns>A string with a format culture aligned to its content culture if possible.</returns>
         public virtual MCString Translate( CodeString s )
         {
-            var r = TryTranslate( s.ContentCulture.PrimaryCulture, s );
+            var r = TryTranslate( s.TargetCulture.PrimaryCulture, s );
             if( r == null )
             {
-                foreach( var c in s.ContentCulture.Fallbacks )
+                foreach( var c in s.TargetCulture.Fallbacks )
                 {
                     r = TryTranslate( c, s );
                     if( r != null ) break;
@@ -54,11 +54,11 @@ namespace CK.Core
         /// <returns></returns>
         protected static MCString? TryTranslateGood( CodeString s )
         {
-            var primary = s.ContentCulture.PrimaryCulture;
+            var primary = s.TargetCulture.PrimaryCulture;
             var r = TryTranslate( primary, s );
             if( r == null )
             {
-                foreach( var c in s.ContentCulture.Fallbacks )
+                foreach( var c in s.TargetCulture.Fallbacks )
                 {
                     if( !c.HasSameNeutral( primary ) ) break;
                     r = TryTranslate( c, s );

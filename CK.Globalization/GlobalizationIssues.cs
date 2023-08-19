@@ -205,7 +205,7 @@ namespace CK.Core
         {
             _missingTranslations ??= new Dictionary<ResKey, CodeString>();
             var c = s.CodeString;
-            var primary = c.ContentCulture.PrimaryCulture;
+            var primary = c.TargetCulture.PrimaryCulture;
             if( _missingTranslations.TryAdd( new ResKey( primary, c.ResName ), c ) )
             {
                 var issue = new MissingTranslationResource( c );
@@ -332,7 +332,7 @@ namespace CK.Core
             /// <summary>
             /// The culture in which the resource should be defined.
             /// </summary>
-            public NormalizedCultureInfo MissingCulture => Instance.ContentCulture.PrimaryCulture;
+            public NormalizedCultureInfo MissingCulture => Instance.TargetCulture.PrimaryCulture;
 
             /// <summary>
             /// The resource name to be defined.

@@ -19,21 +19,21 @@ namespace CK.Core
         readonly NormalizedCultureInfo _formatCulture;
 
         /// <summary>
-        /// Qualifies the translation from the <see cref="CodeString"/> to <see cref="FormatCulture"/>.
+        /// Qualifies the translation from the <see cref="CodeString.TargetCulture"/> to the <see cref="FormatCulture"/>.
         /// </summary>
         public enum Quality
         {
             /// <summary>
-            /// The <see cref="FormatCulture"/> is in the default "en-us" and the <see cref="CodeString.ContentCulture"/>
+            /// The <see cref="FormatCulture"/> is in the default "en-us" and the <see cref="CodeString.TargetCulture"/>
             /// doesn't contain any "en" or English specific fallback.
             /// </summary>
             Awful,
 
             /// <summary>
-            /// The <see cref="FormatCulture"/> and the <see cref="CodeString.ContentCulture"/>'s primary culture
+            /// The <see cref="FormatCulture"/> and the <see cref="CodeString.TargetCulture"/>'s primary culture
             /// are unrelated.
             /// <para>
-            /// This only applies when the ContentCulture is a pure <see cref="ExtendedCultureInfo"/>
+            /// This only applies when the TargetCulture is a pure <see cref="ExtendedCultureInfo"/>
             /// (a "user preference list"): the FormatCulture is one the fallbacks, but not in the primary culture group.
             /// We found a translation in the preferred list but not in the language (in the sense of the neutral culture) that
             /// has been used to format the placeholder. At least the user can understand the text.
@@ -42,14 +42,14 @@ namespace CK.Core
             Bad,
 
             /// <summary>
-            /// The <see cref="FormatCulture"/> is a parent of the <see cref="CodeString.ContentCulture"/>'s primary culture,
-            /// or one of its siblings. The latter case implies that the ContentCulture is pure ExtendedCultureInfo: this sibling
+            /// The <see cref="FormatCulture"/> is a parent of the <see cref="CodeString.TargetCulture"/>'s primary culture,
+            /// or one of its siblings. The latter case implies that the TargetCulture is pure ExtendedCultureInfo: this sibling
             /// explicitly appears in the "user preference list".
             /// </summary>
             Good,
 
             /// <summary>
-            /// The <see cref="FormatCulture"/> perfectly matches the <see cref="CodeString.ContentCulture"/>'s primary culture.
+            /// The <see cref="FormatCulture"/> perfectly matches the <see cref="CodeString.TargetCulture"/>'s primary culture.
             /// </summary>
             Perfect
         }
@@ -84,18 +84,27 @@ namespace CK.Core
         /// <summary>
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
+        /// <para>
+        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
+        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
+        /// no attempt to translate the string).
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo culture,
+        public static MCString Create( CurrentCultureInfo? culture,
                                        string text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
                                        [CallerLineNumber] int lineNumber = 0 )
         {
+            if( culture == null )
+            {
+                return new MCString( new CodeString( NormalizedCultureInfo.Current, text, resName, filePath, lineNumber ) );
+            }
             var c = new CodeString( culture.CurrentCulture, text, resName, filePath, lineNumber );
             return culture.TranslationService.Translate( c );
         }
@@ -103,13 +112,18 @@ namespace CK.Core
         /// <summary>
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
+        /// <para>
+        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
+        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
+        /// no attempt to translate the string).
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo culture,
+        public static MCString Create( CurrentCultureInfo? culture,
                                        [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
@@ -122,18 +136,27 @@ namespace CK.Core
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// Intended for wrappers that capture the interpolated string handler. 
+        /// <para>
+        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
+        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
+        /// no attempt to translate the string).
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo culture,
+        public static MCString Create( CurrentCultureInfo? culture,
                                        ref FormattedStringHandler text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
                                        [CallerLineNumber] int lineNumber = 0 )
         {
+            if( culture == null )
+            {
+                return new MCString( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) );
+            }
             var c = CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber );
             return culture.TranslationService.Translate( c );
         }
@@ -248,7 +271,7 @@ namespace CK.Core
             get
             {
                 if( _code == CodeString.Empty ) return Quality.Perfect;
-                var c = _code.ContentCulture;
+                var c = _code.TargetCulture;
                 var primary = c.PrimaryCulture;
                 var f = _formatCulture;
                 // Perfect: We found the exact culture.
@@ -281,8 +304,8 @@ namespace CK.Core
         {
             get
             {
-                Throw.DebugAssert( !IsTranslatable || !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture ) == TranslationQuality < Quality.Good );
-                return IsTranslatable && !_code.ContentCulture.PrimaryCulture.HasSameNeutral( _formatCulture );
+                Throw.DebugAssert( !IsTranslatable || !_code.TargetCulture.PrimaryCulture.HasSameNeutral( _formatCulture ) == TranslationQuality < Quality.Good );
+                return IsTranslatable && !_code.TargetCulture.PrimaryCulture.HasSameNeutral( _formatCulture );
             }
         }
 

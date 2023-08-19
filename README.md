@@ -21,7 +21,7 @@ that secures this process by enforcing type safety, this is always more work for
 
 Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
 we always format a text with a en-US format but with placeholders rendered in the "current" culture and captures
-the resulting `Text`, the "current" `ContentCulture` and the placeholders text ranges. Armed with this, we can
+the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
 An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
@@ -221,7 +221,7 @@ public class TranslationService : ISingletonAutoService
 {
     /// <summary>
     /// Does its best to ensure that the returned <see cref="MCString.FormatCulture"/> is aligned with
-    /// the <see cref="CodeString.ContentCulture"/> based on the available memory cached translations.
+    /// the <see cref="CodeString.TargetCulture"/> based on the available memory cached translations.
     /// <para>
     /// This is a synchronous method that works on the cached memory translations.
     /// </para>

@@ -38,7 +38,7 @@ namespace CK.Globalization.Tests
             var date = new DateTime( 2023, 8, 4, 18, 38, 47 );
             var c = new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" ), $"Hop {date:F}." );
             c.Text.Should().Be( "Hop vendredi 4 août 2023 18:38:47." );
-            c.ContentCulture.Name.Should().Be( "fr-fr" );
+            c.TargetCulture.Name.Should().Be( "fr-fr" );
 
             var t = await s.TranslateAsync( c );
             t.Text.Should().Be( c.Text );

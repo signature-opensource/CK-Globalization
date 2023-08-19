@@ -151,7 +151,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the culture that has been used to format the <see cref="Placeholders"/>.
         /// </summary>
-        public ExtendedCultureInfo ContentCulture => _f.Culture;
+        public ExtendedCultureInfo TargetCulture => _f.Culture;
 
         /// <summary>
         /// Gets the placeholders' occurrence in this <see cref="Text"/>.
@@ -161,7 +161,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the placeholders' content.
         /// </summary>
-        /// <returns>The <see cref="ContentCulture"/> formatted contents for each placeholders.</returns>
+        /// <returns>The <see cref="TargetCulture"/> formatted contents for each placeholders.</returns>
         public ReadOnlyMemory<char>[] GetPlaceholderContents() => _f.GetPlaceholderContents();
 
         /// <summary>
