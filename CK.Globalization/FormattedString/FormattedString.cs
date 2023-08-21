@@ -55,12 +55,6 @@ namespace CK.Core
 
         /// <summary>
         /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>).
-        /// <para>
-        /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
-        /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
-        /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
-        /// </para>
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
         /// <param name="plainText">The plain text.</param>
@@ -158,7 +152,7 @@ namespace CK.Core
             return last <= lenText;
         }
 
-        [MemberNotNullWhen( true, nameof( _text ), nameof( _placeholders ), nameof( _culture ) )]
+        [MemberNotNullWhen( true, nameof( _text ), nameof( _placeholders ) )]
         bool IsValid => _text != null;
 
         /// <summary>
@@ -206,12 +200,8 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the culture that has been used to format the placeholder's content.
-        /// <para>
-        /// When deserializing, this culture is set to the <see cref="NormalizedCultureInfo.Invariant"/> if
-        /// the culture cannot be restored properly.
-        /// </para>
         /// </summary>
-        public ExtendedCultureInfo Culture => _culture ?? NormalizedCultureInfo.Invariant;
+        public ExtendedCultureInfo Culture => _text == null ? NormalizedCultureInfo.Invariant : _culture;
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.
@@ -422,14 +412,15 @@ namespace CK.Core
                     s.Start = r.ReadNonNegativeSmallInt32();
                     s.Length = r.ReadNonNegativeSmallInt32();
                 }
-                _culture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
+                var n = r.ReadNullableString();
+                _culture = n != null ? NormalizedCultureInfo.GetNormalizedCultureInfo( n ) : null;
             }
         }
 
         /// <inheritdoc />
         public void WriteData( ICKBinaryWriter w )
         {
-            // Don't bother optimizing the InvariantEmpty as it should not be used
+            // Don't bother optimizing the Empty as it should not be used
             // frequently and if it is, only the caller can serialize a marker and
             // deserialize the singleton.
             w.WriteNullableString( _text );
@@ -441,7 +432,7 @@ namespace CK.Core
                     w.WriteNonNegativeSmallInt32( start );
                     w.WriteNonNegativeSmallInt32( length );
                 }
-                w.Write( _culture.Name );
+                w.WriteNullableString( _culture?.Name );
             }
         }
         #endregion

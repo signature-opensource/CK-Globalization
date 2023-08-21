@@ -634,7 +634,7 @@ namespace CK.Core
         /// Gets the <c>"Level - ResName - Text message"</c> string.
         /// </summary>
         /// <returns>This message's Level, ResName and Text.</returns>
-        public override string ToString() => $"{Level} - {ResName} {Text}";
+        public override string ToString() => $"{Level} - {ResName} - {Text}";
 
     }
 }
