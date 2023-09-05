@@ -24,7 +24,7 @@ namespace CK.Core
         public enum Quality
         {
             /// <summary>
-            /// The <see cref="FormatCulture"/> is in the default "en-us" and the <see cref="CodeString.TargetCulture"/>
+            /// The <see cref="FormatCulture"/> is in the default "en" and the <see cref="CodeString.TargetCulture"/>
             /// doesn't contain any "en" or English specific fallback.
             /// </summary>
             Awful,
@@ -85,7 +85,7 @@ namespace CK.Core
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// </summary>
-        /// <param name="culture">The culture used to format placeholders' content.</param>
+        /// <param name="culture">The target culture.</param>
         /// <param name="text">The text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
@@ -105,7 +105,7 @@ namespace CK.Core
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// </summary>
-        /// <param name="culture">The culture used to format placeholders' content.</param>
+        /// <param name="culture">The target culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
@@ -120,9 +120,11 @@ namespace CK.Core
         }
 
         /// <summary>
+        /// Intended for wrappers that capture the interpolated string handler. 
+        /// <para>
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// Intended for wrappers that capture the interpolated string handler. 
+        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
@@ -136,8 +138,7 @@ namespace CK.Core
                                        [CallerLineNumber] int lineNumber = 0 )
         {
             Throw.CheckNotNullArgument( culture );
-            var c = CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber );
-            return culture.TranslationService.Translate( c );
+            return culture.TranslationService.Translate( CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber ) );
         }
 
 
@@ -170,7 +171,7 @@ namespace CK.Core
         /// should call this.
         /// </para>
         /// </summary>
-        /// <param name="code">The string from source code.</param>
+        /// <param name="s">The string from source code.</param>
         /// <returns>The untranslated string.</returns>
         public static MCString Create( CodeString s )
         {
@@ -183,7 +184,7 @@ namespace CK.Core
         /// Initializes a non translated string that is a simple wrapper around <paramref name="s"/>
         /// without tracking any translation issue.
         /// </summary>
-        /// <param name="code">The string from source code.</param>
+        /// <param name="s">The string from source code.</param>
         /// <returns>The untranslated string.</returns>
         public static MCString CreateUntracked( CodeString s ) => new MCString( s );
 
@@ -224,10 +225,6 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the original string from source code.
-        /// <para>
-        /// This can be the <see cref="CodeString.Empty"/> singleton even if this has a <see cref="Text"/> and a <see cref="FormatCulture"/>
-        /// when <see cref="Create(NormalizedCultureInfo,string)"/> has been called: this string is not translatable.
-        /// </para>
         /// </summary>
         public CodeString CodeString => _code;
 

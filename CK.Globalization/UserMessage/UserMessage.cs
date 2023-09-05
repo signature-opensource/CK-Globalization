@@ -116,15 +116,15 @@ namespace CK.Core
         /// <summary>
         /// Creates a user message from a plain text (no placeholders).
         /// </summary>
-        /// <param name="level">The message level.</param>
-        /// <param name="culture">The current culture.</param>
+        /// <param name="culture">The message's target culture.</param>
+        /// <param name="level">The message level. Must not be <see cref="UserMessageLevel.None"/>.</param>
         /// <param name="plainText">The plain text.</param>
         /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          ExtendedCultureInfo culture,
+        public static UserMessage Create( ExtendedCultureInfo culture,
+                                          UserMessageLevel level,
                                           string plainText,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
@@ -135,34 +135,34 @@ namespace CK.Core
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// </summary>
-        /// <param name="level">The message level.</param>
         /// <param name="culture">The current culture.</param>
-        /// <param name="plainText">The plain text.</param>
+        /// <param name="level">The message level. Must not be <see cref="UserMessageLevel.None"/>.</param>
+        /// <param name="text">The plain text.</param>
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          CurrentCultureInfo culture,
-                                          string plainText,
+        public static UserMessage Create( CurrentCultureInfo culture,
+                                          UserMessageLevel level,
+                                          string text,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
                                           [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( level, MCString.Create( culture, plainText, resName, filePath, lineNumber ) );
+            => new UserMessage( level, MCString.Create( culture, text, resName, filePath, lineNumber ) );
 
 
         /// <summary>
         /// Creates a user message.
         /// </summary>
-        /// <param name="level">The message level.</param>
-        /// <param name="culture">The current culture.</param>
+        /// <param name="culture">The message's target culture.</param>
+        /// <param name="level">The message level. Must not be <see cref="UserMessageLevel.None"/>.</param>
         /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="MessageCode"/>.</param>
+        /// <param name="resName">The optional <see cref="ResName"/>.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          ExtendedCultureInfo culture,
+        public static UserMessage Create( ExtendedCultureInfo culture,
+                                          UserMessageLevel level,
                                           [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
@@ -173,15 +173,15 @@ namespace CK.Core
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// </summary>
-        /// <param name="level">The message level.</param>
         /// <param name="culture">The current culture.</param>
+        /// <param name="level">The message level. Must not be <see cref="UserMessageLevel.None"/>.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">The optional <see cref="ResName"/>.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          CurrentCultureInfo culture,
+        public static UserMessage Create( CurrentCultureInfo culture,
+                                          UserMessageLevel level,
                                           [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
@@ -205,7 +205,7 @@ namespace CK.Core
                                          string? resName = null,
                                          [CallerFilePath] string? filePath = null,
                                          [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Error, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Error, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
@@ -222,7 +222,7 @@ namespace CK.Core
                                          string? resName = null,
                                          [CallerFilePath] string? filePath = null,
                                          [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Error, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Error, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a user message.
@@ -274,7 +274,7 @@ namespace CK.Core
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Warn, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Warn, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
@@ -291,7 +291,7 @@ namespace CK.Core
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Warn, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Warn, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a user message.
@@ -343,7 +343,7 @@ namespace CK.Core
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Info, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Info, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
@@ -360,7 +360,7 @@ namespace CK.Core
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Info, culture, plainText, resName, filePath, lineNumber );
+            => Create( culture, UserMessageLevel.Info, plainText, resName, filePath, lineNumber );
 
         /// <summary>
         /// Creates a user message.

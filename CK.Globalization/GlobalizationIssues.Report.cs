@@ -15,6 +15,10 @@ namespace CK.Core
         public sealed record AutomaticResourceNamesCanUseExistingResName( CodeStringSourceLocation Definer,
                                                                           IReadOnlyList<CodeStringSourceLocation> AutomaticNames ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"CodeString defined at '{AutomaticNames.Select( loc => loc.ToString() ).Concatenate( "', '" )}' can use " +
                    $"the ResName '{Definer.ResName}' defined at '{Definer}'.";
@@ -26,6 +30,10 @@ namespace CK.Core
         /// <param name="Duplicates">Identical CodeString source with different resource names.</param>
         public sealed record ResourceNamesCanBeMerged( IReadOnlyList<CodeStringSourceLocation> Duplicates ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"Identical CodeString with different ResName detected: {Duplicates.Select( loc => $"'{loc.ResName}' at {loc}" ).Concatenate()}." +
                    $" They can use the same ResName.";
@@ -38,6 +46,10 @@ namespace CK.Core
         /// <param name="Polysemics">At least 2 different CodeString that define the <see cref="ResName"/>.</param>
         public sealed record SameResNameWithDifferentFormat( string ResName, IReadOnlyList<CodeStringSourceLocation> Polysemics ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"ResName '{ResName}' is used by different CodeString: {Polysemics.Select( loc => loc.ToString() ).Concatenate()}.";
         }

@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace CK.Core
 {
+    /// <summary>
+    /// Static helper that serializes SimpleUserMessage, UserMessage, MCString, CodeString and FormattedString as JSON arrays.
+    /// </summary>
     public static class GlobalizationJsonHelper
     {
         static void ReadEndArray( ref Utf8JsonReader r, string typeName )
@@ -18,6 +21,8 @@ namespace CK.Core
             if( r.TokenType != JsonTokenType.StartArray ) throw new JsonException( $"Expected {typeName} array." );
             r.Read();
         }
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
         #region SimpleUserMessage
         public static void WriteAsJsonArray( Utf8JsonWriter w, SimpleUserMessage v )

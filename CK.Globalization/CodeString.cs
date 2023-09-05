@@ -103,7 +103,7 @@ namespace CK.Core
         /// Gets the resource name that identifies this string.
         /// This is the empty string for the <see cref="Empty"/> string.
         /// <para>
-        /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="GetFormatString"/>
+        /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="FormattedString.GetFormatString"/>
         /// used when no resource name is provided.
         /// </para>
         /// </summary>

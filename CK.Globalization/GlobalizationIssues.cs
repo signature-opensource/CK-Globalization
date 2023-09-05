@@ -286,6 +286,10 @@ namespace CK.Core
         /// <param name="Clashes">One or more clashing names that shifted the <paramref name="Id"/> by 1.</param>
         public sealed record CultureIdentifierClash( string Name, int Id, IReadOnlyList<string> Clashes ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"CultureInfo name identifier clash: '{Name}' has been associated to '{Id}' because of '{Clashes.Concatenate( "', '" )}'.";
 
@@ -301,6 +305,10 @@ namespace CK.Core
         /// <param name="Error">The error message that contains the invalid <see cref="Format"/>.</param>
         public sealed record TranslationFormatError( NormalizedCultureInfo Culture, string ResName, string Format, string Error ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString() => $"Invalid format for '{ResName}' in '{Culture.Name}': {Error}";
         }
 
@@ -317,6 +325,10 @@ namespace CK.Core
                                                            PositionalCompositeFormat Skipped,
                                                            PositionalCompositeFormat Registered ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString() => $"Duplicate resource '{ResName}' in '{Culture.Name}'. Skipped: '{Skipped.GetFormatString()}'.";
         }
 
@@ -339,6 +351,10 @@ namespace CK.Core
             /// </summary>
             public string ResName => Instance.ResName;
 
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"Missing translation for '{ResName}' in '{MissingCulture.FullName}' at {GetSourceLocation( Instance ).Select( l => l.ToString() ).Concatenate()}.";
         }
@@ -374,6 +390,10 @@ namespace CK.Core
             /// </summary>
             public int PlaceholderCount => Instance.CodeString.FormattedString.Placeholders.Count;
 
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"Translation '{ResName}' in '{FormatCulture}' expects {ExpectedArgumentCount} arguments " +
                    $"but CodeString has {PlaceholderCount} placeholders at {GetSourceLocation( Instance.CodeString ).Select( l => l.ToString() ).Concatenate()}.";

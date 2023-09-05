@@ -26,9 +26,9 @@ namespace CK.Core
         /// <summary>
         /// Initializes a new <see cref="MCException"/>.
         /// </summary>
-        /// <param name="culture">The current culture.</param>
+        /// <param name="culture">The target message culture.</param>
         /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this exception.</param>
+        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this exception's message.</param>
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
@@ -47,7 +47,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this exception.</param>
+        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this exception's message.</param>
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
@@ -64,9 +64,9 @@ namespace CK.Core
         /// <summary>
         /// Initializes a new <see cref="MCException"/>.
         /// </summary>
-        /// <param name="culture">The current culture.</param>
+        /// <param name="culture">The target message's culture.</param>
         /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
+        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this exception's message.</param>
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
@@ -85,7 +85,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/>.</param>
+        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this exception's message.</param>
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>

@@ -8,9 +8,7 @@ using System.Linq;
 
 namespace CK.Globalization.Tests
 {
-
     [TestFixture]
-    [SetCulture( "fr-FR" )]
     public partial class ExtendedCultureInfoTests
     {
         [SetUp]

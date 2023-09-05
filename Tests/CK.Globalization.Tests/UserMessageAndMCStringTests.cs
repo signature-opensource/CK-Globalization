@@ -9,7 +9,6 @@ namespace CK.Globalization.Tests
 
     // Testing UserMessage tests MCString.
     [TestFixture]
-    [SetCulture( "fr-FR" )]
     public class UserMessageAndMCStringTests
     {
         [SetUp]

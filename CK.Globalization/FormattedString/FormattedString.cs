@@ -47,6 +47,7 @@ namespace CK.Core
         /// <param name="plainText">The plain text.</param>
         public FormattedString( ExtendedCultureInfo culture, string plainText )
         {
+            Throw.CheckNotNullArgument( culture );
             Throw.CheckNotNullArgument( plainText );
             _text = plainText;
             _placeholders = Array.Empty<(int, int)>();
@@ -68,6 +69,7 @@ namespace CK.Core
         /// <param name="text">The interpolated text.</param>
         public FormattedString( ExtendedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text )
         {
+            Throw.CheckNotNullArgument( culture );
             (_text,_placeholders) = text.GetResult();
             _culture = culture;
             Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
@@ -124,7 +126,7 @@ namespace CK.Core
             return last <= lenText;
         }
 
-        [MemberNotNullWhen( true, nameof( _text ), nameof( _placeholders ) )]
+        [MemberNotNullWhen( true, nameof( _text ), nameof( _placeholders ), nameof( _culture ) )]
         bool IsValid => _text != null;
 
         /// <summary>
@@ -173,7 +175,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the culture that has been used to format the placeholder's content.
         /// </summary>
-        public ExtendedCultureInfo Culture => _text == null ? NormalizedCultureInfo.Invariant : _culture;
+        public ExtendedCultureInfo Culture => IsValid ? _culture : NormalizedCultureInfo.Invariant;
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.

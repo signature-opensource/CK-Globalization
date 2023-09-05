@@ -95,7 +95,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="level">The message level.</param>
         /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
+        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of the message.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         public void Add( UserMessageLevel level, string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )

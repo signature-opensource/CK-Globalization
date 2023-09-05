@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 namespace CK.Globalization.Tests
 {
     [TestFixture]
-    [SetCulture( "fr-FR" )]
     public class TranslationServiceTests
     {
         [SetUp]

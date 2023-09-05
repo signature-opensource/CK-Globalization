@@ -41,10 +41,9 @@ namespace CK.Core
         public static PositionalCompositeFormat Invalid => default;
 
         /// <summary>
-        /// Gets the number of expected arguments: it is the maximum <see cref="Placeholder.ArgIndex"/> + 1
-        /// that appear in the placeholders.
+        /// Gets the number of expected arguments: it is the maximum of the argument indexes + 1 that appear in the placeholders.
         /// <para>
-        /// This is between 0 and <see cref="FormattedString.MaxPlaceholderCount"/> + 1.
+        /// This is between 0 and <see cref="FormattedString.MaxPlaceholderCount"/> (included).
         /// </para>
         /// </summary>
         public int ExpectedArgumentCount => _expectedArgumentCount;
@@ -230,7 +229,7 @@ namespace CK.Core
         /// aregument is skipped (replaced by an empty string).
         /// </para>
         /// </summary>
-        /// <param name="args">Arguments for the <see cref="Placeholders"/> substitution.</param>
+        /// <param name="args">Arguments for the placeholders substitution.</param>
         /// <returns>A formatted string.</returns>
         public string Format( params string[] args )
         {
@@ -247,7 +246,7 @@ namespace CK.Core
         /// aregument is skipped (replaced by an empty string).
         /// </para>
         /// </summary>
-        /// <param name="s">Arguments for the <see cref="Placeholders"/> substitution.</param>
+        /// <param name="s">Arguments for the placeholders substitution.</param>
         /// <returns>A formatted string.</returns>
         public string Format( in FormattedString s )
         {
@@ -262,7 +261,7 @@ namespace CK.Core
         /// aregument is skipped (replaced by an empty string).
         /// </para>
         /// </summary>
-        /// <param name="args">Arguments for the <see cref="Placeholders"/> substitution.</param>
+        /// <param name="args">Arguments for the placeholders substitution.</param>
         /// <returns>A formatted string.</returns>
         public string Format( params ReadOnlyMemory<char>[] args )
         {
