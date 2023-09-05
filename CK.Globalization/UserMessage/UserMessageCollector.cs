@@ -9,21 +9,16 @@ namespace CK.Core
     /// </summary>
     public sealed class UserMessageCollector
     {
-        readonly CurrentCultureInfo? _culture;
+        readonly CurrentCultureInfo _culture;
         readonly List<UserMessage> _messages;
         int _errorCount;
         byte _depth;
 
         /// <summary>
         /// Initializes a new message collector.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the strings).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture to use.</param>
-        public UserMessageCollector( CurrentCultureInfo? culture )
+        public UserMessageCollector( CurrentCultureInfo culture )
         {
             _culture = culture;
             _messages = new List<UserMessage>();

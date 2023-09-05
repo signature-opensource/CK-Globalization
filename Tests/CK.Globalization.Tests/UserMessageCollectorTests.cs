@@ -22,14 +22,12 @@ namespace CK.Globalization.Tests
         }
 
 
-        [TestCase( true )]
-        [TestCase( false )]
-        public void collector_test( bool withCurrentCultureInfo )
+        [Test]
+        public void collector_test()
         {
-            var culture = withCurrentCultureInfo
-                            ? new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.Current )
-                            : null;
-            var c = new UserMessageCollector( culture );
+            var culture = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
+            var current = new CurrentCultureInfo( new TranslationService(), culture );
+            var c = new UserMessageCollector( current );
             using( TestHelper.Monitor.CollectTexts( out var logs ) )
             {
                 c.DumpLogs( TestHelper.Monitor );
@@ -43,7 +41,7 @@ namespace CK.Globalization.Tests
 
             c.Depth.Should().Be( 0 );
 
-            NormalizedCultureInfo.Current.SetCachedTranslations( new Dictionary<string, string>()
+            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>()
             {
                 { "Validation.PositiveValueExpected", "La valeur {0} doit être positive." },
                 { "Done", "Fait." }
@@ -55,9 +53,7 @@ namespace CK.Globalization.Tests
 
             c.Depth.Should().Be( 0 );
             c.ErrorCount.Should().Be( 1 );
-            c.UserMessages.Should().HaveCount( 3 ).And.AllSatisfy( m => m.Text.Should().Be( withCurrentCultureInfo
-                                                                                            ? "La valeur -42 doit être positive."
-                                                                                            : "Value -42 should be positive." ) );
+            c.UserMessages.Should().HaveCount( 3 ).And.AllSatisfy( m => m.Text.Should().Be( "La valeur -42 doit être positive." ) );
             c.UserMessages[0].Level.Should().Be( UserMessageLevel.Error );
             c.UserMessages[1].Level.Should().Be( UserMessageLevel.Warn );
             c.UserMessages[2].Level.Should().Be( UserMessageLevel.Info );

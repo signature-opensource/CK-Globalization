@@ -29,25 +29,6 @@ namespace CK.Core
         public readonly static CodeString Empty = new CodeString();
 
         /// <summary>
-        /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>)
-        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">Optional associated resource name. When null, a "SHA." automatic resource name is computed.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public CodeString( string plainText,
-                           string? resName = null,
-                           [CallerFilePath]string? filePath = null,
-                           [CallerLineNumber]int lineNumber = 0 )
-            : this( NormalizedCultureInfo.Current, plainText, resName, filePath, lineNumber )
-        {
-        }
-
-        /// <summary>
         /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>).
         /// <para>
         /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
@@ -70,25 +51,6 @@ namespace CK.Core
             _f = new FormattedString( culture, plainText );
             _resName = resName ?? _f.GetSHA1BasedResName();
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
-        }
-
-        /// <summary>
-        /// Initializes a <see cref="CodeString"/> with <see cref="Placeholders"/> using
-        /// the <see cref="NormalizedCultureInfo.Current"/> to format the placeholder contents.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">Optional associated resource name.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public CodeString( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                           string? resName = null,
-                           [CallerFilePath] string? filePath = null,
-                           [CallerLineNumber] int lineNumber = 0 )
-            : this( NormalizedCultureInfo.Current, ref text, resName, filePath, lineNumber )
-        {
         }
 
         /// <summary>

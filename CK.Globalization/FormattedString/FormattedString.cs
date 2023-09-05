@@ -41,19 +41,6 @@ namespace CK.Core
         public static FormattedString Empty => default;
 
         /// <summary>
-        /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>)
-        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        public FormattedString( string plainText )
-            : this( NormalizedCultureInfo.Current, plainText )
-        {
-        }
-
-        /// <summary>
         /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>).
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
@@ -64,21 +51,6 @@ namespace CK.Core
             _text = plainText;
             _placeholders = Array.Empty<(int, int)>();
             _culture = culture;
-            Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
-        }
-
-        /// <summary>
-        /// Initializes a <see cref="FormattedString"/> with <see cref="Placeholders"/> using
-        /// the <see cref="NormalizedCultureInfo.Current"/> to format the placeholder contents.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        public FormattedString( [InterpolatedStringHandlerArgument] FormattedStringHandler text )
-        {
-            _culture = NormalizedCultureInfo.Current;
-            (_text, _placeholders) = text.GetResult();
             Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
         }
 
@@ -268,6 +240,8 @@ namespace CK.Core
         public string GetFormatString()
         {
             if( !IsValid ) return String.Empty;
+            // This is NOT a good idea since braces may be need doubling!
+            // if( _placeholders.Length == 0 ) return _text;
             Throw.DebugAssert( _placeholders.Length < 100 );
             // Worst case is full of { and } (that must be doubled) and all placeholders are empty
             // (that must be filled with {xx}: it is useless to handle the 10 first {x} placeholders).

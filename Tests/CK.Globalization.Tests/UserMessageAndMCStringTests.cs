@@ -42,7 +42,9 @@ namespace CK.Globalization.Tests
         [Test]
         public void UserMessage_Error()
         {
-            var m1 = UserMessage.Error( "text" );
+            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+
+            var m1 = UserMessage.Error( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();
             m1.Message.Text.Should().Be( "text" );
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
@@ -50,7 +52,7 @@ namespace CK.Globalization.Tests
             m1.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m1 );
 
-            var m2 = UserMessage.Error( "text", "Res.Name" );
+            var m2 = UserMessage.Error( aaCulture, "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
             m2.Message.Text.Should().Be( "text" );
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
@@ -60,16 +62,14 @@ namespace CK.Globalization.Tests
 
             int v = 3712;
 
-            var m3 = UserMessage.Error( $"Hello {v}!", "Policy.Salutation" ); //==> "Hello {0}!"
+            var m3 = UserMessage.Error( aaCulture, $"Hello {v}!" );
             m3.IsTranslationWelcome.Should().BeTrue();
             m3.Message.Text.Should().Be( "Hello 3712!" );
             m3.Message.CodeString.FormattedString.GetFormatString().Should().Be( "Hello {0}!" );
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( UserMessageLevel.Error );
-            m3.ResName.Should().Be( "Policy.Salutation" );
+            m3.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m3 );
-
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
             var m4 = UserMessage.Error( aaCulture, $"{v} Goodbye {v}", "Policy.Salutation" ); //==> "{0} Goodbye {1}"
             m4.IsTranslationWelcome.Should().BeTrue();
@@ -92,22 +92,14 @@ namespace CK.Globalization.Tests
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
 
-
-            current = null;
-            var m6 = UserMessage.Error( current, $"{v} Goodbye {v}", "Policy.Salutation" );
-            m6.IsTranslationWelcome.Should().BeTrue();
-            m6.Message.Text.Should().Be( "3712 Goodbye 3712" );
-            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
-            m6.Level.Should().Be( UserMessageLevel.Error );
-            m6.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerializations( m6 );
         }
 
         [Test]
         public void UserMessage_Warn()
         {
-            var m1 = UserMessage.Warn( "text" );
+            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+
+            var m1 = UserMessage.Warn( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();
             m1.Message.Text.Should().Be( "text" );
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
@@ -115,26 +107,25 @@ namespace CK.Globalization.Tests
             m1.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m1 );
 
-            var m2 = UserMessage.Warn( "text", "Res.Name" );
+            var m2 = UserMessage.Warn( aaCulture, "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
             m2.Message.Text.Should().Be( "text" );
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
+            m2.Message.CodeString.FormattedString.GetFormatString().Should().Be( m2.Text );
             m2.Level.Should().Be( UserMessageLevel.Warn );
             m2.ResName.Should().Be( "Res.Name" );
             CheckSerializations( m2 );
 
             int v = 3712;
 
-            var m3 = UserMessage.Warn( $"Hello {v}!", "Policy.Salutation" ); //==> "Hello {0}!"
+            var m3 = UserMessage.Warn( aaCulture, $"Hello {v}!" );
             m3.IsTranslationWelcome.Should().BeTrue();
             m3.Message.Text.Should().Be( "Hello 3712!" );
             m3.Message.CodeString.FormattedString.GetFormatString().Should().Be( "Hello {0}!" );
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( UserMessageLevel.Warn );
-            m3.ResName.Should().Be( "Policy.Salutation" );
+            m3.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m3 );
-
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
             var m4 = UserMessage.Warn( aaCulture, $"{v} Goodbye {v}", "Policy.Salutation" ); //==> "{0} Goodbye {1}"
             m4.IsTranslationWelcome.Should().BeTrue();
@@ -155,22 +146,14 @@ namespace CK.Globalization.Tests
             m5.Level.Should().Be( UserMessageLevel.Warn );
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
-
-            current = null;
-            var m6 = UserMessage.Warn( current, $"Hi {name}!", "Policy.Salutation" );
-            m6.IsTranslationWelcome.Should().BeTrue();
-            m6.Message.Text.Should().Be( "Hi Albert!" );
-            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
-            m6.Level.Should().Be( UserMessageLevel.Warn );
-            m6.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerializations( m6 );
         }
 
         [Test]
         public void UserMessage_Info()
         {
-            var m1 = UserMessage.Info( "text" );
+            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+
+            var m1 = UserMessage.Info( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();
             m1.Message.Text.Should().Be( "text" );
             m1.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
@@ -178,7 +161,7 @@ namespace CK.Globalization.Tests
             m1.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m1 );
 
-            var m2 = UserMessage.Info( "text", "Res.Name" );
+            var m2 = UserMessage.Info( aaCulture, "text", "Res.Name" );
             m2.IsTranslationWelcome.Should().BeTrue();
             m2.Message.Text.Should().Be( "text" );
             m2.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
@@ -188,16 +171,14 @@ namespace CK.Globalization.Tests
 
             int v = 3712;
 
-            var m3 = UserMessage.Info( $"Hello {v}!", "Policy.Salutation" ); //==> "Hello {0}!"
+            var m3 = UserMessage.Info( aaCulture, $"Hello {v}!" );
             m3.IsTranslationWelcome.Should().BeTrue();
             m3.Message.Text.Should().Be( "Hello 3712!" );
             m3.Message.CodeString.FormattedString.GetFormatString().Should().Be( "Hello {0}!" );
             m3.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
             m3.Level.Should().Be( UserMessageLevel.Info );
-            m3.ResName.Should().Be( "Policy.Salutation" );
+            m3.ResName.Should().StartWith( "SHA." );
             CheckSerializations( m3 );
-
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
 
             var m4 = UserMessage.Info( aaCulture, $"{v} Goodbye {v}", "Policy.Salutation" ); //==> "{0} Goodbye {1}"
             m4.IsTranslationWelcome.Should().BeTrue();
@@ -217,16 +198,6 @@ namespace CK.Globalization.Tests
             m5.Level.Should().Be( UserMessageLevel.Info );
             m5.ResName.Should().Be( "Policy.Salutation" );
             CheckSerializations( m5 );
-
-            current = null;
-            var m6 = UserMessage.Info( current, $"{v} Goodbye {v}", "Policy.Salutation" );
-            m6.IsTranslationWelcome.Should().BeTrue();
-            m6.Message.Text.Should().Be( "3712 Goodbye 3712" );
-            m6.Message.FormatCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault );
-            m6.Message.CodeString.TargetCulture.Should().BeSameAs( NormalizedCultureInfo.Current );
-            m6.Level.Should().Be( UserMessageLevel.Info );
-            m6.ResName.Should().Be( "Policy.Salutation" );
-            CheckSerializations( m6 );
         }
 
         static void CheckSerializations( UserMessage m )

@@ -196,7 +196,7 @@ namespace CK.Core
                 else if( s.ResName.StartsWith( "SHA." ) )
                 {
                     // This may also be a Warn...
-                    _monitor.Info( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
+                    _monitor.Trace( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
                 }
             }
         }

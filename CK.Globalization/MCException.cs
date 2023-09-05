@@ -24,26 +24,6 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Initializes a new <see cref="MCException"/> based on the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this exception.</param>
-        /// <param name="innerException">Optional inner exception.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public MCException( string plainText,
-                            string? resName = null,
-                            Exception? innerException = null,
-                            [CallerFilePath] string? filePath = null,
-                            [CallerLineNumber] int lineNumber = 0 )
-            : this( MCString.CreateUntracked( new CodeString( plainText, resName, filePath, lineNumber ) ), innerException )
-        {
-        }
-
-        /// <summary>
         /// Initializes a new <see cref="MCException"/>.
         /// </summary>
         /// <param name="culture">The current culture.</param>
@@ -64,11 +44,6 @@ namespace CK.Core
 
         /// <summary>
         /// Initializes a new <see cref="MCException"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="plainText">The plain text.</param>
@@ -76,33 +51,13 @@ namespace CK.Core
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public MCException( CurrentCultureInfo? culture,
+        public MCException( CurrentCultureInfo culture,
                             string plainText,
                             string? resName = null,
                             Exception? innerException = null,
                             [CallerFilePath] string? filePath = null,
                             [CallerLineNumber] int lineNumber = 0 )
             : this( MCString.Create( culture, plainText, resName, filePath, lineNumber ), innerException )
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new <see cref="MCException"/> based on the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="innerException">Optional inner exception.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public MCException( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                            string? resName = null,
-                            Exception? innerException = null,
-                            [CallerFilePath] string? filePath = null,
-                            [CallerLineNumber] int lineNumber = 0 )
-            : this( MCString.CreateUntracked( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) ), innerException )
         {
         }
 
@@ -127,11 +82,6 @@ namespace CK.Core
 
         /// <summary>
         /// Initializes a new <see cref="MCException"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="text">The interpolated text.</param>
@@ -139,7 +89,7 @@ namespace CK.Core
         /// <param name="innerException">Optional inner exception.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public MCException( CurrentCultureInfo? culture,
+        public MCException( CurrentCultureInfo culture,
                             [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                             string? resName = null,
                             Exception? innerException = null,

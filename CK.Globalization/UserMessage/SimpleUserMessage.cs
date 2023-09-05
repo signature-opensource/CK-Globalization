@@ -6,7 +6,7 @@ namespace CK.Core
     /// Simplified version of a <see cref="UserMessage"/>: without <see cref="UserMessage.ResName"/> nor culture related information
     /// since the <see cref="Message"/> is a mere string instead of a <see cref="MCString"/>.
     /// <para>
-    /// Any <see cref="UserMessage"/> can be automatically cast into this simplified form.
+    /// <see cref="UserMessage"/> can be automatically cast into this simplified form.
     /// </para>
     /// </summary>
     [SerializationVersion(0)]
@@ -16,6 +16,12 @@ namespace CK.Core
         readonly byte _level;
         readonly byte _depth;
 
+        /// <summary>
+        /// Initializes a new <see cref="SimpleUserMessage"/>.
+        /// </summary>
+        /// <param name="level">Level (must not be <see cref="UserMessageLevel.None"/>).</param>
+        /// <param name="message">The message string.</param>
+        /// <param name="depth">Optional message's depth.</param>
         public SimpleUserMessage( UserMessageLevel level, string message, byte depth = 0 )
         {
             Throw.CheckArgument( level != UserMessageLevel.None );
@@ -54,7 +60,6 @@ namespace CK.Core
             return new SimpleUserMessage( depth, _message, _level );
         }
 
-
         /// <summary>
         /// Gets whether this message is valid.
         /// Invalid message is the <c>default</c> value.
@@ -86,7 +91,7 @@ namespace CK.Core
         /// <returns>This message's level and text.</returns>
         public override string ToString() => $"{Level} - {Message}";
 
-        #region Serialization
+        #region Binary Serialization
         /// <summary>
         /// Simple deserialization constructor.
         /// </summary>

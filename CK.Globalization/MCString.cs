@@ -84,27 +84,19 @@ namespace CK.Core
         /// <summary>
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo? culture,
+        public static MCString Create( CurrentCultureInfo culture,
                                        string text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
                                        [CallerLineNumber] int lineNumber = 0 )
         {
-            if( culture == null )
-            {
-                return new MCString( new CodeString( NormalizedCultureInfo.Current, text, resName, filePath, lineNumber ) );
-            }
+            Throw.CheckNotNullArgument( culture );
             var c = new CodeString( culture.CurrentCulture, text, resName, filePath, lineNumber );
             return culture.TranslationService.Translate( c );
         }
@@ -112,18 +104,13 @@ namespace CK.Core
         /// <summary>
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo? culture,
+        public static MCString Create( CurrentCultureInfo culture,
                                        [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
@@ -136,27 +123,19 @@ namespace CK.Core
         /// Directly creates a translated string using the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
         /// Intended for wrappers that capture the interpolated string handler. 
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The culture used to format placeholders' content.</param>
         /// <param name="text">The interpolated text.</param>
         /// <param name="resName">Optional associated resource name.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public static MCString Create( CurrentCultureInfo? culture,
+        public static MCString Create( CurrentCultureInfo culture,
                                        ref FormattedStringHandler text,
                                        string? resName = null,
                                        [CallerFilePath] string? filePath = null,
                                        [CallerLineNumber] int lineNumber = 0 )
         {
-            if( culture == null )
-            {
-                return new MCString( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) );
-            }
+            Throw.CheckNotNullArgument( culture );
             var c = CodeString.Create( ref text, culture.CurrentCulture, resName, filePath, lineNumber );
             return culture.TranslationService.Translate( c );
         }

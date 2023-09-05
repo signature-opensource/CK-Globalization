@@ -114,25 +114,6 @@ namespace CK.Core
 
         #region Create (with level).
         /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="level">The message level.</param>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          string plainText,
-                                          string? resName = null,
-                                          [CallerFilePath] string? filePath = null,
-                                          [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( level, MCString.CreateUntracked( new CodeString( plainText, resName, filePath, lineNumber ) ) );
-
-        /// <summary>
         /// Creates a user message from a plain text (no placeholders).
         /// </summary>
         /// <param name="level">The message level.</param>
@@ -153,11 +134,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="level">The message level.</param>
         /// <param name="culture">The current culture.</param>
@@ -167,31 +143,13 @@ namespace CK.Core
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
         public static UserMessage Create( UserMessageLevel level,
-                                          CurrentCultureInfo? culture,
+                                          CurrentCultureInfo culture,
                                           string plainText,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
                                           [CallerLineNumber] int lineNumber = 0 )
             => new UserMessage( level, MCString.Create( culture, plainText, resName, filePath, lineNumber ) );
 
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="level">The message level.</param>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Create( UserMessageLevel level,
-                                          [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                                          string? resName = null,
-                                          [CallerFilePath] string? filePath = null,
-                                          [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( level, MCString.CreateUntracked( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) ) );
 
         /// <summary>
         /// Creates a user message.
@@ -214,11 +172,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="level">The message level.</param>
         /// <param name="culture">The current culture.</param>
@@ -228,7 +181,7 @@ namespace CK.Core
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
         public static UserMessage Create( UserMessageLevel level,
-                                          CurrentCultureInfo? culture,
+                                          CurrentCultureInfo culture,
                                           [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                           string? resName = null,
                                           [CallerFilePath] string? filePath = null,
@@ -238,23 +191,6 @@ namespace CK.Core
         #endregion
 
         #region Error
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Error( string plainText,
-                                         string? resName = null,
-                                         [CallerFilePath] string? filePath = null,
-                                         [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Error, plainText, resName, filePath, lineNumber );
-
         /// <summary>
         /// Creates a user message.
         /// </summary>
@@ -274,11 +210,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="plainText">The plain text.</param>
@@ -286,29 +217,12 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Error( CurrentCultureInfo? culture,
+        public static UserMessage Error( CurrentCultureInfo culture,
                                          string plainText,
                                          string? resName = null,
                                          [CallerFilePath] string? filePath = null,
                                          [CallerLineNumber] int lineNumber = 0 )
             => Create( UserMessageLevel.Error, culture, plainText, resName, filePath, lineNumber );
-
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Error( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                                         string? resName = null,
-                                         [CallerFilePath] string? filePath = null,
-                                         [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( UserMessageLevel.Error, MCString.CreateUntracked( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) ) );
 
         /// <summary>
         /// Creates a user message.
@@ -329,11 +243,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="text">The interpolated text.</param>
@@ -341,7 +250,7 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Error( CurrentCultureInfo? culture,
+        public static UserMessage Error( CurrentCultureInfo culture,
                                          [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                          string? resName = null,
                                          [CallerFilePath] string? filePath = null,
@@ -351,23 +260,6 @@ namespace CK.Core
         #endregion
 
         #region Warn
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Warn( string plainText,
-                                        string? resName = null,
-                                        [CallerFilePath] string? filePath = null,
-                                        [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Warn, plainText, resName, filePath, lineNumber );
-
         /// <summary>
         /// Creates a user message.
         /// </summary>
@@ -387,11 +279,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="plainText">The plain text.</param>
@@ -399,29 +286,12 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Warn( CurrentCultureInfo? culture,
+        public static UserMessage Warn( CurrentCultureInfo culture,
                                         string plainText,
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
             => Create( UserMessageLevel.Warn, culture, plainText, resName, filePath, lineNumber );
-
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Warn( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                                        string? resName = null,
-                                        [CallerFilePath] string? filePath = null,
-                                        [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( UserMessageLevel.Warn, MCString.CreateUntracked( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) ) );
 
         /// <summary>
         /// Creates a user message.
@@ -442,11 +312,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="text">The interpolated text.</param>
@@ -454,7 +319,7 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Warn( CurrentCultureInfo? culture,
+        public static UserMessage Warn( CurrentCultureInfo culture,
                                         [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
@@ -464,23 +329,6 @@ namespace CK.Core
         #endregion
 
         #region Info
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Info( string plainText,
-                                        string? resName = null,
-                                        [CallerFilePath] string? filePath = null,
-                                        [CallerLineNumber] int lineNumber = 0 )
-            => Create( UserMessageLevel.Info, plainText, resName, filePath, lineNumber );
-
         /// <summary>
         /// Creates a user message.
         /// </summary>
@@ -500,11 +348,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="plainText">The plain text.</param>
@@ -512,29 +355,12 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Info( CurrentCultureInfo? culture,
+        public static UserMessage Info( CurrentCultureInfo culture,
                                         string plainText,
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,
                                         [CallerLineNumber] int lineNumber = 0 )
             => Create( UserMessageLevel.Info, culture, plainText, resName, filePath, lineNumber );
-
-        /// <summary>
-        /// Creates a user message in the <see cref="NormalizedCultureInfo.Current"/> culture.
-        /// <para>
-        /// This should be avoided. Instead provide the culture explictly and even better the <see cref="CurrentCultureInfo"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">The optional <see cref="ResName"/> of this result.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        /// <returns>A new Result message.</returns>
-        public static UserMessage Info( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                                        string? resName = null,
-                                        [CallerFilePath] string? filePath = null,
-                                        [CallerLineNumber] int lineNumber = 0 )
-            => new UserMessage( UserMessageLevel.Info, MCString.CreateUntracked( CodeString.Create( ref text, NormalizedCultureInfo.Current, resName, filePath, lineNumber ) ) );
 
         /// <summary>
         /// Creates a user message.
@@ -555,11 +381,6 @@ namespace CK.Core
         /// <summary>
         /// Creates a directly translated result message thanks to the <see cref="CurrentCultureInfo.CurrentCulture"/>
         /// and <see cref="CurrentCultureInfo.TranslationService"/>.
-        /// <para>
-        /// This allows the <paramref name="culture"/> to be null. This should be avoided but is safer
-        /// and easier to use: <see cref="NormalizedCultureInfo.Current"/> is used (and there is obviously
-        /// no attempt to translate the string).
-        /// </para>
         /// </summary>
         /// <param name="culture">The current culture.</param>
         /// <param name="text">The interpolated text.</param>
@@ -567,7 +388,7 @@ namespace CK.Core
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
         /// <returns>A new Result message.</returns>
-        public static UserMessage Info( CurrentCultureInfo? culture,
+        public static UserMessage Info( CurrentCultureInfo culture,
                                         [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text,
                                         string? resName = null,
                                         [CallerFilePath] string? filePath = null,

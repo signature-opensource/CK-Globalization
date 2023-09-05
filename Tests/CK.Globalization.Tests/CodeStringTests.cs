@@ -31,13 +31,13 @@ namespace CK.Globalization.Tests
         {
             GlobalizationIssues.Track.IsOpen = true;
 
-            var c1 = new CodeString( "plaintext" );
+            var c1 = new CodeString( NormalizedCultureInfo.Invariant, "plaintext" );
             // Let the async loop process the event. 
             Thread.Sleep( 40 );
             var c1Loc = GlobalizationIssues.GetSourceLocation( c1 );
             c1Loc[0].FilePath.Should().Be( ThisFile() );
 
-            var c2 = new CodeString( "plaintext" );
+            var c2 = new CodeString( NormalizedCultureInfo.Invariant, "plaintext" );
             Thread.Sleep( 20 );
             var c1AndC2Loc = GlobalizationIssues.GetSourceLocation( c1 );
             c1AndC2Loc.Should().HaveCount( 2 );
@@ -49,11 +49,10 @@ namespace CK.Globalization.Tests
         [Test]
         public void serialization_tests()
         {
-            CheckSerializations( new CodeString( "" ) );
-            CheckSerializations( new CodeString( "plain text" ) );
             CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
-            CheckSerializations( new CodeString( $"This {GetType().Name}." ) );
+            CheckSerializations( new CodeString( NormalizedCultureInfo.Invariant, "" ) );
             CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
+            CheckSerializations( CodeString.Empty );
 
             foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
             {

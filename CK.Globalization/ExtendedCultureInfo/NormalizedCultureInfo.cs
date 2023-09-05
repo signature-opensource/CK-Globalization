@@ -33,11 +33,6 @@ namespace CK.Core
         public static readonly NormalizedCultureInfo CodeDefault;
 
         /// <summary>
-        /// Simple relay that calls <see cref="GetNormalizedCultureInfo(CultureInfo)"/> with the <see cref="CultureInfo.CurrentCulture"/>.
-        /// </summary>
-        public static NormalizedCultureInfo Current => GetNormalizedCultureInfo( CultureInfo.CurrentCulture );
-
-        /// <summary>
         /// Gets the <see cref="CultureInfo"/>.
         /// </summary>
         public CultureInfo Culture => _culture;

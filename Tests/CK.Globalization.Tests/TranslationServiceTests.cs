@@ -25,7 +25,7 @@ namespace CK.Globalization.Tests
         public async Task without_translations_Async()
         {
             var s = new TranslationService();
-            var c = new CodeString( "Hop" );
+            var c = new CodeString( NormalizedCultureInfo.Invariant, "Hop" );
             var t = await s.TranslateAsync( c );
             t.Text.Should().BeSameAs( c.Text );
             t.FormatCulture.Should().Be( NormalizedCultureInfo.CodeDefault );
