@@ -7,8 +7,8 @@ Its goal is to define a "user message" by providing:
   can be set with `With( byte depth )` when needed.
 
 Static factory methods can be used to create `UserMessage` from a plain text, an
-interpolated string, with an explicit `ExtendedCultureInfo` (ar a `NormalizedCultureInfo` that specializes
-the `ExtendedCultureInfo`) and with or without a Resource name.
+interpolated string, with an explicit `ExtendedCultureInfo` (or a `NormalizedCultureInfo` since it specializes
+the `ExtendedCultureInfo`) and with or without a resource name.
 Example:
 
 ```csharp
@@ -31,9 +31,8 @@ Example:
 The backend developer should return a user message (or a list of result messages) whenever
 the message(s) is(are) aimed to be seen by a end user.
 
-The message's text is always written in american english.
-Even if the API can use the current culture, this should be avoided and the `culture` should be provided
-explicitly:
+The message's text is always written in "international english" (the "en" code default).
+The `culture` must be provided:
 
 ```csharp
 return UserMessage.Error( culture, $"Upload failed after {tryCount} retries. Retrying in {(int)delay.TotalMinutes} minutes." );

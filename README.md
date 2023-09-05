@@ -8,9 +8,12 @@ This library is an opinionated one that aims to define a simple, good-enough, i1
 the developer's burden. 
 
 It is based on a Code-first approach: the developer writes and emits en-US texts directly in its code, using
-interpolated strings. Placeholders are rendered immediately in the current culture. This current culture
-being if possible an injected scoped service (the `CurrentCultureInfo`) or fallbacks to the thread
-static [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
+interpolated strings. Placeholders are rendered immediately in the culture that MUST be provided: there is **NO
+implicit default culture**.
+
+The "current" culture is an injected scoped service (the `CurrentCultureInfo`) or an explicit `ExtendedCultureInfo`.
+
+> **Important:** This library doesn't use the static (and async local) [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
 
 We currently don't exploit the .NET 8 [CompositeFormat](https://learn.microsoft.com/en-us/dotnet/api/system.text.compositeformat).
 Using it requires more work from the developper: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
@@ -20,7 +23,7 @@ Even if solutions that involve code generation exist like [TypealizR](https://gi
 that secures this process by enforcing type safety, this is always more work for the developper.
 
 Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
-we always format a text with a en-US format but with placeholders rendered in the "current" culture and captures
+we always format a text with a "en" (our default) format but with placeholders rendered in the "current" culture and captures
 the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
@@ -125,12 +128,12 @@ concept) if there's one, but I'm fine with any translation in my language (.NET 
 We call "pure" `ExtendedCultureInfo` the cultures that are not `NormalizedCultureInfo`: these ones are
 defined by their fallbacks and represent a "user preference list" (comma separated list of normalized
 culture names): "jp,es,fr" is japanese first, then spanish and then french before giving up and use
-the en-US default. This capability introduces some complexity and needs some design decisions discussed
+the "en" default. This capability introduces some complexity and needs some design decisions discussed
 below.
 
 For translations, the `NormalizedCultureInfo` and its intrinsic fallbacks can be "good enough": the placeholders
 are rendered in the primary culture ("es-ES" for instance). If we can't find a composite format from the
-"en-US" code text to "es-ES" nor to "es" then we simply don't translate/reformat and expose the "en-US" text
+"en" code text to "es-ES" nor to "es" then we simply don't translate/reformat and expose the "en" text
 with its "es-ES" placeholders. Translations SHOULD exist: the failure to find a translation is an exception,
 a bug or an issue that must be fixed. Translations are a compact set of resources: there should be no "holes"
 in them.
@@ -150,15 +153,14 @@ In both scenario, it is obvious that a parent culture (intrinsic fallback) appea
 "es,fr,fr-ca" is either "es,fr-ca,fr" or "es,fr" because whatever is the resource (a document or a translated
 resource), a "fr-ca" resource IS-A "fr" resource.
 
-But then interpretations differ. About the "en-US code default" for instance:
+But then interpretations differ. About the "en" code default for instance:
 
 - For translation, due to:
-  - Our choice of "en-US"/"en" code defaults,
+  - Our choice of "en" code defaults,
   - **and**, as we are NOT implementing a "general purpose i18n" library, we don't support
-    translating an already translated string (translations always start from a "en-US", code emitted text),
-    there is no point to have any of these defaults in a "user preference list": "en" and "en-us" are
-    automatically removed.
-- For selection, "fr,en,es" is a perfectly valid preference list: our "en-US code default" doesn't make sense in a document library.
+    translating an already translated string (translations always start from a "en", code emitted text),
+    there is no point to have the default in a "user preference list": "en" is automatically removed.
+- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense in a document library.
 
 > Fallbacks for translation and selection actually differ (at least for the "en" handling).
 
@@ -173,7 +175,7 @@ Let's consider this user preference: "pa-guru-in,es,fr-ca".
   - This can be discussed but we'll keep the translation proposal here.
 
 We previously stated that a "more general" culture cannot precede a specific one ("fr,fr-ca" is "fr"). Now let's
-consider the more than one specific case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
+consider the "more than one specific cultures" case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
 like to have a canadian or switzerland specific resource. But what about this: "fr-ca, es, fr-ch"? This doesn't make sense
 for translations (and is rather strange for selection) but "fr-ch" appears, it would be annoying to purely ignore it.
 
@@ -183,7 +185,7 @@ The normalization described below handles all these case.
 Normalization of a preference list can be done by applying the following rules:
 - First, cultures are grouped by common parent, preserving the relative order of the children: groups are ordered based on
   the first occurence of itself or one of its more specific cultures.
-- Then, groups are written, specific culture names coming first, ending with the group's name.
+- Then, groups are written, specific culture names coming first, ending with the parent cultures' name.
 
 _Note:_ This normalization process is not based on the string names but on the hierarchy provided by the
 CultureInfo objects. 
@@ -197,7 +199,7 @@ for translations and selections provided that for translations, we consider the 
 end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations).
 
 ## NormalizedCulture cached transtations
-All NormalizedCulture (except the "en", "en-us" and Invariant default ones) can have a cached translation set of resources.
+All NormalizedCulture (except the "en" and Invariant default ones) can have a cached translation set of resources.
 It can always be set (the new one replaces the current one). This is a thread safe atomic operation:
 
 ```csharp
@@ -279,7 +281,9 @@ translated.
 Note that this can only use the synchronous `TranslationService.Translate` method. If async translations
 must be done, they have to be deferred (in an async context).
 
-This immediate translation capability is available on the `ResultMessage` helper.
+This immediate translation capability is available on the `ResultMessage` helper, the `MCString.Create`
+factory method, but the `CurrentCultureInfo` itself exposes helpers that can easily create `MCString`,
+`UserMessage` and `MCException`: these are the ones that should be used more often.
 
 ## Globalization types marshalling.
 The 5 fundamental types `ExtendedCultureInfo`, `NormalizedCultureInfo`, `FormattedString`, `CodeString`
@@ -292,8 +296,8 @@ can be "simplified":
   a `NormalizedCultureInfo` or not).
 - The formatted and code strings can be considered as simple strings, they can be implictly cast into string
   (that is their respective `Text` property).
-- The latter one can be implictly cast into `SimpleUserMessage` that holds the `Level`, `Depth` and
-  `Message` as a string.
+- `UserMessage` can be implicitly cast into `SimpleUserMessage` that holds the `Level`, `Depth` and
+  the `Message` as a mere string.
 
 With these projected types, all culture related information on strings is lost. They can typically be used
 when exchanging with a "front" application that doesn't have to worry about translations.
