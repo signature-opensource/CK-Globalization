@@ -42,7 +42,7 @@ namespace CK.Globalization.Tests
 
             var t = await s.TranslateAsync( c );
             t.Text.Should().Be( c.Text );
-            t.FormatCulture.Name.Should().Be( "en-us" );
+            t.FormatCulture.Name.Should().Be( "en" );
             t.TranslationQuality.Should().Be( MCString.Quality.Awful );
 
             NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est Hop {0} (en français)." } } );
@@ -116,7 +116,7 @@ namespace CK.Globalization.Tests
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "Hello from fr-ch on vendredi, 4 août 2023 18:38:47." );
-                t.FormatCulture.Name.Should().Be( "en-us" );
+                t.FormatCulture.Name.Should().Be( "en" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Awful );
             }
         }
@@ -142,7 +142,7 @@ namespace CK.Globalization.Tests
                 var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en-us" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
-                t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+                t.TranslationQuality.Should().Be( MCString.Quality.Good );
             }
             {
                 var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en-us" );

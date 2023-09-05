@@ -17,7 +17,8 @@ namespace CK.Core
     public sealed class NormalizedCultureInfo : ExtendedCultureInfo
     {
         readonly CultureInfo _culture;
-        // This is not exposed. It is the InvariantCulture for all the "en" culture.
+        // This is not exposed.
+        // It is the InvariantCulture for all the "en" culture (including "en").
         readonly NormalizedCultureInfo _neutral;
         Dictionary<string, PositionalCompositeFormat> _translations;
 
@@ -27,8 +28,8 @@ namespace CK.Core
         public static readonly NormalizedCultureInfo Invariant;
 
         /// <summary>
-        /// The default culture is bound to the "en-US" culture by convention.
-        /// "en-US", "en" and Invariant cannot have cached translations.
+        /// The default culture is bound to the "en" culture by convention.
+        /// "en" and Invariant ("") cannot have cached translations.
         /// </summary>
         public static readonly NormalizedCultureInfo CodeDefault;
 
@@ -114,7 +115,7 @@ namespace CK.Core
             return _translations.TryGetValue( resourceName, out format );
         }
 
-        // Constructor for defaults (Invariant, en, en-us).
+        // Constructor for defaults (Invariant and en).
         NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations,
                                string name,
                                int id,
@@ -147,29 +148,21 @@ namespace CK.Core
             Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null, null );
             var cEn = CultureInfo.GetCultureInfo( "en" );
             bool isInvariantModeWithPredefinedOnly = cEn == cInv;
-            var cEnUS = isInvariantModeWithPredefinedOnly ? cInv : CultureInfo.GetCultureInfo( "en-US" );
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
             var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant, null );
-            var enUS = new NormalizedCultureInfo( _noTranslations, "en-us", -1255733531, cEnUS, Invariant, en );
             _all = new Dictionary<object, ExtendedCultureInfo>()
             {
                 { "", Invariant },
                 { 0, Invariant },
                 { Invariant, Invariant },
                 { "en", en },
-                { 221277614, en },
-                { "en-US", enUS },
-                { "en-us", enUS },
-                { "en-us,en", enUS },
-                { -1255733531, enUS },
+                { 221277614, en }
             };
             if( !isInvariantModeWithPredefinedOnly )
             {
                 _all.Add( cEn, en );
-                _all.Add( cEnUS, enUS );
             }
-            CodeDefault = enUS;
+            CodeDefault = en;
         }
 
         // This is for tests only. Tests use reflection to call this.
@@ -183,15 +176,14 @@ namespace CK.Core
             GlobalizationIssues.ClearIssueCache();
 
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
 
             static bool IsUnremovable( KeyValuePair<object, ExtendedCultureInfo> c )
             {
-                return (c.Key is string k && (k == "" || k == "en" || k == "en-us" || k == "en-us,en" || k == "en-US"))
+                return (c.Key is string k && (k == "" || k == "en"))
                        ||
-                       (c.Key is CultureInfo i && (i.Name == "" || i.Name == "en" || i.Name == "en-US"))
+                       (c.Key is CultureInfo i && (i.Name == "" || i.Name == "en"))
                        ||
-                       (c.Key is int id && (id == 0 || id == 221277614 || id == -1255733531));
+                       (c.Key is int id && (id == 0 || id == 221277614));
             }
         }
 
@@ -215,7 +207,7 @@ namespace CK.Core
             }
             // Let the CultureInfo.GetCultureInfo does its job on the culture name.
             // We don't try to optimize here. Either the name is from our normalization
-            // or it is an external name that must be fully handle.
+            // or it is an external name that must be fully handled.
             return GetNormalizedCultureInfo( CultureInfo.GetCultureInfo( name ) );
         }
 
