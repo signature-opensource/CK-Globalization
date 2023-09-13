@@ -9,17 +9,17 @@ namespace CK.Core
     /// </summary>
     public static class GlobalizationJsonHelper
     {
-        static void ReadEndArray( ref Utf8JsonReader r, string typeName )
+        static void ReadEndArray( ref Utf8JsonReader r, IJsonReaderContext context, string typeName )
         {
-            if( r.TokenType != JsonTokenType.EndArray ) throw new JsonException( $"Expected {typeName}'s end array." );
-            r.Read();
+            if( r.TokenType != JsonTokenType.EndArray ) r.ThrowJsonException( $"Expected {typeName}'s end array." );
+            r.ReadWithMoreData( context );
         }
 
-        static void ReadStartArray( ref Utf8JsonReader r, string typeName )
+        static void ReadStartArray( ref Utf8JsonReader r, IJsonReaderContext context, string typeName )
         {
-            if( r.TokenType == JsonTokenType.None ) r.Read();
-            if( r.TokenType != JsonTokenType.StartArray ) throw new JsonException( $"Expected {typeName} array." );
-            r.Read();
+            if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
+            if( r.TokenType != JsonTokenType.StartArray ) r.ThrowJsonException( $"Expected {typeName} array." );
+            r.ReadWithMoreData( context );
         }
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
