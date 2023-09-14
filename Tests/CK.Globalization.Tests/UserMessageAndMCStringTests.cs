@@ -148,6 +148,20 @@ namespace CK.Globalization.Tests
         }
 
         [Test]
+        public void SimpleUserMessage_can_be_deconstruct()
+        {
+            var (l1, m1, d1) = new SimpleUserMessage();
+            l1.Should().Be( UserMessageLevel.None );
+            m1.Should().BeEmpty();
+            d1.Should().Be( 0 );
+
+            var (l2, m2, d2) = new SimpleUserMessage( UserMessageLevel.Info, "Hop!", 42 );
+            l2.Should().Be( UserMessageLevel.Info );
+            m2.Should().Be( "Hop!" );
+            d2.Should().Be( 42 );
+        }
+
+        [Test]
         public void UserMessage_Info()
         {
             var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );

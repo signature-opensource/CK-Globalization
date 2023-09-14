@@ -61,6 +61,19 @@ namespace CK.Core
         }
 
         /// <summary>
+        /// Deconstructs this UserMessage into a value tuple.
+        /// </summary>
+        /// <param name="level">See <see cref="Level"/>.</param>
+        /// <param name="message">See <see cref="Message"/>.</param>
+        /// <param name="depth">See <see cref="Depth"/>.</param>
+        public void Deconstruct( out UserMessageLevel level, out string message, out byte depth )
+        {
+            level = Level;
+            message = Message;
+            depth = Depth;
+        }
+
+        /// <summary>
         /// Gets whether this message is valid.
         /// Invalid message is the <c>default</c> value.
         /// </summary>
