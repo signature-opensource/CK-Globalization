@@ -37,16 +37,16 @@ namespace CK.Core
             w.WriteNumberValue( (int)v.Level );
             if( v.Level != UserMessageLevel.None )
             {
-                w.WriteNumberValue( (int)v.Depth );
                 w.WriteStringValue( v.Message );
+                w.WriteNumberValue( (int)v.Depth );
             }
         }
 
         public static SimpleUserMessage ReadSimpleUserMessageFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, context, "UserMessage" );
+            ReadStartArray( ref r, context, "SimpleUserMessage" );
             var s = ReadSimpleUserMessageFromJsonArrayContent( ref r, context );
-            ReadEndArray( ref r, context, "UserMessage" );
+            ReadEndArray( ref r, context, "SimpleUserMessage" );
             return s;
         }
 
@@ -57,10 +57,10 @@ namespace CK.Core
             r.ReadWithMoreData( context );
             if( level == UserMessageLevel.None ) return default;
             r.SkipComments( context );
-            var depth = (byte)r.GetInt32();
+            var s = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             r.SkipComments( context );
-            var s = r.GetString() ?? string.Empty;
+            var depth = (byte)r.GetInt32();
             r.ReadWithMoreData( context );
             return new SimpleUserMessage( level, s, depth );
         }
