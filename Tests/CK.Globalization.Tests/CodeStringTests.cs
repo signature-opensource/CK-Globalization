@@ -82,7 +82,7 @@ namespace CK.Globalization.Tests
                 }
                 // Json
                 string? text = null;
-                TestHelper.JsonIdempotenceCheck( c, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadCodeStringFromJsonArray, t => text = t );
+                TestHelper.JsonIdempotenceCheck( c, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadCodeStringFromJsonArray, null, t => text = t );
                 Debug.Assert( text != null );
                 return text;
             }

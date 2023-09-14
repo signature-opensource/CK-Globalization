@@ -9,16 +9,16 @@ namespace CK.Core
     /// </summary>
     public static class GlobalizationJsonHelper
     {
-        static void ReadEndArray( ref Utf8JsonReader r, IJsonReaderContext context, string typeName )
+        static void ReadEndArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context, string typeName )
         {
-            if( r.TokenType != JsonTokenType.EndArray ) r.ThrowJsonException( $"Expected {typeName}'s end array." );
+            if( r.TokenType != JsonTokenType.EndArray ) r.ThrowExpectedJsonException( $"{typeName}'s end array" );
             r.ReadWithMoreData( context );
         }
 
-        static void ReadStartArray( ref Utf8JsonReader r, IJsonReaderContext context, string typeName )
+        static void ReadStartArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context, string typeName )
         {
             if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
-            if( r.TokenType != JsonTokenType.StartArray ) r.ThrowJsonException( $"Expected {typeName} array." );
+            if( r.TokenType != JsonTokenType.StartArray ) r.ThrowExpectedJsonException( $"{typeName} array" );
             r.ReadWithMoreData( context );
         }
 
@@ -42,23 +42,26 @@ namespace CK.Core
             }
         }
 
-        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArray( ref Utf8JsonReader r )
+        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, "UserMessage" );
-            var s = ReadSimpleUserMessageFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "UserMessage" );
+            ReadStartArray( ref r, context, "UserMessage" );
+            var s = ReadSimpleUserMessageFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "UserMessage" );
             return s;
         }
 
-        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArrayContent( ref Utf8JsonReader r )
+        public static SimpleUserMessage ReadSimpleUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
+            r.SkipComments( context );
             var level = (UserMessageLevel)r.GetInt32();
-            r.Read();
+            r.ReadWithMoreData( context );
             if( level == UserMessageLevel.None ) return default;
+            r.SkipComments( context );
             var depth = (byte)r.GetInt32();
-            r.Read();
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
             var s = r.GetString() ?? string.Empty;
-            r.Read();
+            r.ReadWithMoreData( context );
             return new SimpleUserMessage( level, s, depth );
         }
         #endregion
@@ -81,22 +84,24 @@ namespace CK.Core
             }
         }
 
-        public static UserMessage ReadUserMessageFromJsonArray( ref Utf8JsonReader r )
+        public static UserMessage ReadUserMessageFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, "UserMessage" );
-            var s = ReadUserMessageFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "UserMessage" );
+            ReadStartArray( ref r, context, "UserMessage" );
+            var s = ReadUserMessageFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "UserMessage" );
             return s;
         }
 
-        public static UserMessage ReadUserMessageFromJsonArrayContent( ref Utf8JsonReader r )
+        public static UserMessage ReadUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
+            r.SkipComments( context );
             var level = (UserMessageLevel)r.GetInt32();
-            r.Read();
+            r.ReadWithMoreData( context );
             if( level == UserMessageLevel.None ) return default;
+            r.SkipComments( context );
             var depth = (byte)r.GetInt32();
-            r.Read();
-            var s = ReadMCStringFromJsonArrayContent( ref r );
+            r.ReadWithMoreData( context );
+            var s = ReadMCStringFromJsonArrayContent( ref r, context );
             return new UserMessage( level, s, depth );
         }
 
@@ -117,21 +122,22 @@ namespace CK.Core
             WriteJsonArrayContent( w, v.CodeString );
         }
 
-        public static MCString ReadMCStringFromJsonArray( ref Utf8JsonReader r )
+        public static MCString ReadMCStringFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, "MCString" );
-            var s = ReadMCStringFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "MCString" );
+            ReadStartArray( ref r, context, "MCString" );
+            var s = ReadMCStringFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "MCString" );
             return s;
         }
 
-        public static MCString ReadMCStringFromJsonArrayContent( ref Utf8JsonReader r )
+        public static MCString ReadMCStringFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
+            r.SkipComments( context );
             var text = r.GetString() ?? string.Empty;
-            r.Read();
+            r.ReadWithMoreData( context );
             var formatCulture = r.GetString() ?? string.Empty;
-            r.Read();
-            var c = ReadCodeStringFromJsonArrayContent( ref r );
+            r.ReadWithMoreData( context );
+            var c = ReadCodeStringFromJsonArrayContent( ref r, context );
             return MCString.CreateFromProperties( text, c, NormalizedCultureInfo.GetNormalizedCultureInfo( formatCulture ) );
         }
         #endregion
@@ -150,19 +156,20 @@ namespace CK.Core
             WriteJsonArrayContent( w, v.FormattedString );
         }
 
-        public static CodeString ReadCodeStringFromJsonArray( ref Utf8JsonReader r )
+        public static CodeString ReadCodeStringFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, "CodeString" );
-            var s = ReadCodeStringFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "CodeString" );
+            ReadStartArray( ref r, context, "CodeString" );
+            var s = ReadCodeStringFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "CodeString" );
             return s;
         }
 
-        public static CodeString ReadCodeStringFromJsonArrayContent( ref Utf8JsonReader r )
+        public static CodeString ReadCodeStringFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
+            r.SkipComments( context );
             var resName = r.GetString() ?? string.Empty;
-            r.Read();
-            var f = ReadFormattedStringFromJsonArrayContent( ref r );
+            r.ReadWithMoreData( context );
+            var f = ReadFormattedStringFromJsonArrayContent( ref r, context );
             return CodeString.CreateFromProperties( f, resName );
         }
 
@@ -190,31 +197,37 @@ namespace CK.Core
             w.WriteEndArray();
         }
 
-        public static FormattedString ReadFormattedStringFromJsonArray( ref Utf8JsonReader r )
+        public static FormattedString ReadFormattedStringFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
-            ReadStartArray( ref r, "FormattedString" );
-            var f = ReadFormattedStringFromJsonArrayContent( ref r );
-            ReadEndArray( ref r, "FormattedString" );
+            ReadStartArray( ref r, context, "FormattedString" );
+            var f = ReadFormattedStringFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "FormattedString" );
             return f;
         }
 
-        public static FormattedString ReadFormattedStringFromJsonArrayContent( ref Utf8JsonReader r )
+        public static FormattedString ReadFormattedStringFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
         {
+            r.SkipComments( context );
             var text = r.GetString() ?? String.Empty;
-            r.Read();
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
             var cultureName = r.GetString() ?? String.Empty;
-            r.Read();
-            ReadStartArray( ref r, "FormattedString's Placeholders" );
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
+            ReadStartArray( ref r, context, "FormattedString's Placeholders" );
             var placeholders = new List<(int, int)>();
             while( r.TokenType == JsonTokenType.Number )
             {
+                r.SkipComments( context );
                 var start = r.GetInt32();
-                r.Read();
+                r.ReadWithMoreData( context );
+                r.SkipComments( context );
                 var length = r.GetInt32();
-                r.Read();
+                r.ReadWithMoreData( context );
+                r.SkipComments( context );
                 placeholders.Add( (start, length) );
             }
-            ReadEndArray( ref r, "FormattedString's Placeholders" );
+            ReadEndArray( ref r, context, "FormattedString's Placeholders" );
             return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ExtendedCultureInfo.GetExtendedCultureInfo( cultureName ) );
         }
 

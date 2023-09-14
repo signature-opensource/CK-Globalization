@@ -215,7 +215,11 @@ namespace CK.Globalization.Tests
                 }
                 // Json
                 string? text = null;
-                TestHelper.JsonIdempotenceCheck( f, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadFormattedStringFromJsonArray, t => text = t );
+                TestHelper.JsonIdempotenceCheck( f,
+                                                 GlobalizationJsonHelper.WriteAsJsonArray,
+                                                 GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                                 null,
+                                                 t => text = t );
                 Debug.Assert( text != null );
                 return text;
             }
@@ -248,7 +252,11 @@ namespace CK.Globalization.Tests
             f.GetFormatString().Should().Be( "{0}{1}{2}CD{3}" );
 
             string? text = null;
-            TestHelper.JsonIdempotenceCheck( f, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadFormattedStringFromJsonArray, t => text = t );
+            TestHelper.JsonIdempotenceCheck( f,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                             null,
+                                             t => text = t );
             text.Should().Be( """["ABCDEF","ar-tn",[0,1,1,1,2,0,4,2]]""" );
 
             FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (-1, 1) }, c ) )
