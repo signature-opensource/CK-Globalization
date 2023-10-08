@@ -16,7 +16,7 @@ namespace CK.Globalization.Tests
         public void ClearCache()
         {
             typeof( NormalizedCultureInfo )
-                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
                 .Invoke( null, null );
         }
 
@@ -24,7 +24,7 @@ namespace CK.Globalization.Tests
         public async Task without_translations_Async()
         {
             var s = new TranslationService();
-            var c = new CodeString( "Hop" );
+            var c = new CodeString( NormalizedCultureInfo.Invariant, "Hop" );
             var t = await s.TranslateAsync( c );
             t.Text.Should().BeSameAs( c.Text );
             t.FormatCulture.Should().Be( NormalizedCultureInfo.CodeDefault );
@@ -37,11 +37,11 @@ namespace CK.Globalization.Tests
             var date = new DateTime( 2023, 8, 4, 18, 38, 47 );
             var c = new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" ), $"Hop {date:F}." );
             c.Text.Should().Be( "Hop vendredi 4 août 2023 18:38:47." );
-            c.ContentCulture.Name.Should().Be( "fr-fr" );
+            c.TargetCulture.Name.Should().Be( "fr-fr" );
 
             var t = await s.TranslateAsync( c );
             t.Text.Should().Be( c.Text );
-            t.FormatCulture.Name.Should().Be( "en-us" );
+            t.FormatCulture.Name.Should().Be( "en" );
             t.TranslationQuality.Should().Be( MCString.Quality.Awful );
 
             NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est Hop {0} (en français)." } } );
@@ -115,7 +115,7 @@ namespace CK.Globalization.Tests
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "Hello from fr-ch on vendredi, 4 août 2023 18:38:47." );
-                t.FormatCulture.Name.Should().Be( "en-us" );
+                t.FormatCulture.Name.Should().Be( "en" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Awful );
             }
         }
@@ -141,7 +141,7 @@ namespace CK.Globalization.Tests
                 var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en-us" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
-                t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+                t.TranslationQuality.Should().Be( MCString.Quality.Good );
             }
             {
                 var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en-us" );

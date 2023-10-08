@@ -5,7 +5,6 @@ using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -16,7 +15,7 @@ namespace CK.Core
     /// <summary>
     /// Captures an interpolated string result along with its formatted placeholders.
     /// <para>
-    /// This is implicitly castable as a string: <see cref="Text"/> is returned.
+    /// The simplified projection of a FormattedString is a string: this is implicitly castable as a string, <see cref="Text"/> is returned.
     /// </para>
     /// <para>
     /// Note: We don't use <see cref="Range"/> here because there's no use of any "FromEnd". a simple
@@ -42,50 +41,17 @@ namespace CK.Core
         public static FormattedString Empty => default;
 
         /// <summary>
-        /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>)
-        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        public FormattedString( string plainText )
-            : this( NormalizedCultureInfo.Current, plainText )
-        {
-        }
-
-        /// <summary>
         /// Initializes a <see cref="FormattedString"/> with a plain string (no <see cref="Placeholders"/>).
-        /// <para>
-        /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
-        /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
-        /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-        /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
-        /// </para>
         /// </summary>
         /// <param name="culture">The culture of this formatted string.</param>
         /// <param name="plainText">The plain text.</param>
         public FormattedString( ExtendedCultureInfo culture, string plainText )
         {
+            Throw.CheckNotNullArgument( culture );
             Throw.CheckNotNullArgument( plainText );
             _text = plainText;
             _placeholders = Array.Empty<(int, int)>();
             _culture = culture;
-            Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
-        }
-
-        /// <summary>
-        /// Initializes a <see cref="FormattedString"/> with <see cref="Placeholders"/> using
-        /// the <see cref="NormalizedCultureInfo.Current"/> to format the placeholder contents.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        public FormattedString( [InterpolatedStringHandlerArgument] FormattedStringHandler text )
-        {
-            _culture = NormalizedCultureInfo.Current;
-            (_text, _placeholders) = text.GetResult();
             Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
         }
 
@@ -103,6 +69,7 @@ namespace CK.Core
         /// <param name="text">The interpolated text.</param>
         public FormattedString( ExtendedCultureInfo culture, [InterpolatedStringHandlerArgument( nameof( culture ) )] FormattedStringHandler text )
         {
+            Throw.CheckNotNullArgument( culture );
             (_text,_placeholders) = text.GetResult();
             _culture = culture;
             Debug.Assert( CheckPlaceholders( _placeholders, _text.Length ) );
@@ -207,12 +174,8 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the culture that has been used to format the placeholder's content.
-        /// <para>
-        /// When deserializing, this culture is set to the <see cref="NormalizedCultureInfo.Invariant"/> if
-        /// the culture cannot be restored properly.
-        /// </para>
         /// </summary>
-        public ExtendedCultureInfo Culture => _culture ?? NormalizedCultureInfo.Invariant;
+        public ExtendedCultureInfo Culture => IsValid ? _culture : NormalizedCultureInfo.Invariant;
 
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.
@@ -279,6 +242,8 @@ namespace CK.Core
         public string GetFormatString()
         {
             if( !IsValid ) return String.Empty;
+            // This is NOT a good idea since braces may be need doubling!
+            // if( _placeholders.Length == 0 ) return _text;
             Throw.DebugAssert( _placeholders.Length < 100 );
             // Worst case is full of { and } (that must be doubled) and all placeholders are empty
             // (that must be filled with {xx}: it is useless to handle the 10 first {x} placeholders).
@@ -378,7 +343,7 @@ namespace CK.Core
         /// <returns>This text.</returns>
         public override string ToString() => Text;
 
-        #region Serialization
+        #region Binary serialization
         /// <summary>
         /// Simple deserialization constructor.
         /// </summary>
@@ -423,14 +388,15 @@ namespace CK.Core
                     s.Start = r.ReadNonNegativeSmallInt32();
                     s.Length = r.ReadNonNegativeSmallInt32();
                 }
-                _culture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
+                var n = r.ReadNullableString();
+                _culture = n != null ? NormalizedCultureInfo.GetNormalizedCultureInfo( n ) : null;
             }
         }
 
         /// <inheritdoc />
         public void WriteData( ICKBinaryWriter w )
         {
-            // Don't bother optimizing the InvariantEmpty as it should not be used
+            // Don't bother optimizing the Empty as it should not be used
             // frequently and if it is, only the caller can serialize a marker and
             // deserialize the singleton.
             w.WriteNullableString( _text );
@@ -442,7 +408,7 @@ namespace CK.Core
                     w.WriteNonNegativeSmallInt32( start );
                     w.WriteNonNegativeSmallInt32( length );
                 }
-                w.Write( _culture.Name );
+                w.WriteNullableString( _culture?.Name );
             }
         }
         #endregion

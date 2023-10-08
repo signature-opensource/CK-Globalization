@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace CK.Core
@@ -16,7 +17,8 @@ namespace CK.Core
     public sealed class NormalizedCultureInfo : ExtendedCultureInfo
     {
         readonly CultureInfo _culture;
-        // This is not exposed. It is the InvariantCulture for all the "en" culture.
+        // This is not exposed.
+        // It is the InvariantCulture for all the "en" culture (including "en").
         readonly NormalizedCultureInfo _neutral;
         Dictionary<string, PositionalCompositeFormat> _translations;
 
@@ -26,15 +28,10 @@ namespace CK.Core
         public static readonly NormalizedCultureInfo Invariant;
 
         /// <summary>
-        /// The default culture is bound to the "en-US" culture by convention.
-        /// "en-US", "en" and Invariant cannot have cached translations.
+        /// The default culture is bound to the "en" culture by convention.
+        /// "en" and Invariant ("") cannot have cached translations.
         /// </summary>
         public static readonly NormalizedCultureInfo CodeDefault;
-
-        /// <summary>
-        /// Simple relay that calls <see cref="GetNormalizedCultureInfo(CultureInfo)"/> with the <see cref="CultureInfo.CurrentCulture"/>.
-        /// </summary>
-        public static NormalizedCultureInfo Current => GetNormalizedCultureInfo( CultureInfo.CurrentCulture );
 
         /// <summary>
         /// Gets the <see cref="CultureInfo"/>.
@@ -118,7 +115,7 @@ namespace CK.Core
             return _translations.TryGetValue( resourceName, out format );
         }
 
-        // Constructor for defaults (Invariant, en, en-us).
+        // Constructor for defaults (Invariant and en).
         NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations,
                                string name,
                                int id,
@@ -151,29 +148,21 @@ namespace CK.Core
             Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null, null );
             var cEn = CultureInfo.GetCultureInfo( "en" );
             bool isInvariantModeWithPredefinedOnly = cEn == cInv;
-            var cEnUS = isInvariantModeWithPredefinedOnly ? cInv : CultureInfo.GetCultureInfo( "en-US" );
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
             var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant, null );
-            var enUS = new NormalizedCultureInfo( _noTranslations, "en-us", -1255733531, cEnUS, Invariant, en );
             _all = new Dictionary<object, ExtendedCultureInfo>()
             {
                 { "", Invariant },
                 { 0, Invariant },
                 { Invariant, Invariant },
                 { "en", en },
-                { 221277614, en },
-                { "en-US", enUS },
-                { "en-us", enUS },
-                { "en-us,en", enUS },
-                { -1255733531, enUS },
+                { 221277614, en }
             };
             if( !isInvariantModeWithPredefinedOnly )
             {
                 _all.Add( cEn, en );
-                _all.Add( cEnUS, enUS );
             }
-            CodeDefault = enUS;
+            CodeDefault = en;
         }
 
         // This is for tests only. Tests use reflection to call this.
@@ -184,27 +173,27 @@ namespace CK.Core
             GlobalizationIssues.Track.IsOpen = false;
             var all = new Dictionary<object, ExtendedCultureInfo>( _all.Where( IsUnremovable ) );
             _all = all;
-            GlobalizationIssues._identifierClashes = Array.Empty<GlobalizationIssues.CultureIdentifierClash>();
-            GlobalizationIssues._codeSringOccurrence.Clear();
-            GlobalizationIssues._missingTranslations = null;
-            GlobalizationIssues._formatArgumentError = null;
+            GlobalizationIssues.ClearIssueCache();
 
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            Throw.DebugAssert( "en-us".GetDjb2HashCode() == -1255733531 );
 
             static bool IsUnremovable( KeyValuePair<object, ExtendedCultureInfo> c )
             {
-                return (c.Key is string k && (k == "" || k == "en" || k == "en-us" || k == "en-us,en" || k == "en-US"))
+                return (c.Key is string k && (k == "" || k == "en"))
                        ||
-                       (c.Key is CultureInfo i && (i.Name == "" || i.Name == "en" || i.Name == "en-US"))
+                       (c.Key is CultureInfo i && (i.Name == "" || i.Name == "en"))
                        ||
-                       (c.Key is int id && (id == 0 || id == 221277614 || id == -1255733531));
+                       (c.Key is int id && (id == 0 || id == 221277614));
             }
         }
 
         /// <summary>
         /// Gets a cached normalized culture info from its name or creates it.
         /// The name must be a valid BCP47 language tag otherwise a <see cref="CultureNotFoundException"/> is raised.
+        /// <para>
+        /// This doesn't use <see cref="IsValidCultureName(string)"/>, this relies solely on <see cref="CultureInfo.GetCultureInfo(string)"/>
+        /// that validates and normalizes the casing as much as it can. If GetCultureInfo accepts the name, it is fine.
+        /// </para>
         /// </summary>
         /// <param name="name">The culture name.</param>
         /// <returns>The culture.</returns>
@@ -218,7 +207,7 @@ namespace CK.Core
             }
             // Let the CultureInfo.GetCultureInfo does its job on the culture name.
             // We don't try to optimize here. Either the name is from our normalization
-            // or it is an external name that must be fully handle.
+            // or it is an external name that must be fully handled.
             return GetNormalizedCultureInfo( CultureInfo.GetCultureInfo( name ) );
         }
 
@@ -261,6 +250,20 @@ namespace CK.Core
                 _all = all;
                 return c;
             }
+        }
+
+        /// <summary>
+        /// Basic check of a BCP47 language tag (see https://www.rfc-editor.org/rfc/rfc5646.txt).
+        /// <para>
+        /// This can be used by external code to avoid creating NormalizedCultureInfo with uncontrolled names,
+        /// but eventually <see cref="CultureInfo.GetCultureInfo(string)"/> decides.
+        /// </para>
+        /// </summary>
+        /// <param name="name">A potential culture name.</param>
+        /// <returns>True if this name is a vald name, false otherwise.</returns>
+        public static bool IsValidCultureName( string name )
+        {
+            return !String.IsNullOrWhiteSpace( name ) && Regex.IsMatch( name, @"^(?!-)[0-9a-zA-Z]{0,8}((-[0-9a-zA-Z]{1,8})+)*$" );
         }
 
         static NormalizedCultureInfo DoRegister( string name, CultureInfo cultureInfo, Dictionary<object, ExtendedCultureInfo> all )

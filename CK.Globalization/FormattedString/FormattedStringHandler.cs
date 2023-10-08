@@ -30,24 +30,26 @@ namespace CK.Core
 
         public FormattedStringHandler( int literalLength, int formattedCount )
         {
-            Throw.CheckArgument( "There must not be more than 99 placeholders.", formattedCount <= 100 );
-            _provider = null;
+            Throw.CheckArgument( $"There must not be more than {FormattedString.MaxPlaceholderCount} placeholders.", formattedCount <= FormattedString.MaxPlaceholderCount );
             _chars = _arrayToReturnToPool = ArrayPool<char>.Shared.Rent( GetDefaultLength( literalLength, formattedCount ) );
             _pos = 0;
             _currentSlot = 0;
             _slots = formattedCount > 0 ? new (int, int)[formattedCount] : Array.Empty<(int,int)>();
+            _provider = null;
             _hasCustomFormatter = false;
         }
 
         public FormattedStringHandler( int literalLength, int formattedCount, IFormatProvider? provider )
+            : this( literalLength, formattedCount )
         {
             Throw.CheckArgument( $"There must not be more than {FormattedString.MaxPlaceholderCount} placeholders.", formattedCount <= FormattedString.MaxPlaceholderCount );
             _provider = provider;
-            _chars = _arrayToReturnToPool = ArrayPool<char>.Shared.Rent( GetDefaultLength( literalLength, formattedCount ) );
-            _pos = 0;
-            _currentSlot = 0;
-            _slots = formattedCount > 0 ? new (int, int)[formattedCount] : Array.Empty<(int, int)>();
             _hasCustomFormatter = provider is not null && HasCustomFormatter( provider );
+        }
+
+        public FormattedStringHandler( int literalLength, int formattedCount, UserMessageCollector builder )
+            : this( literalLength, formattedCount, builder.CurrentCulture )
+        {
         }
 
         /// <summary>Derives a default length with which to seed the handler.</summary>

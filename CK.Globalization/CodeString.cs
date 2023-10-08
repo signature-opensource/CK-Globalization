@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core
 {
     /// <summary>
     /// Code implementation of <see cref="MCString"/> based on interpolated strings (see <see cref="FormattedString"/>).
-    /// The <see cref="FormatCulture"/> is always "en-US": format strings must always be written in american English.
+    /// <para>
+    /// The simplified projection of a CodeString is a string: this is implicitly castable as a string, <see cref="Text"/> is returned.
+    /// </para>
     /// </summary>
     [SerializationVersion(0)]
     public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
@@ -29,25 +27,6 @@ namespace CK.Core
         /// Gets the empty code string: empty <see cref="ResName"/>, empty text, no placeholders and <see cref="NormalizedCultureInfo.Invariant"/>.
         /// </summary>
         public readonly static CodeString Empty = new CodeString();
-
-        /// <summary>
-        /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>)
-        /// that is bound to the <see cref="NormalizedCultureInfo.Current"/>.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <param name="resName">Optional associated resource name. When null, a "SHA." automatic resource name is computed.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public CodeString( string plainText,
-                           string? resName = null,
-                           [CallerFilePath]string? filePath = null,
-                           [CallerLineNumber]int lineNumber = 0 )
-            : this( NormalizedCultureInfo.Current, plainText, resName, filePath, lineNumber )
-        {
-        }
 
         /// <summary>
         /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>).
@@ -72,25 +51,6 @@ namespace CK.Core
             _f = new FormattedString( culture, plainText );
             _resName = resName ?? _f.GetSHA1BasedResName();
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
-        }
-
-        /// <summary>
-        /// Initializes a <see cref="CodeString"/> with <see cref="Placeholders"/> using
-        /// the <see cref="NormalizedCultureInfo.Current"/> to format the placeholder contents.
-        /// <para>
-        /// This should be avoided: the culture should be provided explicitly.
-        /// </para>
-        /// </summary>
-        /// <param name="text">The interpolated text.</param>
-        /// <param name="resName">Optional associated resource name.</param>
-        /// <param name="filePath">Automatically set by the compiler.</param>
-        /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public CodeString( [InterpolatedStringHandlerArgument] FormattedStringHandler text,
-                           string? resName = null,
-                           [CallerFilePath] string? filePath = null,
-                           [CallerLineNumber] int lineNumber = 0 )
-            : this( NormalizedCultureInfo.Current, ref text, resName, filePath, lineNumber )
-        {
         }
 
         /// <summary>
@@ -128,6 +88,12 @@ namespace CK.Core
             if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
         }
 
+        CodeString( in FormattedString formattedString, string resName )
+        {
+            _f = formattedString;
+            _resName = resName;
+        }
+
         /// <summary>
         /// Gets the formatted text.
         /// </summary>
@@ -137,7 +103,7 @@ namespace CK.Core
         /// Gets the resource name that identifies this string.
         /// This is the empty string for the <see cref="Empty"/> string.
         /// <para>
-        /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="GetFormatString"/>
+        /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="FormattedString.GetFormatString"/>
         /// used when no resource name is provided.
         /// </para>
         /// </summary>
@@ -146,7 +112,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the culture that has been used to format the <see cref="Placeholders"/>.
         /// </summary>
-        public ExtendedCultureInfo ContentCulture => _f.Culture;
+        public ExtendedCultureInfo TargetCulture => _f.Culture;
 
         /// <summary>
         /// Gets the placeholders' occurrence in this <see cref="Text"/>.
@@ -156,7 +122,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the placeholders' content.
         /// </summary>
-        /// <returns>The <see cref="ContentCulture"/> formatted contents for each placeholders.</returns>
+        /// <returns>The <see cref="TargetCulture"/> formatted contents for each placeholders.</returns>
         public ReadOnlyMemory<char>[] GetPlaceholderContents() => _f.GetPlaceholderContents();
 
         /// <summary>
@@ -188,7 +154,7 @@ namespace CK.Core
         /// <param name="formattedString">The <see cref="FormattedString"/>.</param>
         /// <param name="resName">The <see cref="ResName"/>.</param>
         /// <returns>A new code string.</returns>
-        public static CodeString CreateFromProperties( in FormattedStringHandler formattedString, string resName )
+        public static CodeString CreateFromProperties( in FormattedString formattedString, string resName )
         {
             Throw.CheckNotNullArgument( resName );
             return new CodeString( formattedString, resName );
@@ -197,7 +163,7 @@ namespace CK.Core
         /// <summary>
         /// Implicit cast into string: <see cref="Text"/>.
         /// </summary>
-        /// <param name="f">This Text.</param>
+        /// <param name="f">This CodeString.</param>
         public static implicit operator string( CodeString f ) => f.Text;
 
         /// <summary>
@@ -206,7 +172,7 @@ namespace CK.Core
         /// <returns>This text.</returns>
         public override string ToString() => _f.Text;
 
-        #region Serialization
+        #region Binary serialization
         /// <summary>
         /// Simple deserialization constructor.
         /// </summary>

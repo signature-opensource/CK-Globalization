@@ -4,7 +4,8 @@ A [`FormattedString`](FormattedString.cs) is a capture of an interpolated string
 - `Text` is the usual final interpolated string.
 - `Placeholders` are all the occurences (Start,Length) of the formatted placeholders.
 - `PlaceholderContents` is a `IEnumerable<ReadOnlyMemory<char>` of the formatted contents.
-- `Culture` is the `CultureInfo` that has been used to format placeholders' content.
+- `Culture` is the `ExtendedCultureInfo` that has been used to format placeholders' content (and the target culture
+  into which this string should ultimately be translated).
 
 The `GetFormatString()` method computes the corresponding
 [composite format string](https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):

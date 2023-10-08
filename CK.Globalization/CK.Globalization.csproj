@@ -3,10 +3,9 @@
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>11</LangVersion>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.ActivityMonitor.SimpleSender" Version="18.0.1--0040-develop" />
-    <PackageReference Include="CK.PerfectEvent" Version="19.0.1--0028-develop" />
+    <PackageReference Include="CK.ActivityMonitor.SimpleSender" Version="19.0.0" />
+    <PackageReference Include="CK.PerfectEvent" Version="20.0.0" />
   </ItemGroup>
 </Project>

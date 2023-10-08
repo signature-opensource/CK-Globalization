@@ -50,6 +50,7 @@ namespace CK.Core
         /// Constructor for NormalizedCultureInfo.
         /// </summary>
         /// <param name="name">The normalized name.</param>
+        /// <param name="id">The hash identifier.</param>
         /// <param name="fallbacks">Fallbacks.</param>
         internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo[] fallbacks )
         {

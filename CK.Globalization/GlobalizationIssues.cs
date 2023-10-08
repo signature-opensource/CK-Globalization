@@ -3,12 +3,9 @@ using CommunityToolkit.HighPerformance;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace CK.Core
 {
@@ -25,7 +22,6 @@ namespace CK.Core
     ///     </item>
     ///     <item>
     ///     <see cref="FormatArgumentCountError"/> is emitted whenever a translation format expects less or more arguments than a CodeString placeholders contains.
-    ///     is detected.
     ///     </item>
     ///     <item>
     ///     The worst case: <see cref="CultureIdentifierClash"/> is always raised, even if the static gate <see cref="Track"/> is closed. This is a serious issue
@@ -33,7 +29,7 @@ namespace CK.Core
     ///     </item>
     /// </list>
     /// </summary>
-    public static class GlobalizationIssues
+    public static partial class GlobalizationIssues
     {
         /// <summary>
         /// The "CK.Core.GlobalizationIssues.Track" static gate is closed by default.
@@ -74,12 +70,20 @@ namespace CK.Core
         static readonly Channel<Issue?> _channel;
         static readonly IActivityMonitor _monitor;
         static readonly PerfectEventSender<Issue> _onNewIssue;
-        // Internal for tests (ClearCache).
         internal readonly record struct ResKey( NormalizedCultureInfo Culture, string ResName );
-        internal static Dictionary<ResKey, CodeString>? _missingTranslations;
-        internal static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
-        internal static CultureIdentifierClash[] _identifierClashes;
-        internal static readonly ConcurrentDictionary<byte[], CodeStringSourceLocation[]> _codeSringOccurrence;
+        static Dictionary<ResKey, CodeString>? _missingTranslations;
+        static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
+        static CultureIdentifierClash[] _identifierClashes;
+        static readonly ConcurrentDictionary<byte[], CodeStringSourceLocation[]> _codeSringOccurrence;
+
+        // Internal for tests (ClearCache).
+        internal static void ClearIssueCache()
+        {
+            _identifierClashes = Array.Empty<CultureIdentifierClash>();
+            _codeSringOccurrence.Clear();
+            _missingTranslations = null;
+            _formatArgumentError = null;
+        }
 
         static GlobalizationIssues()
         {
@@ -191,7 +195,8 @@ namespace CK.Core
                 }
                 else if( s.ResName.StartsWith( "SHA." ) )
                 {
-                    _monitor.Warn( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
+                    // This may also be a Warn...
+                    _monitor.Trace( $"Missing Resource Name for CodeString at '{filePath}@{lineNumber}'." );
                 }
             }
         }
@@ -200,7 +205,7 @@ namespace CK.Core
         {
             _missingTranslations ??= new Dictionary<ResKey, CodeString>();
             var c = s.CodeString;
-            var primary = c.ContentCulture.PrimaryCulture;
+            var primary = c.TargetCulture.PrimaryCulture;
             if( _missingTranslations.TryAdd( new ResKey( primary, c.ResName ), c ) )
             {
                 var issue = new MissingTranslationResource( c );
@@ -281,6 +286,10 @@ namespace CK.Core
         /// <param name="Clashes">One or more clashing names that shifted the <paramref name="Id"/> by 1.</param>
         public sealed record CultureIdentifierClash( string Name, int Id, IReadOnlyList<string> Clashes ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"CultureInfo name identifier clash: '{Name}' has been associated to '{Id}' because of '{Clashes.Concatenate( "', '" )}'.";
 
@@ -296,6 +305,10 @@ namespace CK.Core
         /// <param name="Error">The error message that contains the invalid <see cref="Format"/>.</param>
         public sealed record TranslationFormatError( NormalizedCultureInfo Culture, string ResName, string Format, string Error ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString() => $"Invalid format for '{ResName}' in '{Culture.Name}': {Error}";
         }
 
@@ -312,6 +325,10 @@ namespace CK.Core
                                                            PositionalCompositeFormat Skipped,
                                                            PositionalCompositeFormat Registered ) : Issue
         {
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString() => $"Duplicate resource '{ResName}' in '{Culture.Name}'. Skipped: '{Skipped.GetFormatString()}'.";
         }
 
@@ -327,13 +344,17 @@ namespace CK.Core
             /// <summary>
             /// The culture in which the resource should be defined.
             /// </summary>
-            public NormalizedCultureInfo MissingCulture => Instance.ContentCulture.PrimaryCulture;
+            public NormalizedCultureInfo MissingCulture => Instance.TargetCulture.PrimaryCulture;
 
             /// <summary>
             /// The resource name to be defined.
             /// </summary>
             public string ResName => Instance.ResName;
 
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"Missing translation for '{ResName}' in '{MissingCulture.FullName}' at {GetSourceLocation( Instance ).Select( l => l.ToString() ).Concatenate()}.";
         }
@@ -369,6 +390,10 @@ namespace CK.Core
             /// </summary>
             public int PlaceholderCount => Instance.CodeString.FormattedString.Placeholders.Count;
 
+            /// <summary>
+            /// Provides the description.
+            /// </summary>
+            /// <returns>This issue description.</returns>
             public override string ToString()
                 => $"Translation '{ResName}' in '{FormatCulture}' expects {ExpectedArgumentCount} arguments " +
                    $"but CodeString has {PlaceholderCount} placeholders at {GetSourceLocation( Instance.CodeString ).Select( l => l.ToString() ).Concatenate()}.";
@@ -378,6 +403,7 @@ namespace CK.Core
         sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
         sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
         sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
+        sealed record PrivateGetReport( TaskCompletionSource<Report> TCS, bool Reset ) : Issue;
 
     }
 }

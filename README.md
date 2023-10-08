@@ -8,8 +8,12 @@ This library is an opinionated one that aims to define a simple, good-enough, i1
 the developer's burden. 
 
 It is based on a Code-first approach: the developer writes and emits en-US texts directly in its code, using
-interpolated strings. Placeholders are rendered immediately in the current culture. This current culture
-being if possible an ubiquitous injected scoped service or fallbacks to the thread static [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
+interpolated strings. Placeholders are rendered immediately in the culture that MUST be provided: there is **NO
+implicit default culture**.
+
+The "current" culture is an injected scoped service (the `CurrentCultureInfo`) or an explicit `ExtendedCultureInfo`.
+
+> **Important:** This library doesn't use the static (and async local) [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
 
 We currently don't exploit the .NET 8 [CompositeFormat](https://learn.microsoft.com/en-us/dotnet/api/system.text.compositeformat).
 Using it requires more work from the developper: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
@@ -19,8 +23,8 @@ Even if solutions that involve code generation exist like [TypealizR](https://gi
 that secures this process by enforcing type safety, this is always more work for the developper.
 
 Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
-we always format a text with a en-US format but with placeholders rendered in the "current" culture and captures
-the resulting `Text`, the "current" `ContentCulture` and the placeholders text ranges. Armed with this, we can
+we always format a text with a "en" (our default) format but with placeholders rendered in the "current" culture and captures
+the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
 An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
@@ -57,6 +61,10 @@ CultureInfo can be created freely as long as the name is valid according to the 
 The .NET cache behavior is far from perfect. One cannot create a new CultureInfo out of the blue, configure it and then cache it (which
 should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
 insentitive.
+
+The `static bool NormalizedCultureInfo.IsValidCultureName( string name )` helper is available to check culture
+name syntax but ultimately the framework's `CultureInfo.GetCultureInfo( string name )` decides (and may throw
+the badly named `CultureNotFoundException`: InvalidCultureNameException would be better).
 
 ```csharp
 [Test]
@@ -120,12 +128,12 @@ concept) if there's one, but I'm fine with any translation in my language (.NET 
 We call "pure" `ExtendedCultureInfo` the cultures that are not `NormalizedCultureInfo`: these ones are
 defined by their fallbacks and represent a "user preference list" (comma separated list of normalized
 culture names): "jp,es,fr" is japanese first, then spanish and then french before giving up and use
-the en-US default. This capability introduces some complexity and needs some design decisions discussed
+the "en" default. This capability introduces some complexity and needs some design decisions discussed
 below.
 
 For translations, the `NormalizedCultureInfo` and its intrinsic fallbacks can be "good enough": the placeholders
 are rendered in the primary culture ("es-ES" for instance). If we can't find a composite format from the
-"en-US" code text to "es-ES" nor to "es" then we simply don't translate/reformat and expose the "en-US" text
+"en" code text to "es-ES" nor to "es" then we simply don't translate/reformat and expose the "en" text
 with its "es-ES" placeholders. Translations SHOULD exist: the failure to find a translation is an exception,
 a bug or an issue that must be fixed. Translations are a compact set of resources: there should be no "holes"
 in them.
@@ -145,15 +153,14 @@ In both scenario, it is obvious that a parent culture (intrinsic fallback) appea
 "es,fr,fr-ca" is either "es,fr-ca,fr" or "es,fr" because whatever is the resource (a document or a translated
 resource), a "fr-ca" resource IS-A "fr" resource.
 
-But then interpretations differ. About the "en-US code default" for instance:
+But then interpretations differ. About the "en" code default for instance:
 
 - For translation, due to:
-  - Our choice of "en-US"/"en" code defaults,
+  - Our choice of "en" code defaults,
   - **and**, as we are NOT implementing a "general purpose i18n" library, we don't support
-    translating an already translated string (translations always start from a "en-US", code emitted text),
-    there is no point to have any of these defaults in a "user preference list": "en" and "en-us" are
-    automatically removed.
-- For selection, "fr,en,es" is a perfectly valid preference list: our "en-US code default" doesn't make sense in a document library.
+    translating an already translated string (translations always start from a "en", code emitted text),
+    there is no point to have the default in a "user preference list": "en" is automatically removed.
+- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense in a document library.
 
 > Fallbacks for translation and selection actually differ (at least for the "en" handling).
 
@@ -168,7 +175,7 @@ Let's consider this user preference: "pa-guru-in,es,fr-ca".
   - This can be discussed but we'll keep the translation proposal here.
 
 We previously stated that a "more general" culture cannot precede a specific one ("fr,fr-ca" is "fr"). Now let's
-consider the more than one specific case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
+consider the "more than one specific cultures" case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
 like to have a canadian or switzerland specific resource. But what about this: "fr-ca, es, fr-ch"? This doesn't make sense
 for translations (and is rather strange for selection) but "fr-ch" appears, it would be annoying to purely ignore it.
 
@@ -178,7 +185,7 @@ The normalization described below handles all these case.
 Normalization of a preference list can be done by applying the following rules:
 - First, cultures are grouped by common parent, preserving the relative order of the children: groups are ordered based on
   the first occurence of itself or one of its more specific cultures.
-- Then, groups are written, specific culture names coming first, ending with the group's name.
+- Then, groups are written, specific culture names coming first, ending with the parent cultures' name.
 
 _Note:_ This normalization process is not based on the string names but on the hierarchy provided by the
 CultureInfo objects. 
@@ -192,26 +199,11 @@ for translations and selections provided that for translations, we consider the 
 end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations).
 
 ## NormalizedCulture cached transtations
-All NormalizedCulture (except the "en", "en-us" and Invariant default ones) can have a cached translation set of resources.
-It can always be set (the new one replaces the current one if any). This is an atomic operation (thread safe):
+All NormalizedCulture (except the "en" and Invariant default ones) can have a cached translation set of resources.
+It can always be set (the new one replaces the current one). This is a thread safe atomic operation:
 
 ```csharp
-/// <summary>
-/// Sets a cached set of resource translation formats.
-/// This must not be called for <see cref="ExtendedCultureInfo.IsDefault"/> otherwise
-/// an <see cref="InvalidOperationException"/> is thrown.
-/// <para>
-/// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, <see cref="GlobalizationIssues.ResourceFormatError"/>
-/// are emitted for invalid format strings.
-/// </para>
-/// <para>
-/// Duplicates can exist in the <paramref name="map"/>: the first resource name is kept, the subsequent
-/// ones are discarded and a <see cref="GlobalizationIssues.ResourceFormatDuplicate"/> is emitted (when
-/// the static gate <see cref="GlobalizationIssues.Track"/> is opened).
-/// </para>
-/// </summary>
-/// <param name="map">The map.</param>
-public void SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
 ```
 The `Format` string is a positional-only composite format (see https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):
 only `{0}`, `{1}` etc. placeholders are allowed, without alignement nor format specifier. This format string is parsed and kept as a structure
@@ -231,7 +223,7 @@ public class TranslationService : ISingletonAutoService
 {
     /// <summary>
     /// Does its best to ensure that the returned <see cref="MCString.FormatCulture"/> is aligned with
-    /// the <see cref="CodeString.ContentCulture"/> based on the available memory cached translations.
+    /// the <see cref="CodeString.TargetCulture"/> based on the available memory cached translations.
     /// <para>
     /// This is a synchronous method that works on the cached memory translations.
     /// </para>
@@ -289,6 +281,31 @@ translated.
 Note that this can only use the synchronous `TranslationService.Translate` method. If async translations
 must be done, they have to be deferred (in an async context).
 
+This immediate translation capability is available on the `ResultMessage` helper, the `MCString.Create`
+factory method, but the `CurrentCultureInfo` itself exposes helpers that can easily create `MCString`,
+`UserMessage` and `MCException`: these are the ones that should be used more often.
+
+## Globalization types marshalling.
+The 5 fundamental types `ExtendedCultureInfo`, `NormalizedCultureInfo`, `FormattedString`, `CodeString`
+and `ResultMessage` are serializable both with the simple and versioned simple binary serialization.
+
+However, we don't always want to carry all the information these types hold. In such case, these types
+can be "simplified":
+- The culture informations are are always marshalled by their name (simple string): calling
+  `ExtendedCultureInfo.GetExtendedCultureInfo( name )` restores the corresponding culture info (be it
+  a `NormalizedCultureInfo` or not).
+- The formatted and code strings can be considered as simple strings, they can be implictly cast into string
+  (that is their respective `Text` property).
+- `UserMessage` can be implicitly cast into `SimpleUserMessage` that holds the `Level`, `Depth` and
+  the `Message` as a mere string.
+
+With these projected types, all culture related information on strings is lost. They can typically be used
+when exchanging with a "front" application that doesn't have to worry about translations.
+
+Json support is available for all these objects in the static `GlobalizationJsonHelper` helper (Json
+serialization doesn't pollute the API). The Json format uses array of values to be as compact as
+possible.
+
 ## The ResName is optional but important.
 When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
 In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance
@@ -311,10 +328,58 @@ SHA1 or explicit, managing resource names requires to take care of:
 - The removal of a CodeString (the resource will be defined for ever, polluting the system).
 
 The good news is that all these issues *can be* tracked automatically. The bad news is that it requires
-some work and not all the kind issues are covered.
+some work of course to analyze and correct these issues. The worst case is when a CodeString disappears:
+ideally a Code Analyzer would discover all the CodeString and generate an embedded resource with the list
+of all the CodeString, source code location and hash of the format string.
+Currently this analysis is done dynamically.
 
 ## The GlobalizationIssues.
+The `GlobalizationIssues` static class centralizes the collect of issues and raises `OnNewIssue` event.
+It is driven by a StaticGate:
+```csharp
+/// <summary>
+/// The "CK.Core.GlobalizationIssues.Track" static gate is closed by default.
+/// </summary>
+public static readonly StaticGate Track;
+```
+Issues that are dynamically analyzed are:
 
+- Calls to `NormalizedCultureInfo.SetCachedTranslations` can raise `TranslationDuplicateResource`
+  and `TranslationFormatError` these issues are only emitted by <see cref="OnNewIssue"/> and logged.
+  They are not collected (they are also returned to the caller of SetCachedTranslations).
+- `MissingTranslationResource` is emitted whenever a Bad or Awful translation is detected.
+- `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments
+  than a CodeString placeholders contains.
+- The worst case: `CultureIdentifierClash` is always raised, even if the static gate `Track` is closed.
+  This is a serious issue that must be urgently adressed.
+
+`MissingTranslationResource` and `FormatArgumentCountError` events are memorized and the corresponding event
+is raised only once.
+
+All dynamic issues (except the `TranslationDuplicateResource` and `TranslationFormatError`) can be retrieved thanks
+to the `GetReportAsync` method:
+```csharp
+/// <summary>
+/// Obtains a <see cref="Report"/> with the detected issues so far.
+/// </summary>
+/// <returns>The current issues.</returns>
+public static Task<Report> GetReportAsync() { ... }
+```
+
+The `GlobalizationIssues.Report` exposes the dynamic issues plus 3 other computed issues:
+
+- `AutomaticResourceNamesCanUseExistingResName` when anutomatic "SHA.XXX" resource name can reuse
+  an existing explicit ResName.
+- `ResourceNamesCanBeMerged` when different resource names are used for the same CodeString format:
+  they may be merged.
+- `SameResNameWithDifferentFormat` when the same resource name identifies different CodeString formats.
+  This is bad and should be corrected.
+
+## Future
+A static Code Analyzer should discover CodeString and generate a resource file that contains the CodeString
+source location, the format string and its hash. A CKSetup component could then detect `AutomaticResourceNamesCanUseExistingResName`,
+`ResourceNamesCanBeMerged` and `SameResNameWithDifferentFormat` when compiling the final application and a new
+`TranslationUselessResource` could then be immediately emitted when setting a translation cache.
 
 
 
