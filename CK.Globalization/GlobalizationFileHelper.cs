@@ -96,7 +96,7 @@ namespace CK.Core
                 Dictionary<string, string>? d;
                 using( var content = File.OpenRead( pJ ) )
                 {
-                    d = JsonSerializer.Deserialize<Dictionary<string, string>>( pJ );
+                    d = JsonSerializer.Deserialize<Dictionary<string, string>>( content );
                     if( d == null )
                     {
                         monitor.Error( $"Invalid file '{pJ}'. Null has been deserialized. Skipping directory." );
