@@ -49,5 +49,11 @@ has been marshalled with all its information.
 The `UserMessageCollector` is a small helper that collects multiple user messages. Its API mimics the
 `IActivityMonitor` one with `Error`, `Warn`, `Info`, `OpenError`, `OpenWarn` and `OpenInfo`.
 
+Note that it is reusable: calling `Clear()` resets its content.
+
 It can be used as a simple "ValidationContext" that enables code to return errors but also warnings and
 informations.
+
+The [`ScopedUserMessageCollector`](ScopedUserMessageCollector.cs) is a message collector exposed as
+a scoped service: such instance is shared by all the particpants of a "Unit of Work" and can be reused
+accross the Unit of Work.
