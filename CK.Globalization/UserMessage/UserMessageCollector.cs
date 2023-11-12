@@ -4,10 +4,17 @@ using System.Runtime.CompilerServices;
 
 namespace CK.Core
 {
+
     /// <summary>
     /// Helper that collects multiple user messages.
+    /// <para>
+    /// This user message builder is designed to be reusable: calling <see cref="Clear"/> resets it.
+    /// </para>
+    /// <para>
+    /// The <see cref="ScopedUserMessageCollector"/> is available in a scope DI context (a "unit of work").
+    /// </para>
     /// </summary>
-    public sealed class UserMessageCollector
+    public class UserMessageCollector
     {
         readonly CurrentCultureInfo _culture;
         readonly List<UserMessage> _messages;
