@@ -150,7 +150,7 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Adds a new user message and increment the <see cref="UserMessage.Depth"/> for the future message until
+        /// Adds a new user message and increment the <see cref="UserMessage.Depth"/> for the future messages until
         /// the returned <see cref="IDisposable"/> is disposed.
         /// </summary>
         /// <param name="level">The message level.</param>
