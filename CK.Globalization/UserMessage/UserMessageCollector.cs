@@ -9,6 +9,7 @@ namespace CK.Core
     /// Helper that collects multiple user messages.
     /// <para>
     /// This user message builder is designed to be reusable: calling <see cref="Clear"/> resets it.
+    /// Note that the <see cref="UserMessages"/> is a mutable list.
     /// </para>
     /// <para>
     /// The <see cref="ScopedUserMessageCollector"/> is available in a scope DI context (a "unit of work").
@@ -38,16 +39,26 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the colected messages so far.
+        /// This list is mutable: order can be changed, messages can be removed or added but
+        /// when doing this, note that <see cref="ErrorCount"/> is not updated.
         /// </summary>
-        public IReadOnlyList<UserMessage> UserMessages => _messages;
+        public IList<UserMessage> UserMessages => _messages;
 
         /// <summary>
         /// Gets the current group depth.
+        /// <para>
+        /// This can be set but should be used only if the <see cref="UserMessages"/> list is manually updated.
+        /// </para>
         /// </summary>
-        public int Depth => _depth;
+        public int Depth
+        {
+            get => _depth;
+            set => _depth = (byte)value;
+        }
 
         /// <summary>
         /// Gets the number of <see cref="UserMessageLevel.Error"/> collected so far.
+        /// Messages that are removed
         /// </summary>
         public int ErrorCount => _errorCount;
 
@@ -95,6 +106,45 @@ namespace CK.Core
                 monitor.CloseGroup();
                 --d;
             }
+        }
+
+        /// <summary>
+        /// Adds all the exception's messages.
+        /// See <see cref="UserMessageExceptionExtensions.GetUserMessages(Exception, Action{UserMessage}, CurrentCultureInfo?, byte, string?, bool?)"/>.
+        /// </summary>
+        /// <param name="ex">The exception.</param>
+        /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
+        /// <param name="leakAll">
+        /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
+        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// </param>
+        /// <returns>The number of messages that have been added.</returns>
+        public int AppendErrors( Exception ex, string? defaultGenericMessage = "An unhandled error occurred.", bool? leakAll = null )
+        {
+            Throw.CheckNotNullArgument( ex );
+            int c = ex.GetUserMessages( _messages.Add, _culture, _depth, defaultGenericMessage, leakAll: leakAll );
+            _errorCount += c;
+            return c;
+        }
+
+        /// <summary>
+        /// Adds all the exception's messages at the top of the existing messages.
+        /// See <see cref="UserMessageExceptionExtensions.GetUserMessages(Exception, Action{UserMessage}, CurrentCultureInfo?, byte, string?, bool?)"/>.
+        /// </summary>
+        /// <param name="ex">The exception.</param>
+        /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
+        /// <param name="leakAll">
+        /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
+        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// </param>
+        /// <returns>The number of messages that have been added.</returns>
+        public int PrependErrors( Exception ex, string? defaultGenericMessage = "An unhandled error occurred.", bool? leakAll = null )
+        {
+            Throw.CheckNotNullArgument( ex );
+            int idx = 0;
+            int c = ex.GetUserMessages( m => _messages.Insert( idx++, m ), _culture, 0, defaultGenericMessage, leakAll: leakAll );
+            _errorCount += c;
+            return c;
         }
 
         /// <summary>
