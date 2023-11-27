@@ -3,8 +3,10 @@ using CommunityToolkit.HighPerformance;
 using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
+using System;
 using System.Globalization;
 using System.Linq;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
@@ -49,7 +51,13 @@ namespace CK.Globalization.Tests
         [TestCase( "st-ls,sl-si", "st-ls,st,sl-si,sl", true, "st-ls,sl-si" )]
         public void ExtendedCultureInfo_normalization( string names, string expectedFullName, bool isExtended, string expectedName )
         {
+            // On Appveyor "pa-Guru-IN" resolves to "pa-IN".
             var n = ExtendedCultureInfo.GetExtendedCultureInfo( names );
+            if( n.Name.Contains( "pa-in" ) )
+            {
+                expectedFullName = expectedFullName.Replace( "pa-guru-in", "pa-in" );
+                expectedName = expectedName.Replace( "pa-guru-in", "pa-in" );
+            }
             n.FullName.Should().Be( expectedFullName );
             n.Name.Should().Be( expectedName );
             (isExtended == n is not NormalizedCultureInfo).Should().BeTrue( $"'{names}' => '{n.Name}'" );
@@ -72,22 +80,45 @@ namespace CK.Globalization.Tests
 
             // Not cached CultureInfo can be created by newing it.
             {
+                // No exception.
                 var cValid = new CultureInfo( "a-valid-name" );
 
                 var cDevFR = new CultureInfo( "fr-fr-dev" );
                 cDevFR.IsReadOnly.Should().BeFalse( "A non cached CultureInfo is mutable." );
-                cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+                if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
+                {
+                    // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
+                    // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                    if( cDevFR.Name == "fr-FR-dev" )
+                    {
+                        TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by new CultureInfo() to {cDevFR.Name}." );
+                    }
+                }
+                else
+                {
+                    cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                }
                 cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
                 var cDevFRBack = CultureInfo.GetCultureInfo( "fr-fr-dev" );
-                cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached." );
+                cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached. Got another instance." );
             }
             // CultureInfo is cached when CultureInfo.GetCultureInfo is used.
             {
-                var cValid = CultureInfo.GetCultureInfo( "a-valid-name" );
-
                 var cDevFR = CultureInfo.GetCultureInfo( "fr-fr-dev" );
                 cDevFR.IsReadOnly.Should().BeTrue( "A cached culture info is read only." );
-                cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+                if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
+                {
+                    // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
+                    // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                    if( cDevFR.Name == "fr-FR-dev" )
+                    {
+                        TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by CultureInfo.GetCultureInfo to {cDevFR.Name}." );
+                    }
+                }
+                else
+                {
+                    cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                }
                 cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
                 var cDevFRBack = CultureInfo.GetCultureInfo( "fR-fR-dEv" );
                 cDevFRBack.Should().BeSameAs( cDevFR, "...but lookup is case insensitive: this is why our ExtendedCultureInfo.Name is always lowered invariant." );
@@ -107,9 +138,12 @@ namespace CK.Globalization.Tests
             try
             {
                 var c1 = ExtendedCultureInfo.GetExtendedCultureInfo( name1 );
+                // Resolution differ on Appveyor. This only works if the resolution respects the original string.
+                Assume.That( c1.Name == name1, $"Resolution differs: '{name1}' has been transformed to '{c1.Name}'." );
                 c1.Id.Should().Be( idClash );
                 c1.Name.GetDjb2HashCode().Should().Be( idClash );
                 var c2 = ExtendedCultureInfo.GetExtendedCultureInfo( name2 );
+                Assume.That( c2.Name == name2, $"Resolution differs: '{name2}' has been transformed to '{c2.Name}'." );
                 c2.Name.GetDjb2HashCode().Should().Be( idClash );
                 c2.Id.Should().Be( idClash + 1 );
                 // Wait for detection.
