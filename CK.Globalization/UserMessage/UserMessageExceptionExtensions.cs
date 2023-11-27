@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Threading;
 
 namespace CK.Core
 {
@@ -9,98 +11,151 @@ namespace CK.Core
     public static class UserMessageExceptionExtensions
     {
         /// <summary>
-        /// See <see cref="GetUserMessages(Exception, CurrentCultureInfo, Action{UserMessage})"/>.
+        /// See <see cref="GetUserMessages(Exception, Action{UserMessage}, CurrentCultureInfo?, byte, string?, bool?)"/>.
         /// </summary>
         /// <param name="ex">The exception.</param>
-        /// <param name="culture">The current culture.</param>
+        /// <param name="culture">The current culture. This can be null when no culture is available in the context.</param>
+        /// <param name="depth">Depth of the root exception.</param>
+        /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
+        /// <param name="leakAll">
+        /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
+        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// </param>
         /// <returns>A list of one or more messages.</returns>
-        public static List<UserMessage> GetUserMessages( this Exception ex, CurrentCultureInfo culture )
+        public static List<UserMessage> GetUserMessages( this Exception ex,
+                                                         CurrentCultureInfo? culture,
+                                                         string? defaultGenericMessage = "An unhandled error occurred.",
+                                                         byte depth = 0,
+                                                         bool? leakAll = null )
         {
             Throw.CheckNotNullArgument( culture != null );
             List<UserMessage> messages = new List<UserMessage>();
-            Collect( messages.Add, 0, ex, culture );
-            return messages;
-        }
-
-        /// <summary>
-        /// See <see cref="GetUserMessages(Exception, Action{UserMessage})"/>.
-        /// </summary>
-        /// <param name="ex">This exception.</param>
-        /// <returns>A list of all the exception messages.</returns>
-        public static List<UserMessage> GetUserMessages( this Exception ex )
-        {
-            List<UserMessage> messages = new List<UserMessage>();
-            Collect( messages.Add, 0, ex, null );
+            GetUserMessages( ex, messages.Add, culture, depth, defaultGenericMessage, leakAll );
             return messages;
         }
 
         /// <summary>
         /// Collects the <see cref="Exception.Message"/> texts recursively (following <see cref="Exception.InnerException"/>
-        /// and <see cref="AggregateException.InnerExceptions"/>). When a <see cref="MCException"/> is found, its <see cref="MCException.AsUserMessage"/>
-        /// is used but for any other exception types, we try to translate the exception's message by using the <see cref="CurrentCultureInfo.TranslationService"/>
-        /// as if the text was in <see cref="NormalizedCultureInfo.CodeDefault"/>. If a "SHA." translation resource exists, then we can translate exception messages...
+        /// and <see cref="AggregateException.InnerExceptions"/>).
+        /// <list type="bullet">
+        ///     <term>When <paramref name="culture"/> is not null</term>
+        ///     <description>
+        ///     When a <see cref="MCException"/> is found, its <see cref="MCException.AsUserMessage"/>
+        ///     is used but for any other exception types, we try to translate the exception's message by using the <see cref="CurrentCultureInfo.TranslationService"/>
+        ///     as if the text was in <see cref="NormalizedCultureInfo.CodeDefault"/>. If a "SHA." translation resource exists, then we can translate exception messages...
+        ///     </description>
+        ///     <term>When no culture info is available</term>
+        ///     <description>
+        ///     Only the MCException's messages are added to the collector. If <paramref name="leakAll"/> is false and there is only one exception
+        ///     that is not a MCException (we then have no messages to collect), the <paramref name="defaultGenericMessage"/>, when not null, is added.
+        ///     Set defaultGenericMessage to null if you have already added a more precise "head" message.
+        ///     </description>
+        /// </list>
         /// <para>
-        /// Inner exceptions are indented by <see cref="UserMessage.Depth"/>.
+        /// The message's <see cref="UserMessage.Depth"/> reflects the exception tree.
         /// </para>
         /// </summary>
         /// <param name="ex">The exception.</param>
-        /// <param name="culture">The current culture.</param>
         /// <param name="collector">Message collector.</param>
-        /// <returns>A list of one or more messages.</returns>
-        public static void GetUserMessages( this Exception ex, CurrentCultureInfo culture, Action<UserMessage> collector )
+        /// <param name="culture">The current culture. This can be null when no culture is available in the context.</param>
+        /// <param name="depth">Depth of the root exception.</param>
+        /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
+        /// <param name="leakAll">
+        /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
+        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// </param>
+        /// <returns>The number of messages that have been added.</returns>
+        public static int GetUserMessages( this Exception ex,
+                                           Action<UserMessage> collector,
+                                           CurrentCultureInfo? culture,
+                                           byte depth = 0,
+                                           string? defaultGenericMessage = "An unhandled error occurred.",
+                                           bool? leakAll = null )
         {
             Throw.CheckNotNullArgument( culture != null );
             Throw.CheckNotNullArgument( collector );
-            Collect( collector, 0, ex, culture );
-        }
 
-        /// <summary>
-        /// Collects the <see cref="Exception.Message"/> texts recursively (following <see cref="Exception.InnerException"/>
-        /// and <see cref="AggregateException.InnerExceptions"/>). When a <see cref="MCException"/> is found, its <see cref="MCException.AsUserMessage"/>
-        /// is used but for any other exception types, the message is transformed in a non translatable string (<see cref="MCString.CreateNonTranslatable(NormalizedCultureInfo, string)"/>
-        /// with the <see cref="NormalizedCultureInfo.Invariant"/> format culture and the <see cref="CodeString.Empty"/> code string).
-        /// </summary>
-        /// <param name="ex">The exception.</param>
-        /// <param name="collector">The collector.</param>
-        public static void GetUserMessages( this Exception ex, Action<UserMessage> collector )
-        {
-            Throw.CheckNotNullArgument( collector );
-            Collect( collector, 0, ex, null );
-        }
+            var all = !(leakAll ?? CoreApplicationIdentity.IsInitialized)
+                      || CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName;
 
-        static void Collect( Action<UserMessage> collector, byte depth, Exception e, CurrentCultureInfo? current )
-        {
-            if( e is MCException mC )
+            if( all )
             {
-                collector( mC.AsUserMessage().With( depth ) );
-                if( mC.InnerException != null ) Collect( collector, ++depth, mC.InnerException, current );
+                return Collect( collector, depth, ex, culture );
             }
-            else if( e is AggregateException a )
+            int mcOnly = CollectMCOnly( collector, depth, ex, culture );
+            if( mcOnly == 0 && defaultGenericMessage != null )
             {
-                AddUserMessage( collector, depth++, current, a.Message );
-                foreach( var sub in a.InnerExceptions ) Collect( collector, depth, sub, current );
+                AddUserMessage( collector, depth++, culture, defaultGenericMessage );
+                mcOnly = 1;
+            }
+            return mcOnly;
+        }
+
+        static int CollectMCOnly( Action<UserMessage> collector, byte depth, Exception e, CurrentCultureInfo? culture )
+        {
+            int added = 0;
+            if( e is AggregateException a )
+            {
+                // Aggregated exception's Message concatenates the inner messages: "base message (inner1) (inner2)..."
+                // This is useless here (and unless with awful reflection, the base message is not reachable).
+                // We prefer to lose the specific message here as AggregateException is almost always
+                // the default.
+                // One may create a MCAggregateException once if needed that will have MCString mesage.
+                AddUserMessage( collector, depth++, culture, "One or more errors occurred." );
+                foreach( var sub in a.InnerExceptions ) added += CollectMCOnly( collector, depth, sub, culture );
             }
             else
             {
-                AddUserMessage( collector, depth, current, e.Message );
-                if( e.InnerException != null ) Collect( collector, ++depth, e.InnerException, current );
+                if( e is MCException mC )
+                {
+                    added = 1;
+                    collector( mC.AsUserMessage().With( depth ) );
+                }
+                if( e.InnerException != null ) added += CollectMCOnly( collector, ++depth, e.InnerException, culture );
             }
+            return added;
+        }
 
-            static void AddUserMessage( Action<UserMessage> collector, byte depth, CurrentCultureInfo? current, string text )
+        static int Collect( Action<UserMessage> collector, byte depth, Exception e, CurrentCultureInfo? culture )
+        {
+            int added;
+            if( e is MCException mC )
             {
-                // We CANNOT know the content culture of text. Even by looking up the current culture:
-                // this depends on the existence of the resx.
-                // If there is a CurrentCultureInfo, we can try to use the TranslationService: if the text is fixed, it MAY
-                // be tranaslated by its "SHA." resource by considering that the text is in "CodeDefault" (whatever its actual
-                // language is).
-                // If we have no CurrentCultureInfo, instead of creating a totally artificial CodeString, we create a non translatable
-                // MCString (that is bound to CodeString.Empty) with the Invariant culture.
-                var m = current != null
-                        ? UserMessage.Error( current, text )
-                        : new UserMessage( UserMessageLevel.Error, MCString.CreateNonTranslatable( NormalizedCultureInfo.Invariant, text ) );
-
-                collector( m.With( depth ) );
+                added = 1;
+                collector( mC.AsUserMessage().With( depth ) );
+                if( mC.InnerException != null ) added += Collect( collector, ++depth, mC.InnerException, culture );
             }
+            else if( e is AggregateException a )
+            {
+                added = 1;
+                // See CollectMCOnly.
+                AddUserMessage( collector, depth++, culture, "One or more errors occurred." );
+                foreach( var sub in a.InnerExceptions ) added += Collect( collector, depth, sub, culture );
+            }
+            else
+            {
+                added = 1;
+                AddUserMessage( collector, depth, culture, e.Message );
+                if( e.InnerException != null ) added += Collect( collector, ++depth, e.InnerException, culture );
+            }
+            return added;
+
+        }
+
+        static void AddUserMessage( Action<UserMessage> collector, byte depth, CurrentCultureInfo? current, string text )
+        {
+            // We CANNOT know the content culture of text. Even by looking at the CultureInfo.Current[UI]Culture:
+            // this depends on the existence of the resx.
+            // If there is a CurrentCultureInfo, we can try to use the TranslationService: if the text is fixed, it MAY
+            // be tranaslated by its "SHA." resource by considering that the text is in "CodeDefault" (whatever its actual
+            // language is).
+            // If we have no CurrentCultureInfo, instead of creating a totally artificial CodeString, we create a non translatable
+            // MCString (that is bound to CodeString.Empty) with the Invariant culture.
+            var m = current != null
+                    ? UserMessage.Error( current, text )
+                    : new UserMessage( UserMessageLevel.Error, MCString.CreateNonTranslatable( NormalizedCultureInfo.Invariant, text ) );
+
+            collector( m.With( depth ) );
         }
     }
 }

@@ -30,7 +30,9 @@ namespace CK.Core
 
         public FormattedStringHandler( int literalLength, int formattedCount )
         {
-            Throw.CheckArgument( $"There must not be more than {FormattedString.MaxPlaceholderCount} placeholders.", formattedCount <= FormattedString.MaxPlaceholderCount );
+            // String interpolation with constant is not resolved at compile time (at least in NET6).
+            Throw.DebugAssert( FormattedString.MaxPlaceholderCount == 99 );
+            Throw.CheckArgument( $"There must not be more than 99 placeholders.", formattedCount <= FormattedString.MaxPlaceholderCount );
             _chars = _arrayToReturnToPool = ArrayPool<char>.Shared.Rent( GetDefaultLength( literalLength, formattedCount ) );
             _pos = 0;
             _currentSlot = 0;
@@ -42,7 +44,6 @@ namespace CK.Core
         public FormattedStringHandler( int literalLength, int formattedCount, IFormatProvider? provider )
             : this( literalLength, formattedCount )
         {
-            Throw.CheckArgument( $"There must not be more than {FormattedString.MaxPlaceholderCount} placeholders.", formattedCount <= FormattedString.MaxPlaceholderCount );
             _provider = provider;
             _hasCustomFormatter = provider is not null && HasCustomFormatter( provider );
         }
