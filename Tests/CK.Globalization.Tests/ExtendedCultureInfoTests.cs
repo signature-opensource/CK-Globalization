@@ -6,6 +6,7 @@ using NUnit.Framework.Internal;
 using System;
 using System.Globalization;
 using System.Linq;
+using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests
 {
@@ -79,22 +80,45 @@ namespace CK.Globalization.Tests
 
             // Not cached CultureInfo can be created by newing it.
             {
+                // No exception.
                 var cValid = new CultureInfo( "a-valid-name" );
 
                 var cDevFR = new CultureInfo( "fr-fr-dev" );
                 cDevFR.IsReadOnly.Should().BeFalse( "A non cached CultureInfo is mutable." );
-                cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+                if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
+                {
+                    // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
+                    // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                    if( cDevFR.Name == "fr-FR-dev" )
+                    {
+                        TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by new CultureInfo() to {cDevFR.Name}." );
+                    }
+                }
+                else
+                {
+                    cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                }
                 cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
                 var cDevFRBack = CultureInfo.GetCultureInfo( "fr-fr-dev" );
-                cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached." );
+                cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached. Got another instance." );
             }
             // CultureInfo is cached when CultureInfo.GetCultureInfo is used.
             {
-                var cValid = CultureInfo.GetCultureInfo( "a-valid-name" );
-
                 var cDevFR = CultureInfo.GetCultureInfo( "fr-fr-dev" );
                 cDevFR.IsReadOnly.Should().BeTrue( "A cached culture info is read only." );
-                cDevFR.Name.Should().Be( "fr-FR-DEV", "Name is normalized accorcding to BCP47 rules..." );
+                if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
+                {
+                    // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
+                    // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                    if( cDevFR.Name == "fr-FR-dev" )
+                    {
+                        TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by CultureInfo.GetCultureInfo to {cDevFR.Name}." );
+                    }
+                }
+                else
+                {
+                    cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                }
                 cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
                 var cDevFRBack = CultureInfo.GetCultureInfo( "fR-fR-dEv" );
                 cDevFRBack.Should().BeSameAs( cDevFR, "...but lookup is case insensitive: this is why our ExtendedCultureInfo.Name is always lowered invariant." );
