@@ -138,9 +138,12 @@ namespace CK.Globalization.Tests
             try
             {
                 var c1 = ExtendedCultureInfo.GetExtendedCultureInfo( name1 );
+                // Resolution differ on Appveyor. This only works if the resolution respects the original string.
+                Assume.That( c1.Name == name1, $"Resolution differs: '{name1}' has been transformed to '{c1.Name}'." );
                 c1.Id.Should().Be( idClash );
                 c1.Name.GetDjb2HashCode().Should().Be( idClash );
                 var c2 = ExtendedCultureInfo.GetExtendedCultureInfo( name2 );
+                Assume.That( c2.Name == name2, $"Resolution differs: '{name2}' has been transformed to '{c2.Name}'." );
                 c2.Name.GetDjb2HashCode().Should().Be( idClash );
                 c2.Id.Should().Be( idClash + 1 );
                 // Wait for detection.
