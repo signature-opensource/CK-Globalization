@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 
 namespace CK.Core
@@ -10,7 +11,7 @@ namespace CK.Core
     /// </para>
     /// </summary>
     [SerializationVersion(0)]
-    public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
+    public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<SimpleUserMessage>
     {
         readonly string _message;
         readonly byte _level;
@@ -99,10 +100,46 @@ namespace CK.Core
         public string Message => _message ?? string.Empty;
 
         /// <summary>
+        /// Implements value equality semantics on all properties.
+        /// </summary>
+        /// <param name="other">The other message.</param>
+        /// <returns>True if this is the same message as the other one.</returns>
+        public bool Equals( SimpleUserMessage other )
+        {
+            return _level == other._level && _depth == other._depth && StringComparer.Ordinal.Equals( _message, other._message );
+        }
+
+        /// <inheritdoc cref="Equals(SimpleUserMessage)"/>
+        public override bool Equals( object? other ) => other is SimpleUserMessage && Equals( (SimpleUserMessage)other );
+
+        /// <summary>
+        /// Computes the hash code based on all the properties.
+        /// </summary>
+        /// <returns>The has code.</returns>
+        public override int GetHashCode() => HashCode.Combine( _level, _depth, _message );
+
+        /// <summary>
         /// Gets the <c>"Level - Message"</c> string.
         /// </summary>
         /// <returns>This message's level and text.</returns>
         public override string ToString() => $"{Level} - {Message}";
+
+        /// <summary>
+        /// Implements value equality semantics.
+        /// </summary>
+        /// <param name="left">Left message.</param>
+        /// <param name="right">Right message.</param>
+        /// <returns>True if they have the same value, false otherwise.</returns>
+        public static bool operator ==( SimpleUserMessage left, SimpleUserMessage right ) => left.Equals( right );
+
+        /// <summary>
+        /// Implements value equality semantics.
+        /// </summary>
+        /// <param name="left">Left message.</param>
+        /// <param name="right">Right message.</param>
+        /// <returns>True if they differ, false otherwise.</returns>
+        public static bool operator !=( SimpleUserMessage left, SimpleUserMessage right ) => !(left == right);
+
 
         #region Binary Serialization
         /// <summary>
