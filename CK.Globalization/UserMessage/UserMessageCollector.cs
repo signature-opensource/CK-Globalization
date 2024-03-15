@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -18,9 +19,85 @@ namespace CK.Core
     public class UserMessageCollector
     {
         readonly CurrentCultureInfo _culture;
-        readonly List<UserMessage> _messages;
-        int _errorCount;
+        readonly MList _messages;
         byte _depth;
+
+        /// <summary>
+        /// The real goal of this list is to throw when a !<see cref="UserMessage.IsValid"/> is added.
+        /// The error count tracking is a bonus.
+        /// </summary>
+        sealed class MList : IList<UserMessage>
+        {
+            readonly List<UserMessage> _messages;
+            internal int _errorCount;
+
+            public MList()
+            {
+                _messages = new List<UserMessage>();
+            }
+
+            public UserMessage this[int index]
+            {
+                get => _messages[index];
+                set
+                {
+                    Throw.CheckArgument( value.IsValid );
+                    if( _messages[index].Level == UserMessageLevel.Error ) --_errorCount;
+                    _messages[index] = value;
+                    if( value.Level == UserMessageLevel.Error ) ++_errorCount;
+                }
+            }
+
+            public int Count => _messages.Count;
+
+            public bool IsReadOnly => false;
+
+            public void Add( UserMessage item )
+            {
+                Throw.CheckArgument( item.IsValid );
+                _messages.Add( item );
+                if( item.Level == UserMessageLevel.Error ) ++_errorCount;
+            }
+
+            public void Clear()
+            {
+                _messages.Clear();
+                _errorCount = 0;
+            }
+
+            public bool Contains( UserMessage item ) => _messages.Contains( item );
+
+            public void CopyTo( UserMessage[] array, int arrayIndex ) => _messages.CopyTo( array, arrayIndex );
+
+            public IEnumerator<UserMessage> GetEnumerator() => _messages.GetEnumerator();
+
+            public int IndexOf( UserMessage item ) => _messages.IndexOf( item );
+
+            public void Insert( int index, UserMessage item )
+            {
+                Throw.CheckArgument( item.IsValid );
+                _messages.Insert( index, item );
+                if( item.Level == UserMessageLevel.Error ) ++_errorCount;
+            }
+
+            public bool Remove( UserMessage item )
+            {
+                if( _messages.Remove( item ) )
+                {
+                    if( item.Level == UserMessageLevel.Error ) --_errorCount;
+                    return true;
+                }
+                return false;
+            }
+
+            public void RemoveAt( int index )
+            {
+                if( _messages[index].Level == UserMessageLevel.Error ) --_errorCount;
+                _messages.RemoveAt( index );
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_messages).GetEnumerator();
+        }
 
         /// <summary>
         /// Initializes a new message collector.
@@ -29,7 +106,7 @@ namespace CK.Core
         public UserMessageCollector( CurrentCultureInfo culture )
         {
             _culture = culture;
-            _messages = new List<UserMessage>();
+            _messages = new MList();
         }
 
         /// <summary>
@@ -58,9 +135,9 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the number of <see cref="UserMessageLevel.Error"/> collected so far.
-        /// Messages that are removed
+        /// This is dynamically updated when messages are added or removed from the <see cref="UserMessages"/>.
         /// </summary>
-        public int ErrorCount => _errorCount;
+        public int ErrorCount => _messages._errorCount;
 
         /// <summary>
         /// Clears all collected messages so far, resets depth and error count.
@@ -68,7 +145,6 @@ namespace CK.Core
         public void Clear()
         {
             _messages.Clear();
-            _errorCount = 0;
             _depth = 0;
         }
 
@@ -122,9 +198,7 @@ namespace CK.Core
         public int AppendErrors( Exception ex, string? defaultGenericMessage = "An unhandled error occurred.", bool? leakAll = null )
         {
             Throw.CheckNotNullArgument( ex );
-            int c = ex.GetUserMessages( _messages.Add, _culture, _depth, defaultGenericMessage, leakAll: leakAll );
-            _errorCount += c;
-            return c;
+            return ex.GetUserMessages( _messages.Add, _culture, _depth, defaultGenericMessage, leakAll: leakAll );
         }
 
         /// <summary>
@@ -142,9 +216,7 @@ namespace CK.Core
         {
             Throw.CheckNotNullArgument( ex );
             int idx = 0;
-            int c = ex.GetUserMessages( m => _messages.Insert( idx++, m ), _culture, 0, defaultGenericMessage, leakAll: leakAll );
-            _errorCount += c;
-            return c;
+            return ex.GetUserMessages( m => _messages.Insert( idx++, m ), _culture, 0, defaultGenericMessage, leakAll: leakAll );
         }
 
         /// <summary>
@@ -155,18 +227,19 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of the message.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Add( UserMessageLevel level, string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Add( UserMessageLevel level, string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
         {
             var m = new UserMessage( level, MCString.Create( _culture, plainText, resName, filePath, lineNumber ), _depth );
-            if( level == UserMessageLevel.Error ) ++_errorCount;
             _messages.Add( m );
+            return m;
         }
 
-        void DoAdd( UserMessageLevel level, ref FormattedStringHandler text, string? resName, string? filePath, int lineNumber )
+        UserMessage DoAdd( UserMessageLevel level, ref FormattedStringHandler text, string? resName, string? filePath, int lineNumber )
         {
             var m = new UserMessage( level, MCString.Create( _culture, ref text, resName, filePath, lineNumber ), _depth );
-            if( level == UserMessageLevel.Error ) ++_errorCount;
             _messages.Add( m );
+            return m;
         }
 
         /// <summary>
@@ -177,7 +250,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Add( UserMessageLevel level, [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Add( UserMessageLevel level, [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => DoAdd( level, ref text, resName, filePath, lineNumber );
 
         /// <summary>
@@ -194,7 +268,6 @@ namespace CK.Core
         {
             var m = new UserMessage( level, MCString.Create( _culture, plainText, resName, filePath, lineNumber ), _depth );
             ++_depth;
-            if( level == UserMessageLevel.Error ) ++_errorCount;
             _messages.Add( m );
             return Util.CreateDisposableAction( CloseGroup );
         }
@@ -218,7 +291,6 @@ namespace CK.Core
         {
             var m = new UserMessage( level, MCString.Create( _culture, ref text, resName, filePath, lineNumber ), _depth );
             ++_depth;
-            if( level == UserMessageLevel.Error ) ++_errorCount;
             _messages.Add( m );
             return Util.CreateDisposableAction( CloseGroup );
         }
@@ -235,7 +307,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Error( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Error( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => Add( UserMessageLevel.Error, plainText, resName, filePath, lineNumber );
 
         /// <summary>
@@ -245,7 +318,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Warn( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Warn( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => Add( UserMessageLevel.Warn, plainText, resName, filePath, lineNumber );
 
         /// <summary>
@@ -255,7 +329,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Info( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Info( string plainText, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => Add( UserMessageLevel.Info, plainText, resName, filePath, lineNumber );
 
         /// <summary>
@@ -265,7 +340,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Error( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Error( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => DoAdd( UserMessageLevel.Error, ref text, resName, filePath, lineNumber );
 
         /// <summary>
@@ -275,7 +351,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Warn( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Warn( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => DoAdd( UserMessageLevel.Warn, ref text, resName, filePath, lineNumber );
 
         /// <summary>
@@ -285,7 +362,8 @@ namespace CK.Core
         /// <param name="resName">The optional <see cref="CodeString.ResName"/> of this result.</param>
         /// <param name="filePath">Automatically set by the compiler.</param>
         /// <param name="lineNumber">Automatically set by the compiler.</param>
-        public void Info( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
+        /// <returns>The added message.</returns>
+        public UserMessage Info( [InterpolatedStringHandlerArgument( "" )] FormattedStringHandler text, string? resName = null, [CallerFilePath] string? filePath = null, [CallerLineNumber] int lineNumber = 0 )
             => DoAdd( UserMessageLevel.Info, ref text, resName, filePath, lineNumber );
 
         /// <summary>

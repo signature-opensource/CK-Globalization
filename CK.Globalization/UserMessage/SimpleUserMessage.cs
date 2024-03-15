@@ -110,7 +110,7 @@ namespace CK.Core
         }
 
         /// <inheritdoc cref="Equals(SimpleUserMessage)"/>
-        public override bool Equals( object? other ) => other is SimpleUserMessage && Equals( (SimpleUserMessage)other );
+        public override bool Equals( object? other ) => other is SimpleUserMessage message && Equals( message );
 
         /// <summary>
         /// Computes the hash code based on all the properties.

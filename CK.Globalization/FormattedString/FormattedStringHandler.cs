@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 namespace CK.Core
 {
     /// <summary>
@@ -20,13 +19,13 @@ namespace CK.Core
     {
         const int GuessedLengthPerHole = 11;
         const int MinimumArrayPoolLength = 256;
-        readonly IFormatProvider? _provider;
+        IFormatProvider? _provider;
         char[] _arrayToReturnToPool;
         Span<char> _chars;
         int _pos;
         (int,int)[] _slots;
         int _currentSlot;
-        readonly bool _hasCustomFormatter;
+        bool _hasCustomFormatter;
 
         public FormattedStringHandler( int literalLength, int formattedCount )
         {
@@ -61,7 +60,7 @@ namespace CK.Core
             Math.Max( MinimumArrayPoolLength, literalLength + (formattedCount * GuessedLengthPerHole) );
 
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
-        void StartSlot()
+        readonly void StartSlot()
         {
             _slots[_currentSlot].Item1 = _pos;
         }
@@ -75,7 +74,7 @@ namespace CK.Core
 
         /// <summary>Gets the built <see cref="string"/>.</summary>
         /// <returns>The built string.</returns>
-        public override string ToString() => new string( Text );
+        public override readonly string ToString() => new string( Text );
 
         internal (string, (int, int)[]) GetResult()
         {
@@ -112,15 +111,15 @@ namespace CK.Core
                 return;
             }
             string? s;
-            if( value is IFormattable )
+            if( value is IFormattable formattable )
             {
                 // We cannot reproduce the .Net 8 enum optimization here that calls
                 // an internal unconstrained (: struct, Enum) version of TryFormat.
                 // We use the .NET 8 Enum : ISpanFormattable (and .ToString() for < v8).
-                if( value is ISpanFormattable )
+                if( value is ISpanFormattable sFormattable )
                 {
                     int charsWritten;
-                    while( !((ISpanFormattable)value).TryFormat( _chars.Slice( _pos ), out charsWritten, default, _provider ) ) // constrained call avoiding boxing for value types
+                    while( !sFormattable.TryFormat( _chars.Slice( _pos ), out charsWritten, default, _provider ) ) // constrained call avoiding boxing for value types
                     {
                         Grow();
                     }
@@ -130,7 +129,7 @@ namespace CK.Core
                     return;
                 }
 
-                s = ((IFormattable)value).ToString( format: null, _provider ); // constrained call avoiding boxing for value types
+                s = formattable.ToString( format: null, _provider ); // constrained call avoiding boxing for value types
             }
             else
             {
@@ -288,22 +287,21 @@ namespace CK.Core
             // if it only implements IFormattable, we come out even: only if it implements both do we
             // end up paying for an extra interface check.
             string? s;
-            if( value is IFormattable )
+            if( value is IFormattable formattable )
             {
                 // If the value can format itself directly into our buffer, do so.
-                if( value is ISpanFormattable )
+                if( value is ISpanFormattable sFormattable )
                 {
                     int charsWritten;
-                    while( !((ISpanFormattable)value).TryFormat( _chars.Slice( _pos ), out charsWritten, format, _provider ) ) // constrained call avoiding boxing for value types
+                    while( !sFormattable.TryFormat( _chars.Slice( _pos ), out charsWritten, format, _provider ) ) // constrained call avoiding boxing for value types
                     {
                         Grow();
                     }
-
                     _pos += charsWritten;
                     return;
                 }
 
-                s = ((IFormattable)value).ToString( format, _provider ); // constrained call avoiding boxing for value types
+                s = formattable.ToString( format, _provider ); // constrained call avoiding boxing for value types
             }
             else
             {

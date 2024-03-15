@@ -118,10 +118,10 @@ namespace CK.Core
         static bool CheckPlaceholders( (int Start, int Length)[] placeholders, int lenText )
         {
             int last = 0;
-            foreach( var p in placeholders )
+            foreach( var (start, length) in placeholders )
             {
-                if( p.Start < 0 || p.Length < 0 || last > p.Start ) return false;
-                last = p.Start + p.Length;
+                if( start < 0 || length < 0 || last > start ) return false;
+                last = start + length;
             }
             return last <= lenText;
         }
@@ -200,11 +200,11 @@ namespace CK.Core
             int tStart = 0;
             byte placeholderMark = 0;
             var mark = MemoryMarshal.CreateReadOnlySpan( ref placeholderMark, 1 );
-            foreach( var slot in _placeholders )
+            foreach( var (start, length) in _placeholders )
             {
-                int lenBefore = slot.Start - tStart;
+                int lenBefore = start - tStart;
                 hash.AppendData( MemoryMarshal.AsBytes( text.Slice( tStart, lenBefore ) ) );
-                tStart = slot.Start + slot.Length;
+                tStart = start + length;
                 hash.AppendData( mark );
             }
             hash.AppendData( MemoryMarshal.AsBytes( text.Slice( tStart ) ) );
@@ -255,11 +255,11 @@ namespace CK.Core
             int tStart = 0;
             int cH = '0';
             int cL = '0';
-            foreach( var slot in _placeholders )
+            foreach( var (start, length) in _placeholders )
             {
-                int lenBefore = slot.Start - tStart;
+                int lenBefore = start - tStart;
                 var before = text.Slice( tStart, lenBefore );
-                tStart = slot.Start + slot.Length;
+                tStart = start + length;
                 CopyWithDoubledBraces( before, fmt, ref fHead );
                 fmt[fHead++] = '{';
                 if( cH > '0' ) fmt[fHead++] = (char)cH;
@@ -307,9 +307,9 @@ namespace CK.Core
                     }
                     if( pN < ctx.Item4.Length )
                     {
-                        var p = ctx.Item4[pN];
-                        ctx.Item3.AsSpan(p.Start,p.Length).CopyTo( span );
-                        span = span.Slice( p.Length );
+                        var (start, length) = ctx.Item4[pN];
+                        ctx.Item3.AsSpan(start,length).CopyTo( span );
+                        span = span.Slice( length );
                     }
                 }
                 lenF = format.Length - lastSource;
