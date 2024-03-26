@@ -153,8 +153,8 @@ namespace CK.Globalization.Tests
             var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
             var c = new UserMessageCollector( current );
             c.ErrorCount.Should().Be( 0 );
-            var i1 = c.Info( "Pop" );
-            var w1 = c.Warn( "Pop" );
+            c.Info( "Pop" );
+            c.Warn( "Pop" );
             var e1 = c.Error( "Pop" );
             c.ErrorCount.Should().Be( 1 );
             c.UserMessages.Add( e1 );
