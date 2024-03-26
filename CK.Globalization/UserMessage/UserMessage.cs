@@ -10,9 +10,13 @@ namespace CK.Core
     /// <para>
     /// The simplified projection of a UserMessage is a <see cref="SimpleUserMessage"/>: this is implicitly castable as a SimpleUserMessage.
     /// </para>
+    /// <para>
+    /// User message equality is based on the <see cref="Level"/>, <see cref="Text"/> and <see cref="Depth"/> (not
+    /// on the <see cref="MCString"/> <see cref="Message"/>).
+    /// </para>
     /// </summary>
     [SerializationVersion( 0 )]
-    public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
+    public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<UserMessage>
     {
         readonly MCString _message;
         readonly byte _level;
@@ -457,5 +461,29 @@ namespace CK.Core
         /// <returns>This message's Level, ResName and Text.</returns>
         public override string ToString() => $"{Level} - {ResName} - {Text}";
 
+        /// <summary>
+        /// Implements equality on <see cref="Level"/>, <see cref="Text"/> and <see cref="Depth"/>.
+        /// </summary>
+        /// <param name="other">The other message.</param>
+        /// <returns>True if this message is the same as the other one.</returns>
+        public bool Equals( UserMessage other ) => _level == other._level && _depth == other._depth && _message.Text == other._message.Text;
+
+        /// <summary>
+        /// Overridden to call <see cref="Equals(UserMessage)"/>.
+        /// </summary>
+        /// <param name="other">The other potential message.</param>
+        /// <returns>True if this message is the same as the object.</returns>
+        public override bool Equals( object? other ) => other is UserMessage m && Equals( m );
+
+        /// <summary>
+        /// Implements equality on <see cref="Level"/>, <see cref="Text"/> and <see cref="Depth"/>.
+        /// </summary>
+        public override int GetHashCode() => HashCode.Combine( _level, _depth, _message.Text );
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+        public static bool operator ==( UserMessage left, UserMessage right ) => left.Equals( right );
+
+        public static bool operator !=( UserMessage left, UserMessage right ) => !(left == right);
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }

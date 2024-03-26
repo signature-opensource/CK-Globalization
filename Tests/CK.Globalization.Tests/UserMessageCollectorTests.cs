@@ -137,5 +137,48 @@ namespace CK.Globalization.Tests
             c.ErrorCount.Should().Be( 0 );
 
         }
+
+        [Test]
+        public void no_invalid_UserMessage_can_appear()
+        {
+            var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
+            var c = new UserMessageCollector( current );
+            FluentActions.Invoking( () => c.UserMessages.Add( new UserMessage() ) ).Should().Throw<ArgumentException>();
+            FluentActions.Invoking( () => c.UserMessages.Insert( 0, new UserMessage() ) ).Should().Throw<ArgumentException>();
+        }
+
+        [Test]
+        public void ErrorCount_is_dynamically_tracked()
+        {
+            var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
+            var c = new UserMessageCollector( current );
+            c.ErrorCount.Should().Be( 0 );
+            c.Info( "Pop" );
+            c.Warn( "Pop" );
+            var e1 = c.Error( "Pop" );
+            c.ErrorCount.Should().Be( 1 );
+            c.UserMessages.Add( e1 );
+            c.ErrorCount.Should().Be( 2 );
+            c.UserMessages.Remove( e1 );
+            c.ErrorCount.Should().Be( 1 );
+            c.UserMessages.Remove( e1 );
+            c.ErrorCount.Should().Be( 0 );
+            c.UserMessages.Count.Should().Be( 2 );
+
+            c.UserMessages.Insert( 1, e1 );
+            c.ErrorCount.Should().Be( 1 );
+
+            c.UserMessages.Insert( 3, e1 );
+            c.ErrorCount.Should().Be( 2 );
+
+            c.UserMessages.Insert( 0, e1 );
+            c.ErrorCount.Should().Be( 3 );
+
+            c.UserMessages.RemoveAt( 0 );
+            c.ErrorCount.Should().Be( 2 );
+
+            c.UserMessages.RemoveAt( 1 );
+            c.ErrorCount.Should().Be( 1 );
+        }
     }
 }
