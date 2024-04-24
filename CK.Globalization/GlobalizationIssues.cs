@@ -334,6 +334,7 @@ namespace CK.Core
 
         /// <summary>
         /// A missing resource has been detected.
+        /// This is emitted when quality is <see cref="MCString.Quality.Bad"/> or <see cref="MCString.Quality.Awful"/>.
         /// </summary>
         /// <param name="Instance">
         /// The first instance with the <see cref="FormattedString"/> that lacks a translation.

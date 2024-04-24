@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="CK.Core.MCString">
+    <Position X="0.5" Y="0.5" Width="3" />
+    <Members>
+      <Field Name="_code" Hidden="true" />
+      <Field Name="_formatCulture" Hidden="true" />
+      <Field Name="_text" Hidden="true" />
+      <Field Name="Empty" Hidden="true" />
+      <Method Name="implicit operator string" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="CK.Core.MCString.Quality">
+        <TypeIdentifier>
+          <NewMemberFileName>MCString.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAAAIAAAAQAAAAAEQAMAAIAADAAkAEAIAAAAGAEgAAA=</HashCode>
+      <FileName>MCString.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CK.Core.MCException">
+    <Position X="0.5" Y="6.5" Width="3" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>MCException.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CK.Core.UserMessageCollector">
+    <Position X="7.5" Y="3.25" Width="3.5" />
+    <Members>
+      <Field Name="_culture" Hidden="true" />
+      <Field Name="_depth" Hidden="true" />
+      <Field Name="_messages" Hidden="true" />
+      <Method Name="UserMessageCollector" Hidden="true" />
+    </Members>
+    <NestedTypes>
+      <Class Name="CK.Core.UserMessageCollector.MList" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>UserMessage\UserMessageCollector.cs</NewMemberFileName>
+        </TypeIdentifier>
+        <Lollipop Position="0.2" />
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAIIgBAAIpAAAQAFAEAEAABCAAAAAIEgEAAAAEBAAIA=</HashCode>
+      <FileName>UserMessage\UserMessageCollector.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CK.Core.ScopedUserMessageCollector">
+    <Position X="7.5" Y="8.75" Width="3.5" />
+    <Members>
+      <Method Name="ScopedUserMessageCollector" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>UserMessage\ScopedUserMessageCollector.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Struct Name="CK.Core.UserMessage">
+    <Position X="4" Y="0.5" Width="3" />
+    <Members>
+      <Field Name="_depth" Hidden="true" />
+      <Field Name="_level" Hidden="true" />
+      <Field Name="_message" Hidden="true" />
+      <Method Name="implicit operator SimpleUserMessage" Hidden="true" />
+      <Method Name="operator !=" Hidden="true" />
+      <Method Name="operator ==" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAIAAAAAAAAAQAEgEgAAQAAAIAgAMEhEABAKEEAAiA=</HashCode>
+      <FileName>UserMessage\UserMessage.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Orientation="Right" Position="0.1" />
+  </Struct>
+  <Struct Name="CK.Core.SimpleUserMessage">
+    <Position X="4" Y="6.25" Width="3" />
+    <Members>
+      <Field Name="_depth" Hidden="true" />
+      <Field Name="_level" Hidden="true" />
+      <Field Name="_message" Hidden="true" />
+      <Method Name="operator !=" Hidden="true" />
+      <Method Name="operator ==" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAIAAAAAAAAAAAEgAgAgQAAAAAgAIAhEABAIAEAAiA=</HashCode>
+      <FileName>UserMessage\SimpleUserMessage.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Struct>
+  <Enum Name="CK.Core.UserMessageLevel">
+    <Position X="8.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAEAAAAAAEEAAAA=</HashCode>
+      <FileName>UserMessage\UserMessageLevel.cs</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

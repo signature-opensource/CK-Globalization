@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
+  <Class Name="CK.Core.GlobalizationIssues">
+    <Position X="0.75" Y="0.5" Width="8" />
+    <Members>
+      <Field Name="_channel" Hidden="true" />
+      <Field Name="_codeSringOccurrence" Hidden="true" />
+      <Field Name="_formatArgumentError" Hidden="true" />
+      <Field Name="_identifierClashes" Hidden="true" />
+      <Field Name="_missingTranslations" Hidden="true" />
+      <Field Name="_monitor" Hidden="true" />
+      <Field Name="_onNewIssue" Hidden="true" />
+      <Method Name="ClearIssueCache" Hidden="true" />
+      <Method Name="GlobalizationIssues" Hidden="true" />
+      <Method Name="HandleFormatArgumentCountErrorAsync" Hidden="true" />
+      <Method Name="HandleGetReport" Hidden="true" />
+      <Method Name="HandleMissingTranslationResourceAsync" Hidden="true" />
+      <Method Name="HandleStringCreated" Hidden="true" />
+      <Method Name="OnCodeStringCreated" Hidden="true" />
+      <Method Name="OnIdentifierClash" Hidden="true" />
+      <Method Name="OnMCStringCreated" Hidden="true" />
+      <Method Name="OnTranslation" Hidden="true" />
+      <Field Name="Track" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Class Name="CK.Core.GlobalizationIssues.SHAComparer" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>GlobalizationIssues.cs</NewMemberFileName>
+        </TypeIdentifier>
+        <Lollipop Position="0.2" />
+      </Class>
+      <Class Name="CK.Core.GlobalizationIssues.Report">
+        <Members>
+          <Method Name="Report" Hidden="true" />
+        </Members>
+        <TypeIdentifier>
+          <NewMemberFileName>GlobalizationIssues.Report.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAEoAIICAAAEAQQIAAABQKAAAEABCAQCgAAA=</HashCode>
+      <FileName>GlobalizationIssues.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

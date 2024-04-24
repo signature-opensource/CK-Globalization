@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="FullSignature">
+  <Class Name="CK.Core.ExtendedCultureInfo">
+    <Position X="1" Y="0.5" Width="5.25" />
+    <Members>
+      <Field Name="_fallbacks" Hidden="true" />
+      <Field Name="_fullName" Hidden="true" />
+      <Field Name="_id" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_primary" Hidden="true" />
+      <Method Name="ExtendedCultureInfo" Hidden="true" />
+      <Method Name="IFormatProvider.GetFormat" Hidden="true" />
+      <Method Name="ToString" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>QCACIQEAAAAAAIBEAABAAAYAAAAAAAAAAAAgAAAACAA=</HashCode>
+      <FileName>ExtendedCultureInfo\ExtendedCultureInfo.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="CK.Core.NormalizedCultureInfo">
+    <Position X="0.5" Y="3.75" Width="6.25" />
+    <Members>
+      <Field Name="_all" Hidden="true" />
+      <Field Name="_culture" Hidden="true" />
+      <Field Name="_neutral" Hidden="true" />
+      <Field Name="_noTranslations" Hidden="true" />
+      <Field Name="_translations" Hidden="true" />
+      <Method Name="ClearCache" Hidden="true" />
+      <Field Name="CodeDefault" Hidden="true" />
+      <Method Name="ComputeId" Hidden="true" />
+      <Method Name="DoGetExtendedCultureInfo" Hidden="true" />
+      <Method Name="DoRegister" Hidden="true" />
+      <Field Name="Invariant" Hidden="true" />
+      <Method Name="NormalizedCultureInfo" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AEQAAAAAA0AAAACAAAAAAAAAAQAABIAQAAAAiAABCEA=</HashCode>
+      <FileName>ExtendedCultureInfo\NormalizedCultureInfo.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CK.Core.TranslationService">
+    <Position X="6.75" Y="0.5" Width="4.25" />
+    <Members>
+      <Method Name="TryTranslate" Hidden="true" />
+      <Method Name="TryTranslateGood" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AABAAAAAAAAAgAAAAAAAAAAQAAAAAAAAAABEAAAAAAA=</HashCode>
+      <FileName>Translation\TranslationService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="CK.Core.CurrentCultureInfo">
+    <Position X="7" Y="3" Width="4" />
+    <Members>
+      <Method Name="CurrentCultureInfo" Hidden="true" />
+      <Method Name="IFormatProvider.GetFormat" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAABAAAAAIAACAgAAAQACAAAAAAAAQIA=</HashCode>
+      <FileName>CurrentCultureInfo.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

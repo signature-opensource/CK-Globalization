@@ -2,7 +2,7 @@
 
 Managing cultures is never easy and is complicated by the legacy issues (see this good
 [SO answer](https://stackoverflow.com/a/71388328/190380) for an example and refer to https://www.rfc-editor.org/rfc/bcp/bcp47.txt
-for the BCP47 norm that culture namig follows).
+for the BCP47 norm that culture naming follows).
 
 This library is an opinionated one that aims to define a simple, good-enough, i18n workflow that minimizes
 the developer's burden. 
