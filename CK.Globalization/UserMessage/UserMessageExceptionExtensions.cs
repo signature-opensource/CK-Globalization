@@ -37,20 +37,17 @@ namespace CK.Core
         /// <summary>
         /// Collects the <see cref="Exception.Message"/> texts recursively (following <see cref="Exception.InnerException"/>
         /// and <see cref="AggregateException.InnerExceptions"/>).
-        /// <list type="bullet">
-        ///     <term>When <paramref name="culture"/> is not null</term>
-        ///     <description>
-        ///     When a <see cref="MCException"/> is found, its <see cref="MCException.AsUserMessage"/>
-        ///     is used but for any other exception types, we try to translate the exception's message by using the <see cref="CurrentCultureInfo.TranslationService"/>
-        ///     as if the text was in <see cref="NormalizedCultureInfo.CodeDefault"/>. If a "SHA." translation resource exists, then we can translate exception messages...
-        ///     </description>
-        ///     <term>When no culture info is available</term>
-        ///     <description>
-        ///     Only the MCException's messages are added to the collector. If <paramref name="leakAll"/> is false and there is only one exception
-        ///     that is not a MCException (we then have no messages to collect), the <paramref name="defaultGenericMessage"/>, when not null, is added.
-        ///     Set defaultGenericMessage to null if you have already added a more precise "head" message.
-        ///     </description>
-        /// </list>
+        /// <para>
+        /// When a <see cref="MCException"/> is found, its <see cref="MCException.AsUserMessage"/> is used but for any other exception types
+        /// (when <paramref name="leakAll"/> is true), we try to translate the exception's message by using
+        /// the <see cref="CurrentCultureInfo.TranslationService"/> as if the text was in <see cref="NormalizedCultureInfo.CodeDefault"/>.
+        /// If a "SHA." translation resource exists, then we can translate exception messages...
+        /// </para>
+        /// <para>
+        /// If <paramref name="leakAll"/> is false and there is not MCException (we then have no messages to collect), the
+        /// <paramref name="defaultGenericMessage"/>, when not null, is added.
+        /// Set defaultGenericMessage to null if you have already added a more precise "head" message.
+        /// </para>
         /// <para>
         /// The message's <see cref="UserMessage.Depth"/> reflects the exception tree.
         /// </para>

@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 
 namespace CK.Core
 {
-
     /// <summary>
     /// Helper that collects multiple user messages.
     /// <para>
@@ -16,7 +15,7 @@ namespace CK.Core
     /// The <see cref="ScopedUserMessageCollector"/> is available in a scope DI context (a "unit of work").
     /// </para>
     /// </summary>
-    public class UserMessageCollector
+    public class UserMessageCollector : IScopedAutoService
     {
         readonly CurrentCultureInfo _culture;
         readonly MList _messages;
@@ -111,9 +110,14 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Gets the <see cref="CurrentCultureInfo"/> used to initialize the messages.
+        /// Gets the culture used to initialize the messages.
         /// </summary>
-        public CurrentCultureInfo CurrentCulture => _culture;
+        public CurrentCultureInfo CurrentCultureInfo => _culture;
+
+        /// <summary>
+        /// Gets the culture used to initialize the messages.
+        /// </summary>
+        public ExtendedCultureInfo Culture => _culture.CurrentCulture;
 
         /// <summary>
         /// Gets the colected messages so far.
