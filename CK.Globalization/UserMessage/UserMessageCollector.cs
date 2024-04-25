@@ -105,6 +105,7 @@ namespace CK.Core
         /// <param name="culture">The current culture to use.</param>
         public UserMessageCollector( CurrentCultureInfo culture )
         {
+            Throw.CheckNotNullArgument( culture );
             _culture = culture;
             _messages = new MList();
         }
@@ -112,7 +113,7 @@ namespace CK.Core
         /// <summary>
         /// Gets the <see cref="CurrentCultureInfo"/> used to initialize the messages.
         /// </summary>
-        public CurrentCultureInfo? CurrentCulture => _culture;
+        public CurrentCultureInfo CurrentCulture => _culture;
 
         /// <summary>
         /// Gets the colected messages so far.
