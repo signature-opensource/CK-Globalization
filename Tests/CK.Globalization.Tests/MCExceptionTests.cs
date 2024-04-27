@@ -23,7 +23,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void inner_exception_test()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             fr.SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Error.AnError", "Une erreur." },
@@ -86,7 +86,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void aggregate_exception_test()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             fr.SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Error.AnError", "Une erreur." },

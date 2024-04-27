@@ -24,7 +24,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void demo()
         {
-            var frFR = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
+            var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
             var currentCulture = new CurrentCultureInfo( new TranslationService(), frFR );
 
             int percent = 54;
@@ -37,7 +37,7 @@ namespace CK.Globalization.Tests
 
             msg.CodeString.ResName.Should().Be( "SHA.V55R2QdiE4w1O82f1Ig5R7kklCc" );
 
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             // We could have used the first fallback.
             fr.Should().BeSameAs( frFR.Fallbacks[0] );
             fr.SetCachedTranslations( new[] { ("SHA.V55R2QdiE4w1O82f1Ig5R7kklCc", "Le transfert se terminera le {1} ({0}%).") } );
@@ -57,7 +57,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void factory_methods()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             var c = new CurrentCultureInfo( new TranslationService(), fr );
 
 

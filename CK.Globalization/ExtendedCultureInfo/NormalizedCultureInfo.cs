@@ -197,7 +197,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="name">The culture name.</param>
         /// <returns>The culture.</returns>
-        public static NormalizedCultureInfo GetNormalizedCultureInfo( string name )
+        public static NormalizedCultureInfo EnsureNormalizedCultureInfo( string name )
         {
             Throw.CheckNotNullArgument( name );
             // Fast path.
@@ -306,6 +306,8 @@ namespace CK.Core
 
         internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
 
+        internal static IEnumerable<ExtendedCultureInfo> GetAll() => _all.Values;
+
         internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
         {
             Throw.CheckNotNullArgument( commaSeparatedNames );
@@ -319,7 +321,7 @@ namespace CK.Core
             return e;
         }
 
-        internal static ExtendedCultureInfo DoGetExtendedCultureInfo( string commaSeparatedNames )
+        internal static ExtendedCultureInfo DoEnsureExtendedCultureInfo( string commaSeparatedNames )
         {
             var e = DoFindExtendedCultureInfo( ref commaSeparatedNames );
             if( e != null ) return e;
@@ -327,7 +329,7 @@ namespace CK.Core
             // Single name: use the GetNormalizedCultureInfo.
             if( fullNames.Length == 1 )
             {
-                return GetNormalizedCultureInfo( fullNames[0] );
+                return EnsureNormalizedCultureInfo( fullNames[0] );
             }
             lock( _all )
             {

@@ -24,7 +24,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void collector_test()
         {
-            var culture = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
+            var culture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
             var current = new CurrentCultureInfo( new TranslationService(), culture );
             var c = new UserMessageCollector( current );
             using( TestHelper.Monitor.CollectTexts( out var logs ) )
@@ -40,7 +40,7 @@ namespace CK.Globalization.Tests
 
             c.Depth.Should().Be( 0 );
 
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>()
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>()
             {
                 { "Validation.PositiveValueExpected", "La valeur {0} doit être positive." },
                 { "Done", "Fait." }

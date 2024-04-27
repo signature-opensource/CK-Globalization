@@ -389,7 +389,7 @@ namespace CK.Core
                     s.Length = r.ReadNonNegativeSmallInt32();
                 }
                 var n = r.ReadNullableString();
-                _culture = n != null ? NormalizedCultureInfo.GetNormalizedCultureInfo( n ) : null;
+                _culture = n != null ? NormalizedCultureInfo.EnsureNormalizedCultureInfo( n ) : null;
             }
         }
 

@@ -119,7 +119,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="commaSeparatedNames">Comma separated culture names.</param>
         /// <returns>The extended culture.</returns>
-        public static ExtendedCultureInfo GetExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoGetExtendedCultureInfo( commaSeparatedNames );
+        public static ExtendedCultureInfo EnsureExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoEnsureExtendedCultureInfo( commaSeparatedNames );
 
         /// <summary>
         /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its <see cref="ExtendedCultureInfo.Name"/>
@@ -136,6 +136,11 @@ namespace CK.Core
         /// <param name="id">The identifier.</param>
         /// <returns>The culture if found, null otherwise.</returns>
         public static ExtendedCultureInfo? FindExtendedCultureInfo( int id ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( id );
+
+        /// <summary>
+        /// Gets all the registered cultures.
+        /// </summary>
+        public static IEnumerable<ExtendedCultureInfo> All => NormalizedCultureInfo.GetAll();
 
         /// <summary>
         /// Overridden to return the <see cref="Name"/>.

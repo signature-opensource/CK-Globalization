@@ -318,7 +318,7 @@ namespace CK.Core
         {
             Throw.CheckData( version == 0 );
             _text = r.ReadString();
-            _formatCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( r.ReadString() );
+            _formatCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( r.ReadString() );
             _code = new CodeString( r, 0 );
         }
 

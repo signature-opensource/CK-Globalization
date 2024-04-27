@@ -103,7 +103,7 @@ namespace CK.Core
                         return false;
                     }
                 }
-                var c = NormalizedCultureInfo.GetNormalizedCultureInfo( cName );
+                var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( cName );
                 var issues = c.SetCachedTranslations( d );
                 if( issues.Any() )
                 {

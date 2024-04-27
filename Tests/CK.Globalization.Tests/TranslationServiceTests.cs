@@ -35,7 +35,7 @@ namespace CK.Globalization.Tests
         {
             var s = new TranslationService();
             var date = new DateTime( 2023, 8, 4, 18, 38, 47 );
-            var c = new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" ), $"Hop {date:F}." );
+            var c = new CodeString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" ), $"Hop {date:F}." );
             c.Text.Should().Be( "Hop vendredi 4 août 2023 18:38:47." );
             c.TargetCulture.Name.Should().Be( "fr-fr" );
 
@@ -44,14 +44,14 @@ namespace CK.Globalization.Tests
             t.FormatCulture.Name.Should().Be( "en" );
             t.TranslationQuality.Should().Be( MCString.Quality.Awful );
 
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est Hop {0} (en français)." } } );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est Hop {0} (en français)." } } );
 
             t = await s.TranslateAsync( c );
             t.Text.Should().Be( "C'est Hop vendredi 4 août 2023 18:38:47 (en français)." );
             t.FormatCulture.Name.Should().Be( "fr" );
             t.TranslationQuality.Should().Be( MCString.Quality.Good );
 
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est {0} en France!" } } );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est {0} en France!" } } );
             t = await s.TranslateAsync( c );
             t.Text.Should().Be( "C'est vendredi 4 août 2023 18:38:47 en France!" );
             t.FormatCulture.Name.Should().Be( "fr-fr" );
@@ -64,21 +64,21 @@ namespace CK.Globalization.Tests
         {
             var s = new TranslationService();
             var date = new DateTime( 2023, 8, 4, 18, 38, 47 );
-            var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-ch,fr-ca,de" );
+            var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-ch,fr-ca,de" );
 
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Res.Name", "France {0} le {1}." }
             } );
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-ch" ).SetCachedTranslations( new Dictionary<string, string>
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ch" ).SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Res.Name", "Suisse {0} le {1}." }
             } );
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-ca" ).SetCachedTranslations( new Dictionary<string, string>
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ca" ).SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Res.Name", "Canada {0} le {1}." }
             } );
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "de" ).SetCachedTranslations( new Dictionary<string, string>
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "de" ).SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Res.Name", "German {0} am {1}." }
             } );
@@ -90,28 +90,28 @@ namespace CK.Globalization.Tests
                 t.FormatCulture.Name.Should().Be( "fr-ch" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
             }
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-ch" ).SetCachedTranslations( new Dictionary<string, string>() );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ch" ).SetCachedTranslations( new Dictionary<string, string>() );
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "Canada fr-ch le vendredi, 4 août 2023 18:38:47." );
                 t.FormatCulture.Name.Should().Be( "fr-ca" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Good );
             }
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-ca" ).SetCachedTranslations( new Dictionary<string, string>() );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ca" ).SetCachedTranslations( new Dictionary<string, string>() );
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "France fr-ch le vendredi, 4 août 2023 18:38:47." );
                 t.FormatCulture.Name.Should().Be( "fr" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Good );
             }
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>() );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>() );
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "German fr-ch am vendredi, 4 août 2023 18:38:47." );
                 t.FormatCulture.Name.Should().Be( "de" );
                 t.TranslationQuality.Should().Be( MCString.Quality.Bad );
             }
-            NormalizedCultureInfo.GetNormalizedCultureInfo( "de" ).SetCachedTranslations( new Dictionary<string, string>() );
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "de" ).SetCachedTranslations( new Dictionary<string, string>() );
             {
                 var t = await s.TranslateAsync( c );
                 t.Text.Should().Be( "Hello from fr-ch on vendredi, 4 août 2023 18:38:47." );
@@ -126,31 +126,31 @@ namespace CK.Globalization.Tests
             var s = new TranslationService();
 
             {
-                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr" );
+                var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
                 t.TranslationQuality.Should().Be( MCString.Quality.Awful );
             }
             {
-                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en" );
+                var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "en" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
                 t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
             }
             {
-                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "en-us" );
+                var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "en-us" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
                 t.TranslationQuality.Should().Be( MCString.Quality.Good );
             }
             {
-                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en-us" );
+                var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-fr,en-us" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
                 t.TranslationQuality.Should().Be( MCString.Quality.Bad );
             }
             {
-                var preferences = ExtendedCultureInfo.GetExtendedCultureInfo( "fr-fr,en" );
+                var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-fr,en" );
                 var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
                 var t = await s.TranslateAsync( c );
                 t.TranslationQuality.Should().Be( MCString.Quality.Bad );

@@ -52,7 +52,7 @@ namespace CK.Globalization.Tests
         public void ExtendedCultureInfo_normalization( string names, string expectedFullName, bool isExtended, string expectedName )
         {
             // On Appveyor "pa-Guru-IN" resolves to "pa-IN".
-            var n = ExtendedCultureInfo.GetExtendedCultureInfo( names );
+            var n = ExtendedCultureInfo.EnsureExtendedCultureInfo( names );
             if( n.Name.Contains( "pa-in" ) )
             {
                 expectedFullName = expectedFullName.Replace( "pa-guru-in", "pa-in" );
@@ -61,13 +61,13 @@ namespace CK.Globalization.Tests
             n.FullName.Should().Be( expectedFullName );
             n.Name.Should().Be( expectedName );
             (isExtended == n is not NormalizedCultureInfo).Should().BeTrue( $"'{names}' => '{n.Name}'" );
-            var n1 = ExtendedCultureInfo.GetExtendedCultureInfo( n.FullName );
+            var n1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.FullName );
             n1.Should().BeSameAs( n );
-            var n2 = ExtendedCultureInfo.GetExtendedCultureInfo( n.Name );
+            var n2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.Name );
             n2.Should().BeSameAs( n );
-            var n3 = ExtendedCultureInfo.GetExtendedCultureInfo( n.Name.ToUpperInvariant() );
+            var n3 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.Name.ToUpperInvariant() );
             n3.Should().BeSameAs( n );
-            var n4 = ExtendedCultureInfo.GetExtendedCultureInfo( n.FullName.ToUpperInvariant() );
+            var n4 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.FullName.ToUpperInvariant() );
             n4.Should().BeSameAs( n );
         }
 
@@ -137,12 +137,12 @@ namespace CK.Globalization.Tests
             GlobalizationIssues.OnNewIssue.Sync += detector;
             try
             {
-                var c1 = ExtendedCultureInfo.GetExtendedCultureInfo( name1 );
+                var c1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name1 );
                 // Resolution differ on Appveyor. This only works if the resolution respects the original string.
                 Assume.That( c1.Name == name1, $"Resolution differs: '{name1}' has been transformed to '{c1.Name}'." );
                 c1.Id.Should().Be( idClash );
                 c1.Name.GetDjb2HashCode().Should().Be( idClash );
-                var c2 = ExtendedCultureInfo.GetExtendedCultureInfo( name2 );
+                var c2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name2 );
                 Assume.That( c2.Name == name2, $"Resolution differs: '{name2}' has been transformed to '{c2.Name}'." );
                 c2.Name.GetDjb2HashCode().Should().Be( idClash );
                 c2.Id.Should().Be( idClash + 1 );

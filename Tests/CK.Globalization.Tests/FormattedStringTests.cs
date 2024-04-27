@@ -154,8 +154,8 @@ namespace CK.Globalization.Tests
         [Test]
         public void with_culture_info()
         {
-            var enUS = NormalizedCultureInfo.GetNormalizedCultureInfo( "en-US" );
-            var frFR = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
+            var enUS = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en-US" );
+            var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
 
             var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
             var value = 37.12;
@@ -182,7 +182,7 @@ namespace CK.Globalization.Tests
         public void serializations_tests()
         {
             CheckSerializations( FormattedString.Empty ).Should().Be( """["","",[]]""" );
-            CheckSerializations( new FormattedString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) )
+            CheckSerializations( new FormattedString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" ), "plain text" ) )
                 .Should().Be( $"""["plain text","ar-tn",[]]""" ); ;
 
             foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
@@ -242,7 +242,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void FormattedString_CreateFromProperties()
         {
-            var c = NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-TN" );
+            var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-TN" );
             var f = FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
             var args = f.GetPlaceholderContents().Select( c => c.ToString() ).ToArray();
             args[0].Should().Be( "A" );

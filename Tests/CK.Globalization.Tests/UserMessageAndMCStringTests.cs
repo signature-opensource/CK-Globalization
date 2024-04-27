@@ -33,7 +33,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void non_translatable_MCString_is_Perfect_since_it_cannot_be_translated()
         {
-            var s = MCString.CreateNonTranslatable( NormalizedCultureInfo.GetNormalizedCultureInfo("ar-tn"), "I'm a non translatable string." );
+            var s = MCString.CreateNonTranslatable( NormalizedCultureInfo.EnsureNormalizedCultureInfo("ar-tn"), "I'm a non translatable string." );
             s.IsTranslatable.Should().BeFalse();
             s.TranslationQuality.Should().Be( MCString.Quality.Perfect );
         }
@@ -41,7 +41,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void UserMessage_Error()
         {
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+            var aaCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "aa" );
 
             var m1 = UserMessage.Error( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();
@@ -96,7 +96,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void UserMessage_Warn()
         {
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+            var aaCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "aa" );
 
             var m1 = UserMessage.Warn( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();
@@ -164,7 +164,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void UserMessage_Info()
         {
-            var aaCulture = NormalizedCultureInfo.GetNormalizedCultureInfo( "aa" );
+            var aaCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "aa" );
 
             var m1 = UserMessage.Info( aaCulture, "text" );
             m1.IsTranslationWelcome.Should().BeTrue();

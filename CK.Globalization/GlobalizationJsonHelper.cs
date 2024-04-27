@@ -138,7 +138,7 @@ namespace CK.Core
             var formatCulture = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             var c = ReadCodeStringFromJsonArrayContent( ref r, context );
-            return MCString.CreateFromProperties( text, c, NormalizedCultureInfo.GetNormalizedCultureInfo( formatCulture ) );
+            return MCString.CreateFromProperties( text, c, NormalizedCultureInfo.EnsureNormalizedCultureInfo( formatCulture ) );
         }
         #endregion
 
@@ -228,7 +228,7 @@ namespace CK.Core
                 placeholders.Add( (start, length) );
             }
             ReadEndArray( ref r, context, "FormattedString's Placeholders" );
-            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ExtendedCultureInfo.GetExtendedCultureInfo( cultureName ) );
+            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ExtendedCultureInfo.EnsureExtendedCultureInfo( cultureName ) );
         }
 
         #endregion
