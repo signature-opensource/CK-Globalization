@@ -270,7 +270,7 @@ namespace CK.Core
         {
             Throw.DebugAssert( Monitor.IsEntered( _all ) );
             Throw.DebugAssert( name.ToLowerInvariant() == name );
-            // This is required her for recursion and as a double check lock when coming
+            // This is required here for recursion and as a double check lock when coming
             // from unlocked code.
             if( all.TryGetValue( name, out var exist ) )
             {
@@ -304,22 +304,25 @@ namespace CK.Core
             return newOne;
         }
 
-        internal static ExtendedCultureInfo? DoGetExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
+        internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
 
-        internal static ExtendedCultureInfo DoGetExtendedCultureInfo( string commaSeparatedNames )
+        internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
         {
             Throw.CheckNotNullArgument( commaSeparatedNames );
             // Fast path.
-            if( _all.TryGetValue( commaSeparatedNames, out var e ) )
+            if( !_all.TryGetValue( commaSeparatedNames, out var e ) )
             {
-                return e;
+                // Let a chance to a very basic preprocessing.
+                commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
+                _all.TryGetValue( commaSeparatedNames, out e );
             }
-            // Before locking/adding we let a chance to a very basic preprocessing.
-            commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
-            if( _all.TryGetValue( commaSeparatedNames, out e ) )
-            {
-                return e;
-            }
+            return e;
+        }
+
+        internal static ExtendedCultureInfo DoGetExtendedCultureInfo( string commaSeparatedNames )
+        {
+            var e = DoFindExtendedCultureInfo( ref commaSeparatedNames );
+            if( e != null ) return e;
             var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
             // Single name: use the GetNormalizedCultureInfo.
             if( fullNames.Length == 1 )

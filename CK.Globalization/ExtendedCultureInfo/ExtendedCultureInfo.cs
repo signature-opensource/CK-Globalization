@@ -114,7 +114,7 @@ namespace CK.Core
         public int Id => _id;
 
         /// <summary>
-        /// Gets a <see cref="ExtendedCultureInfo"/> for a comma separated fallback names.
+        /// Finds or creates a <see cref="ExtendedCultureInfo"/> for a comma separated fallback names.
         /// If normalization results in a single <see cref="NormalizedCultureInfo"/>, it is returned.
         /// </summary>
         /// <param name="commaSeparatedNames">Comma separated culture names.</param>
@@ -122,12 +122,20 @@ namespace CK.Core
         public static ExtendedCultureInfo GetExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoGetExtendedCultureInfo( commaSeparatedNames );
 
         /// <summary>
-        /// Tries to retrive an already registered <see cref="ExtendedCultureInfo"/> from its identifier (the <see cref="ExtendedCultureInfo.Id"/>)
+        /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its <see cref="ExtendedCultureInfo.Name"/>
+        /// or returns null.
+        /// </summary>
+        /// <param name="commaSeparatedNames">Comma separated culture names.</param>
+        /// <returns>The culture if found, null otherwise.</returns>
+        public static ExtendedCultureInfo? FindExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( ref commaSeparatedNames );
+
+        /// <summary>
+        /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its identifier (the <see cref="ExtendedCultureInfo.Id"/>)
         /// or returns null.
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <returns>The culture if found, null otherwise.</returns>
-        public static ExtendedCultureInfo? GetExtendedCultureInfo( int id ) => NormalizedCultureInfo.DoGetExtendedCultureInfo( id );
+        public static ExtendedCultureInfo? FindExtendedCultureInfo( int id ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( id );
 
         /// <summary>
         /// Overridden to return the <see cref="Name"/>.

@@ -59,7 +59,8 @@ namespace CK.Core
         /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
         /// <param name="leakAll">
         /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
-        /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+        /// Defaults to <see cref="CoreApplicationIdentity.IsDevelopmentAndInitialized"/>: we want to be sure to be in "#Dev" environment
+        /// to leak the exceptions.
         /// </param>
         /// <returns>The number of messages that have been added.</returns>
         public static int GetUserMessages( this Exception ex,
@@ -72,8 +73,7 @@ namespace CK.Core
             Throw.CheckNotNullArgument( culture != null );
             Throw.CheckNotNullArgument( collector );
 
-            var all = !(leakAll ?? CoreApplicationIdentity.IsInitialized)
-                      || CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName;
+            var all = leakAll ?? (CoreApplicationIdentity.IsInitialized && CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName);
 
             if( all )
             {
