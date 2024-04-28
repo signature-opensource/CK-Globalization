@@ -121,9 +121,8 @@ namespace CK.Core
                                string name,
                                int id,
                                CultureInfo c,
-                               NormalizedCultureInfo? invCulture,
-                               NormalizedCultureInfo? enCulture )
-            : base( name, id, enCulture )
+                               NormalizedCultureInfo? invCulture )
+            : base( name, id )
         {
             Throw.DebugAssert( (name.Length != 0) == (invCulture != null) );
             _culture = c;
@@ -146,11 +145,11 @@ namespace CK.Core
         {
             _noTranslations = new Dictionary<string, PositionalCompositeFormat>();
             var cInv = CultureInfo.InvariantCulture;
-            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null, null );
+            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null );
             var cEn = CultureInfo.GetCultureInfo( "en" );
             bool isInvariantModeWithPredefinedOnly = cEn == cInv;
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant, null );
+            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant );
             _all = new Dictionary<object, ExtendedCultureInfo>()
             {
                 { "", Invariant },

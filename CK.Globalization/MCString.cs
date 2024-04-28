@@ -273,7 +273,7 @@ namespace CK.Core
             //      of the neutral culture) that has been used to format the placeholder.
             //      At least the user can understand the text.
             if( source is not NormalizedCultureInfo && source.Fallbacks.Any( c => c.HasSameNeutral( target ) ) ) return Quality.Bad;
-            // Awful: no match, using en-us Code Default AND the user has no "en" in its preference.
+            // Awful: no match, using en Code Default AND the user has no "en" in its preference.
             return Quality.Awful;
         }
 

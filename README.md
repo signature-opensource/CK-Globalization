@@ -50,7 +50,7 @@ of the `NormalizedCultureInfo`. The former normalizes the culture name (as a low
 MUST be considered case insensitive) and holds the fallbacks, the latter carries a basic memory cache of
 available translations.
 
-Note that for us, the 3 cultures on the path "en-us" - "en" - "" (Invariant) are *de facto* the same and cannot
+Note that for us, the 2 cultures on the path "en" and "" (Invariant) are *de facto* the same and cannot
 have any cached translation dictionary.
 
 #### Inventing CultureInfo

@@ -39,22 +39,17 @@ namespace CK.Core
         readonly int _id;
 
         /// <summary>
-        /// Constructor for Invariant (Name=""), "en" and "en-us" only.
+        /// Constructor for Invariant (Name="") and "en" only.
         /// </summary>
-        /// <param name="name">"", "en" or "en-us".</param>
+        /// <param name="name">"" or "en".</param>
         /// <param name="id">Computed identifier.</param>
-        /// <param name="enCulture">"en" for "en-us" otherwise null.</param>
-        internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo? enCulture )
+        internal ExtendedCultureInfo( string name, int id )
         {
-            Throw.DebugAssert( name != null && name.Length == 0 || name == "en" || name == "en-us" );
-            Throw.DebugAssert( (name == "en-us") == (enCulture != null && enCulture.Name == "en") );
+            Throw.DebugAssert( name != null && name.Length == 0 || name == "en" );
             _name = name;
-            // Exception here: "en-us" has no fallbacks and its FullName is "en-us", not "en-us,en".
             _fullName = name;
             _primary = (NormalizedCultureInfo)this;
-            _fallbacks = enCulture == null
-                         ? ImmutableArray<NormalizedCultureInfo>.Empty
-                         : ImmutableArray.Create<NormalizedCultureInfo>( enCulture );
+            _fallbacks = ImmutableArray<NormalizedCultureInfo>.Empty;
             _id = id;
         }
 
@@ -105,7 +100,7 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the primary culture.
-        /// For a ExtendedCultureInfo this is the 
+        /// For a ExtendedCultureInfo this is the first prefered culture, for a NormalizedCultureInfo it is itself.
         /// </summary>
         public NormalizedCultureInfo PrimaryCulture => _primary;
 
@@ -115,9 +110,9 @@ namespace CK.Core
         public ImmutableArray<NormalizedCultureInfo> Fallbacks => _fallbacks;
 
         /// <summary>
-        /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/>, "en" or "en-us" culture.
+        /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/> or "en" culture.
         /// </summary>
-        public bool IsDefault => _name.Length == 0 || ReferenceEquals( _name, "en" ) || ReferenceEquals( _name, "en-us" );
+        public bool IsDefault => _name.Length == 0 || ReferenceEquals( _name, "en" );
 
         /// <summary>
         /// Gets a unique identifier for this culture.
