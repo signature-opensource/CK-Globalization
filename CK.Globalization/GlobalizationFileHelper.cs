@@ -36,16 +36,20 @@ namespace CK.Core
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="localeRootPath">The root path (must be <see cref="NormalizedPath.IsRooted"/>).</param>
-        public static void SetLocaleTranslationFiles( IActivityMonitor monitor, NormalizedPath localeRootPath )
+        /// <param name="loadOnlyExisting">
+        /// Optionnally restricts the load to already existing cultures.
+        /// By default, cultures defined by files are created.
+        /// </param>
+        public static void SetLocaleTranslationFiles( IActivityMonitor monitor, NormalizedPath localeRootPath, bool loadOnlyExisting = false )
         {
             Throw.CheckArgument( localeRootPath.IsRooted );
             foreach( var d in Directory.GetDirectories( localeRootPath ) )
             {
-                HandleLocalFolder( monitor, localeRootPath, d );
+                HandleLocalFolder( monitor, localeRootPath, d, loadOnlyExisting );
             }
         }
 
-        static void HandleLocalFolder( IActivityMonitor monitor, NormalizedPath localeRootPath, NormalizedPath subPath )
+        static void HandleLocalFolder( IActivityMonitor monitor, NormalizedPath localeRootPath, NormalizedPath subPath, bool loadOnlyExisting )
         {
             var cName = subPath.LastPart;
             if( !NormalizedCultureInfo.IsValidCultureName( cName ) )
@@ -67,18 +71,18 @@ namespace CK.Core
             if( !cName.Equals( "en", StringComparison.OrdinalIgnoreCase ) )
             {
                 // If load fails, skip more specific cultures.
-                if( !HandleTranslationFiles( monitor, subPath, cName ) )
+                if( !HandleTranslationFiles( monitor, subPath, cName, loadOnlyExisting ) )
                 {
                     return;
                 }
             }
             foreach( var sub in Directory.GetDirectories( localeRootPath ) )
             {
-                HandleLocalFolder( monitor, subPath, sub );
+                HandleLocalFolder( monitor, subPath, sub, loadOnlyExisting );
             }
         }
 
-        static bool HandleTranslationFiles( IActivityMonitor monitor, NormalizedPath subPath, string cName )
+        static bool HandleTranslationFiles( IActivityMonitor monitor, NormalizedPath subPath, string cName, bool loadOnlyExisting )
         {
             var expectedFile = subPath.AppendPart( cName );
             var pJ = expectedFile + ".json";
@@ -93,6 +97,8 @@ namespace CK.Core
             }
             try
             {
+                // Starts by loading the file before ensuring the Culture to avoid
+                // a useless culture.
                 Dictionary<string, string>? d;
                 using( var content = File.OpenRead( pJ ) )
                 {
@@ -103,7 +109,25 @@ namespace CK.Core
                         return false;
                     }
                 }
-                var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( cName );
+                var c = loadOnlyExisting
+                            ? ExtendedCultureInfo.FindBestExtendedCultureInfo( cName, NormalizedCultureInfo.Invariant ).PrimaryCulture
+                            : NormalizedCultureInfo.EnsureNormalizedCultureInfo( cName );
+                // Name must match otherwise there's a problem.
+                if( !cName.Equals( c.Name, StringComparison.OrdinalIgnoreCase ) )
+                {
+                    string allNames = ExtendedCultureInfo.All.Select( c => c.Name ).Concatenate();
+                    if( loadOnlyExisting )
+                    {
+                        monitor.Warn( $"File '{pJ}' does not correspond to an existing culture and loadOnlyExisting parameter is true. Skipping file.{Environment.NewLine}" +
+                                      $"Existing cultures are: {allNames}." );
+                    }
+                    else
+                    {
+                        monitor.Warn( $"File '{pJ}' resolved to the culture '{c.Name}'. Name must match. Skipping file.{Environment.NewLine}" +
+                                      $"Existing cultures are: {allNames}." );
+                    }
+                    return false;
+                }
                 var issues = c.SetCachedTranslations( d );
                 if( issues.Any() )
                 {
