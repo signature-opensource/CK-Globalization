@@ -7,7 +7,7 @@ namespace CK.Core
     /// <summary>
     /// Static helper that serializes SimpleUserMessage, UserMessage, MCString, CodeString and FormattedString as JSON arrays.
     /// </summary>
-    public static class GlobalizationJsonHelper
+    public static partial class GlobalizationJsonHelper
     {
         static void ReadEndArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context, string typeName )
         {
@@ -20,6 +20,16 @@ namespace CK.Core
             if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
             if( r.TokenType != JsonTokenType.StartArray ) r.ThrowExpectedJsonException( $"{typeName} array" );
             r.ReadWithMoreData( context );
+        }
+
+        static NormalizedCultureInfo ResolveCulture( IUtf8JsonReaderContext context, string name )
+        {
+            if( context is IMCDeserializationOptions o )
+            {
+                if( o.CreateUnexistingCultures ) return NormalizedCultureInfo.EnsureNormalizedCultureInfo( name );
+                return ExtendedCultureInfo.FindBestExtendedCultureInfo( name, o.DefaultCulture ?? NormalizedCultureInfo.CodeDefault ).PrimaryCulture;
+            }
+            return ExtendedCultureInfo.FindBestExtendedCultureInfo( name, NormalizedCultureInfo.CodeDefault ).PrimaryCulture;
         }
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -138,8 +148,9 @@ namespace CK.Core
             var formatCulture = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             var c = ReadCodeStringFromJsonArrayContent( ref r, context );
-            return MCString.CreateFromProperties( text, c, NormalizedCultureInfo.EnsureNormalizedCultureInfo( formatCulture ) );
+            return MCString.CreateFromProperties( text, c, ResolveCulture( context, formatCulture ) );
         }
+
         #endregion
 
         #region CodeString
@@ -228,7 +239,7 @@ namespace CK.Core
                 placeholders.Add( (start, length) );
             }
             ReadEndArray( ref r, context, "FormattedString's Placeholders" );
-            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ExtendedCultureInfo.EnsureExtendedCultureInfo( cultureName ) );
+            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ResolveCulture( context, cultureName ) );
         }
 
         #endregion
