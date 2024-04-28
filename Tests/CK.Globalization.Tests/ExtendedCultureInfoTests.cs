@@ -159,5 +159,18 @@ namespace CK.Globalization.Tests
             }
         }
 
+        [TestCase( new[] { "fr-fr", "fr-ca", "fr-be" }, "FR", "en", "fr" )]
+        [TestCase( new[] { "fr-fr", "fr-ca", "fr-be" }, "fr-BE, fr-CA", "en", "fr-be" )]
+        [TestCase( new[] { "fr-fr", "es" }, "es-ES, fr-CA", "en", "es" )]
+        [TestCase( new[] { "fr-fr", "es-es" }, "fr-CA, es-ES", "de", "fr" )]
+        [TestCase( new[] { "fr-fr", "es-es" }, "ar, pa", "de", "de" )]
+        public void FindBest_privilegiates_the_first_entries( string[] registered, string candidate, string defaultCulture, string expectedBest )
+        {
+            foreach( var c in registered ) NormalizedCultureInfo.EnsureNormalizedCultureInfo( c );
+            var def = NormalizedCultureInfo.EnsureNormalizedCultureInfo( defaultCulture );
+            var best = ExtendedCultureInfo.FindBestExtendedCultureInfo( candidate, def );
+            best.Name.Should().Be( expectedBest );
+        }
+
     }
 }

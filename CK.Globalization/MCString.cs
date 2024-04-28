@@ -246,23 +246,35 @@ namespace CK.Core
         {
             get
             {
+                // Non translatable edge case.
                 if( _code == CodeString.Empty ) return Quality.Perfect;
-                var c = _code.TargetCulture;
-                var primary = c.PrimaryCulture;
-                var f = _formatCulture;
-                // Perfect: We found the exact culture.
-                if( primary == f || (f.IsDefault && primary.IsDefault)) return Quality.Perfect;
-                // Good: either we found a parent culture, or a sibling culture. The latter case
-                //       implies that c is a pure ExtendedCultureInfo: this sibling has been
-                //       explicitly chosen by the user.
-                if( primary.HasSameNeutral( f ) ) return Quality.Good;
-                // Bad: we found a translation in the preferred list but not in the language (in the sense
-                //      of the neutral culture) that has been used to format the placeholder.
-                //      At least the user can understand the text.
-                if( c is not NormalizedCultureInfo && c.Fallbacks.Any( c => c.HasSameNeutral( f ) ) ) return Quality.Bad;
-                // Awful: no match, using en-us Code Default AND the user has no "en" in its preference.
-                return Quality.Awful;
+                // Regular case.
+                return GetTranslationQuality( _code.TargetCulture, _formatCulture );
             }
+        }
+
+        /// <summary>
+        /// Computes the <see cref="Quality"/> from a source to a target normalized culture.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public static Quality GetTranslationQuality( ExtendedCultureInfo source, NormalizedCultureInfo target )
+        {
+
+            var primary = source.PrimaryCulture;
+            // Perfect: target is the exact culture of the source's primary culture.
+            if( primary == target || (target.IsDefault && primary.IsDefault) ) return Quality.Perfect;
+            // Good: either we found a parent culture, or a sibling culture. The latter case
+            //       implies that source is a pure ExtendedCultureInfo: this sibling has been
+            //       explicitly chosen by the user.
+            if( primary.HasSameNeutral( target ) ) return Quality.Good;
+            // Bad: we found a translation in the preferred list but not in the language (in the sense
+            //      of the neutral culture) that has been used to format the placeholder.
+            //      At least the user can understand the text.
+            if( source is not NormalizedCultureInfo && source.Fallbacks.Any( c => c.HasSameNeutral( target ) ) ) return Quality.Bad;
+            // Awful: no match, using en-us Code Default AND the user has no "en" in its preference.
+            return Quality.Awful;
         }
 
         /// <summary>

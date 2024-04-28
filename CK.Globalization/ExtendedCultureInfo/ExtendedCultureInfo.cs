@@ -1,10 +1,9 @@
 using CommunityToolkit.HighPerformance;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Xml.Linq;
 
 namespace CK.Core
 {
@@ -35,10 +34,16 @@ namespace CK.Core
     {
         readonly string _name;
         readonly NormalizedCultureInfo _primary;
-        readonly NormalizedCultureInfo[] _fallbacks;
+        readonly ImmutableArray<NormalizedCultureInfo> _fallbacks;
         readonly string _fullName;
         readonly int _id;
 
+        /// <summary>
+        /// Constructor for Invariant (Name=""), "en" and "en-us" only.
+        /// </summary>
+        /// <param name="name">"", "en" or "en-us".</param>
+        /// <param name="id">Computed identifier.</param>
+        /// <param name="enCulture">"en" for "en-us" otherwise null.</param>
         internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo? enCulture )
         {
             Throw.DebugAssert( name != null && name.Length == 0 || name == "en" || name == "en-us" );
@@ -48,8 +53,8 @@ namespace CK.Core
             _fullName = name;
             _primary = (NormalizedCultureInfo)this;
             _fallbacks = enCulture == null
-                         ? Array.Empty<NormalizedCultureInfo>()
-                         : new NormalizedCultureInfo[] { enCulture };
+                         ? ImmutableArray<NormalizedCultureInfo>.Empty
+                         : ImmutableArray.Create<NormalizedCultureInfo>( enCulture );
             _id = id;
         }
 
@@ -59,7 +64,7 @@ namespace CK.Core
         /// <param name="name">The normalized name.</param>
         /// <param name="id">The hash identifier.</param>
         /// <param name="fallbacks">Fallbacks.</param>
-        internal ExtendedCultureInfo( string name, int id, NormalizedCultureInfo[] fallbacks )
+        internal ExtendedCultureInfo( string name, int id, ImmutableArray<NormalizedCultureInfo> fallbacks )
         {
             Throw.DebugAssert( name.Length > 0 && !name.Contains(',') && !fallbacks.Contains( this ) );
             _name = name;
@@ -71,6 +76,12 @@ namespace CK.Core
             _id = id;
         }
 
+        /// <summary>
+        /// Constructor for ExtendedCultureInfo.
+        /// </summary>
+        /// <param name="allCultures">Primary followed by Fallbacks.</param>
+        /// <param name="names">Heads of the preference list (like "fr-fr, de-de")</param>
+        /// <param name="id">Computed identifier.</param>
         internal ExtendedCultureInfo( List<NormalizedCultureInfo> allCultures, string names, int id )
         {
             Throw.DebugAssert( allCultures.Count > 1 );
@@ -78,7 +89,7 @@ namespace CK.Core
             _fullName = string.Join( ',', allCultures.Select( n => n.Name ) );
             _id = id;
             _primary = allCultures[0];
-            _fallbacks = allCultures.Skip( 1 ).ToArray();
+            _fallbacks = allCultures.Skip( 1 ).ToImmutableArray();
         }
 
         /// <summary>
@@ -94,13 +105,14 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the primary culture.
+        /// For a ExtendedCultureInfo this is the 
         /// </summary>
         public NormalizedCultureInfo PrimaryCulture => _primary;
 
         /// <summary>
         /// Gets the fallbacks. This is empty for <see cref="NormalizedCultureInfo.Invariant"/> and any neutral culture (like "fr").
         /// </summary>
-        public IReadOnlyList<NormalizedCultureInfo> Fallbacks => _fallbacks;
+        public ImmutableArray<NormalizedCultureInfo> Fallbacks => _fallbacks;
 
         /// <summary>
         /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/>, "en" or "en-us" culture.
@@ -128,6 +140,18 @@ namespace CK.Core
         /// <param name="commaSeparatedNames">Comma separated culture names.</param>
         /// <returns>The culture if found, null otherwise.</returns>
         public static ExtendedCultureInfo? FindExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( ref commaSeparatedNames );
+
+        /// <summary>
+        /// Finds the best <see cref="ExtendedCultureInfo"/> from a comma separated list of culture names.
+        /// <para>
+        /// Currently, this ony returns NormalizedCultureInfo but this can be enhanced in the future.
+        /// The order of the entries matters: "fr-CA, es-ES" with existing "fr-fr" and "es-es" cultures will select "fr".
+        /// </para>
+        /// </summary>
+        /// <param name="commaSeparatedNames">Comma separated culture names.</param>
+        /// <param name="defaultCulture">Ultimate default to consider.</param>
+        /// <returns>The best existing culture.</returns>
+        public static ExtendedCultureInfo FindBestExtendedCultureInfo( string commaSeparatedNames, NormalizedCultureInfo defaultCulture ) => NormalizedCultureInfo.DoFindBestExtendedCultureInfo( commaSeparatedNames, defaultCulture ); 
 
         /// <summary>
         /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its identifier (the <see cref="ExtendedCultureInfo.Id"/>)

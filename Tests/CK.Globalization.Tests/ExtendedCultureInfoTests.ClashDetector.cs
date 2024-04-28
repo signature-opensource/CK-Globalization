@@ -78,7 +78,7 @@ namespace CK.Globalization.Tests
 
             foreach( var cc in CultureInfo.GetCultures( CultureTypes.AllCultures ) )
             {
-                var c = NormalizedCultureInfo.GetNormalizedCultureInfo( cc );
+                var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( cc );
                 var n = c.Name;
                 // Skip the 0 => Invariant exception.
                 if( n.Length > 0 )
