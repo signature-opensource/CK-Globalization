@@ -22,15 +22,12 @@ namespace CK.Core
     ///     </item>
     /// </list>
     /// <para>
-    /// This is an ubiquitous service: all DI container must be able to provide a scoped instance
+    /// This is an ambient service: all DI container can provide a scoped instance
     /// (the <see cref="NormalizedCultureInfoUbiquitousServiceDefault"/> singleton is always able to
-    /// provide a default value). To avoid another default provider (for this base type), this is also
-    /// a IAutoService: the NormalizedCultureInfoUbiquitousServiceDefault also works for it (by covariance)
-    /// and any DI provided ExtendedCultureInfo is necessarily a specialized NormalizedCultureInfo.
+    /// provide a default value).
     /// </para>
     /// </summary>
-    [EndpointScopedService( isUbiquitousEndpointInfo:  true )]
-    public class ExtendedCultureInfo : IAutoService, IFormatProvider
+    public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     {
         readonly string _name;
         readonly NormalizedCultureInfo _primary;
