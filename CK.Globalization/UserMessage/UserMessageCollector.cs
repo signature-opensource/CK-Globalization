@@ -121,8 +121,8 @@ namespace CK.Core
 
         /// <summary>
         /// Gets the colected messages so far.
-        /// This list is mutable: order can be changed, messages can be removed or added but
-        /// when doing this, note that <see cref="ErrorCount"/> is not updated.
+        /// This list is mutable: order can be changed, messages can be removed or added.
+        /// <see cref="ErrorCount"/> is automatically updated.
         /// </summary>
         public IList<UserMessage> UserMessages => _messages;
 
