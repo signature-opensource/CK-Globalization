@@ -2,7 +2,6 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>11</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CK.ActivityMonitor.SimpleSender" Version="20.0.1--0012-develop" />
