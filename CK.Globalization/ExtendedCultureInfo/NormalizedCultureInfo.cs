@@ -1,6 +1,7 @@
 using CommunityToolkit.HighPerformance;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -120,9 +121,8 @@ namespace CK.Core
                                string name,
                                int id,
                                CultureInfo c,
-                               NormalizedCultureInfo? invCulture,
-                               NormalizedCultureInfo? enCulture )
-            : base( name, id, enCulture )
+                               NormalizedCultureInfo? invCulture )
+            : base( name, id )
         {
             Throw.DebugAssert( (name.Length != 0) == (invCulture != null) );
             _culture = c;
@@ -130,7 +130,7 @@ namespace CK.Core
             _translations = definitelyNoTranslations;
         }
 
-        internal NormalizedCultureInfo( CultureInfo culture, string name, int id, NormalizedCultureInfo[] fallbacks )
+        internal NormalizedCultureInfo( CultureInfo culture, string name, int id, ImmutableArray<NormalizedCultureInfo> fallbacks )
             : base( name, id, fallbacks )
         {
             _culture = culture;
@@ -145,11 +145,11 @@ namespace CK.Core
         {
             _noTranslations = new Dictionary<string, PositionalCompositeFormat>();
             var cInv = CultureInfo.InvariantCulture;
-            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null, null );
+            Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null );
             var cEn = CultureInfo.GetCultureInfo( "en" );
             bool isInvariantModeWithPredefinedOnly = cEn == cInv;
             Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant, null );
+            var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant );
             _all = new Dictionary<object, ExtendedCultureInfo>()
             {
                 { "", Invariant },
@@ -188,7 +188,7 @@ namespace CK.Core
         }
 
         /// <summary>
-        /// Gets a cached normalized culture info from its name or creates it.
+        /// Finds or creates a cached normalized culture info from its name.
         /// The name must be a valid BCP47 language tag otherwise a <see cref="CultureNotFoundException"/> is raised.
         /// <para>
         /// This doesn't use <see cref="IsValidCultureName(string)"/>, this relies solely on <see cref="CultureInfo.GetCultureInfo(string)"/>
@@ -197,7 +197,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="name">The culture name.</param>
         /// <returns>The culture.</returns>
-        public static NormalizedCultureInfo GetNormalizedCultureInfo( string name )
+        public static NormalizedCultureInfo EnsureNormalizedCultureInfo( string name )
         {
             Throw.CheckNotNullArgument( name );
             // Fast path.
@@ -208,11 +208,11 @@ namespace CK.Core
             // Let the CultureInfo.GetCultureInfo does its job on the culture name.
             // We don't try to optimize here. Either the name is from our normalization
             // or it is an external name that must be fully handled.
-            return GetNormalizedCultureInfo( CultureInfo.GetCultureInfo( name ) );
+            return EnsureNormalizedCultureInfo( CultureInfo.GetCultureInfo( name ) );
         }
 
         /// <summary>
-        /// Gets a cached normalized culture info from a CultureInfo or registers it.
+        /// Finds or creates a cached normalized culture info from a CultureInfo.
         /// Note that if a <see cref="NormalizedCultureInfo"/> has already been registered
         /// with the same normalized <see cref="CultureInfo.Name"/>, the cached instance
         /// is returned: the <paramref name="cultureInfo"/> parameter is not referenced.
@@ -223,7 +223,7 @@ namespace CK.Core
         /// </summary>
         /// <param name="cultureInfo">The culture info.</param>
         /// <returns>The culture.</returns>
-        public static NormalizedCultureInfo GetNormalizedCultureInfo( CultureInfo cultureInfo )
+        public static NormalizedCultureInfo EnsureNormalizedCultureInfo( CultureInfo cultureInfo )
         {
             Throw.CheckNotNullArgument( cultureInfo );
             // Fast paths: lookup the cultureInfo instance and the its name ToLowerInvariant.
@@ -270,7 +270,7 @@ namespace CK.Core
         {
             Throw.DebugAssert( Monitor.IsEntered( _all ) );
             Throw.DebugAssert( name.ToLowerInvariant() == name );
-            // This is required her for recursion and as a double check lock when coming
+            // This is required here for recursion and as a double check lock when coming
             // from unlocked code.
             if( all.TryGetValue( name, out var exist ) )
             {
@@ -285,7 +285,7 @@ namespace CK.Core
                 parent = parent.Parent;
             }
             int id = ComputeId( all, name );
-            var newOne = new NormalizedCultureInfo( cultureInfo, name, id, fallbacks?.ToArray() ?? Array.Empty<NormalizedCultureInfo>() );
+            var newOne = new NormalizedCultureInfo( cultureInfo, name, id, fallbacks != null ? fallbacks.ToImmutableArray() : ImmutableArray<NormalizedCultureInfo>.Empty );
             // Register with the single normalized name.
             all.Add( name, newOne );
             // If the CultureInfo.Name differs ("fr-FR" vs. "fr-fr") also register it.
@@ -296,35 +296,63 @@ namespace CK.Core
             all.Add( id, newOne );
             // Register the FullName if it differs from the name.
             // The FullName is not the same as the Name if and only if there are fallbacks.
-            Throw.DebugAssert( (newOne.Fallbacks.Count > 0) == (newOne.FullName != newOne.Name) );
-            if( newOne.Fallbacks.Count > 0 )
+            Throw.DebugAssert( (newOne.Fallbacks.Length > 0) == (newOne.FullName != newOne.Name) );
+            if( newOne.Fallbacks.Length > 0 )
             {
                 all.Add( newOne.FullName, newOne );
             }
             return newOne;
         }
 
-        internal static ExtendedCultureInfo? DoGetExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
+        internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
 
-        internal static ExtendedCultureInfo DoGetExtendedCultureInfo( string commaSeparatedNames )
+        internal static IEnumerable<ExtendedCultureInfo> GetAll() => _all.Values;
+
+        internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
         {
             Throw.CheckNotNullArgument( commaSeparatedNames );
             // Fast path.
-            if( _all.TryGetValue( commaSeparatedNames, out var e ) )
+            if( !_all.TryGetValue( commaSeparatedNames, out var e ) )
             {
-                return e;
+                // Let a chance to a very basic preprocessing.
+                commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
+                _all.TryGetValue( commaSeparatedNames, out e );
             }
-            // Before locking/adding we let a chance to a very basic preprocessing.
-            commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
-            if( _all.TryGetValue( commaSeparatedNames, out e ) )
+            return e;
+        }
+
+        internal static ExtendedCultureInfo DoFindBestExtendedCultureInfo( string commaSeparatedNames, NormalizedCultureInfo defaultCulture )
+        {
+            Throw.CheckNotNullArgument( defaultCulture );
+
+            var best = DoFindExtendedCultureInfo( ref commaSeparatedNames );
+            if( best != null ) return best;
+
+            var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
+            for( int i = 0; i < fullNames.Length; i++ )
             {
-                return e;
+                string? one = fullNames[i];
+                if( _all.TryGetValue( one, out best ) ) return best;
+                var idx = one.LastIndexOf( '-' );
+                while( idx > 1 )
+                {
+                    one = one.Substring( 0, idx );
+                    if( _all.TryGetValue( one, out best ) ) return best;
+                    idx = one.LastIndexOf( '-' );
+                }
             }
+            return defaultCulture;
+        }
+
+        internal static ExtendedCultureInfo DoEnsureExtendedCultureInfo( string commaSeparatedNames )
+        {
+            var e = DoFindExtendedCultureInfo( ref commaSeparatedNames );
+            if( e != null ) return e;
             var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
             // Single name: use the GetNormalizedCultureInfo.
             if( fullNames.Length == 1 )
             {
-                return GetNormalizedCultureInfo( fullNames[0] );
+                return EnsureNormalizedCultureInfo( fullNames[0] );
             }
             lock( _all )
             {
@@ -395,8 +423,9 @@ namespace CK.Core
                     }
                     previous = c;
                 }
-                // This may not be a pure ExtendedCultureInfo ("fr, fr-fr" => "fr-fr, fr" => "fr-fr").
-                // The fallback names is registered as an alias of NormalizedCultureInfo name.
+                // This may not be a pure ExtendedCultureInfo ("fr, fr-fr" => "fr-fr, fr" => "fr-fr")
+                // so we lookup the dictionary for a normalized culture first (the fallback names is
+                // registered as an alias of NormalizedCultureInfo name).
                 var names = nameBuilder.ToString();
                 if( !all.TryGetValue( names, out e ) )
                 {
@@ -409,10 +438,7 @@ namespace CK.Core
                 return e;
             }
 
-            static int FallbackDepth( NormalizedCultureInfo spec, NormalizedCultureInfo gen )
-            {
-                return Array.IndexOf( (NormalizedCultureInfo[])spec.Fallbacks, gen );
-            }
+            static int FallbackDepth( NormalizedCultureInfo spec, NormalizedCultureInfo gen ) => spec.Fallbacks.IndexOf( gen );
 
             static NormalizedCultureInfo OneRegister( Dictionary<object, ExtendedCultureInfo> all, string name )
             {

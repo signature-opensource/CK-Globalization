@@ -1,6 +1,7 @@
 using CK.Core;
 using FluentAssertions;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 
 namespace CK.Globalization.Tests
@@ -17,11 +18,48 @@ namespace CK.Globalization.Tests
                 .Invoke( null, null );
         }
 
+
+
+
+        [Test]
+        public void demo()
+        {
+            var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
+            var currentCulture = new CurrentCultureInfo( new TranslationService(), frFR );
+
+            int percent = 54;
+            DateTime estimatedEnd = new DateTime( 2023, 11, 8, 12, 5, 0  );
+
+            var msg = currentCulture.MCString( $"Transfer progress is {percent}%. It should end on {estimatedEnd:F}." );
+
+            msg.Text.Should().Be( "Transfer progress is 54%. It should end on mercredi 8 novembre 2023 12:05:00." );
+            msg.TranslationQuality.Should().Be( MCString.Quality.Awful );
+
+            msg.CodeString.ResName.Should().Be( "SHA.V55R2QdiE4w1O82f1Ig5R7kklCc" );
+
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+            // We could have used the first fallback.
+            fr.Should().BeSameAs( frFR.Fallbacks[0] );
+            fr.SetCachedTranslations( new[] { ("SHA.V55R2QdiE4w1O82f1Ig5R7kklCc", "Le transfert se terminera le {1} ({0}%).") } );
+
+            var goodMsg = currentCulture.TranslationService.Translate( msg.CodeString );
+            goodMsg.Text.Should().Be( "Le transfert se terminera le mercredi 8 novembre 2023 12:05:00 (54%)." );
+            goodMsg.TranslationQuality.Should().Be( MCString.Quality.Good );
+
+            frFR.SetCachedTranslations( new[] { ("SHA.V55R2QdiE4w1O82f1Ig5R7kklCc", "Le transfert se terminera le {1} ({0}%).") } );
+
+            var perfectMsg = currentCulture.TranslationService.Translate( msg.CodeString );
+            perfectMsg.Text.Should().Be( "Le transfert se terminera le mercredi 8 novembre 2023 12:05:00 (54%)." );
+            perfectMsg.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+        }
+
+
         [Test]
         public void factory_methods()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             var c = new CurrentCultureInfo( new TranslationService(), fr );
+
 
             var s1 = c.MCString( "Pouf!" );
             s1.CodeString.TargetCulture.Should().BeSameAs( fr );

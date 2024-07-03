@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 
 namespace CK.Core
 {
-
     /// <summary>
     /// Helper that collects multiple user messages.
     /// <para>
@@ -16,7 +15,7 @@ namespace CK.Core
     /// The <see cref="ScopedUserMessageCollector"/> is available in a scope DI context (a "unit of work").
     /// </para>
     /// </summary>
-    public class UserMessageCollector
+    public class UserMessageCollector : IScopedAutoService
     {
         readonly CurrentCultureInfo _culture;
         readonly MList _messages;
@@ -105,19 +104,25 @@ namespace CK.Core
         /// <param name="culture">The current culture to use.</param>
         public UserMessageCollector( CurrentCultureInfo culture )
         {
+            Throw.CheckNotNullArgument( culture );
             _culture = culture;
             _messages = new MList();
         }
 
         /// <summary>
-        /// Gets the <see cref="CurrentCultureInfo"/> used to initialize the messages.
+        /// Gets the culture used to initialize the messages.
         /// </summary>
-        public CurrentCultureInfo? CurrentCulture => _culture;
+        public CurrentCultureInfo CurrentCultureInfo => _culture;
+
+        /// <summary>
+        /// Gets the culture used to initialize the messages.
+        /// </summary>
+        public ExtendedCultureInfo Culture => _culture.CurrentCulture;
 
         /// <summary>
         /// Gets the colected messages so far.
-        /// This list is mutable: order can be changed, messages can be removed or added but
-        /// when doing this, note that <see cref="ErrorCount"/> is not updated.
+        /// This list is mutable: order can be changed, messages can be removed or added.
+        /// <see cref="ErrorCount"/> is automatically updated.
         /// </summary>
         public IList<UserMessage> UserMessages => _messages;
 

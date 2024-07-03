@@ -48,7 +48,7 @@ namespace CK.Core
         }
 
         public FormattedStringHandler( int literalLength, int formattedCount, UserMessageCollector builder )
-            : this( literalLength, formattedCount, builder.CurrentCulture )
+            : this( literalLength, formattedCount, builder.Culture.PrimaryCulture.Culture )
         {
         }
 

@@ -23,7 +23,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void inner_exception_test()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             fr.SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Error.AnError", "Une erreur." },
@@ -35,7 +35,7 @@ namespace CK.Globalization.Tests
                         new Exception( "Another error.",
                             new MCException( current, "Another error.", "Error.AnotherError" ) ) );
             {
-                var messages = e.GetUserMessages( current );
+                var messages = e.GetUserMessages( current, leakAll: true );
                 messages.Count.Should().Be( 3 );
                 messages[0].Text.Should().Be( "Une erreur." );
                 messages[0].Depth.Should().Be( 0 );
@@ -54,7 +54,7 @@ namespace CK.Globalization.Tests
                 { "SHA.2Rtfhnwa9NE1ZH5-uPu4SiTLJdw", "Une autre erreur (from 'SHA.')" }
             } );
             {
-                var messages = e.GetUserMessages( current );
+                var messages = e.GetUserMessages( current, leakAll: true );
                 messages.Count.Should().Be( 3 );
                 messages[0].Text.Should().Be( "Une erreur." );
                 messages[0].Depth.Should().Be( 0 );
@@ -65,7 +65,7 @@ namespace CK.Globalization.Tests
             }
             // Without culture. The non MCException is not translatated.
             {
-                var messages = e.GetUserMessages( null );
+                var messages = e.GetUserMessages( null, leakAll: true );
                 messages.Count.Should().Be( 3 );
                 messages[0].Text.Should().Be( "Une erreur." );
                 messages[0].Depth.Should().Be( 0 );
@@ -86,7 +86,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void aggregate_exception_test()
         {
-            var fr = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr" );
+            var fr = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
             fr.SetCachedTranslations( new Dictionary<string, string>
             {
                 { "Error.AnError", "Une erreur." },
@@ -104,7 +104,7 @@ namespace CK.Globalization.Tests
                                 new Exception( "Another error.", // Depth 2
                                     new MCException( current, "Another error.", "Error.AnotherError" ) ) ) // Depth 3
                         );
-            var messages = e.GetUserMessages( current );
+            var messages = e.GetUserMessages( current, leakAll: true );
             messages.Count.Should().Be( 8 );
             messages[0].Text.Should().Be( "One or more errors occurred." );
             messages[0].Depth.Should().Be( 0 );

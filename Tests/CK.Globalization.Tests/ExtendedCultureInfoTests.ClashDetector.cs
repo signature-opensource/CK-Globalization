@@ -78,7 +78,7 @@ namespace CK.Globalization.Tests
 
             foreach( var cc in CultureInfo.GetCultures( CultureTypes.AllCultures ) )
             {
-                var c = NormalizedCultureInfo.GetNormalizedCultureInfo( cc );
+                var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( cc );
                 var n = c.Name;
                 // Skip the 0 => Invariant exception.
                 if( n.Length > 0 )
@@ -101,7 +101,7 @@ namespace CK.Globalization.Tests
             {
                 var len = r.Next( 8 ) + 2;
                 var extName = Enumerable.Range( 0, len ).Select( i => allNames[r.Next( oCount )] ).Concatenate( ',' );
-                var cExt = ExtendedCultureInfo.GetExtendedCultureInfo( extName );
+                var cExt = ExtendedCultureInfo.EnsureExtendedCultureInfo( extName );
 
                 dbJ2Clashes.Add( cExt.Name.GetDjb2HashCode(), cExt.Name );
 

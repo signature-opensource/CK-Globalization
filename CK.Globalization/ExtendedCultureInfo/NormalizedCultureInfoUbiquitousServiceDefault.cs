@@ -4,10 +4,10 @@ namespace CK.Core
     /// Provides the <see cref="NormalizedCultureInfo.CodeDefault"/> to endpoint that don't resolve
     /// any ambient culture.
     /// <para>
-    /// This also satisfies <see cref="ExtendedCultureInfo"/> ambient service.
+    /// This satisfies the <see cref="ExtendedCultureInfo"/> ambient service.
     /// </para>
     /// </summary>
-    public sealed class NormalizedCultureInfoUbiquitousServiceDefault : IEndpointUbiquitousServiceDefault<NormalizedCultureInfo>
+    public sealed class NormalizedCultureInfoUbiquitousServiceDefault : IAmbientServiceDefaultProvider<NormalizedCultureInfo>
     {
         /// <summary>
         /// Gets the <see cref="NormalizedCultureInfo.CodeDefault"/>.

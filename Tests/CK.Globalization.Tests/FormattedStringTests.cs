@@ -6,13 +6,24 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using static CK.Testing.MonitorTestHelper;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Globalization.Tests
 {
     [TestFixture]
     public class FormattedStringTests
     {
+        [SetUp]
+        [TearDown]
+        public void ClearCache()
+        {
+            typeof( NormalizedCultureInfo )
+                .GetMethod( "ClearCache", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static )!
+                .Invoke( null, null );
+        }
+
         [Test]
         public void plain_string_overload_no_placeholders()
         {
@@ -154,8 +165,8 @@ namespace CK.Globalization.Tests
         [Test]
         public void with_culture_info()
         {
-            var enUS = NormalizedCultureInfo.GetNormalizedCultureInfo( "en-US" );
-            var frFR = NormalizedCultureInfo.GetNormalizedCultureInfo( "fr-FR" );
+            var enUS = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en-US" );
+            var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
 
             var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
             var value = 37.12;
@@ -178,14 +189,17 @@ namespace CK.Globalization.Tests
             inAmerica.Culture.Should().BeSameAs( enUS );
         }
 
+        /// <summary>
+        /// No <see cref="IMCDeserializationOptions"/> but all the cutlures are preloaded.
+        /// </summary>
         [Test]
-        public void serializations_tests()
+        public void serializations_tests_full()
         {
             CheckSerializations( FormattedString.Empty ).Should().Be( """["","",[]]""" );
-            CheckSerializations( new FormattedString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) )
+            CheckSerializations( new FormattedString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" ), "plain text" ) )
                 .Should().Be( $"""["plain text","ar-tn",[]]""" ); ;
 
-            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
+            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.EnsureNormalizedCultureInfo( c ) ) )
             {
                 var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
                 var value = 37.12;
@@ -242,7 +256,7 @@ namespace CK.Globalization.Tests
         [Test]
         public void FormattedString_CreateFromProperties()
         {
-            var c = NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-TN" );
+            var c = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-TN" );
             var f = FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 1), (1, 1), (2, 0), (4, 2) }, c );
             var args = f.GetPlaceholderContents().Select( c => c.ToString() ).ToArray();
             args[0].Should().Be( "A" );
@@ -267,6 +281,157 @@ namespace CK.Globalization.Tests
                 .Should().Throw<ArgumentException>();
             FluentActions.Invoking( () => FormattedString.CreateFromProperties( "ABCDEF", new[] { (0, 2), (1, 2) }, c ) )
                 .Should().Throw<ArgumentException>();
+        }
+
+        class TestOptions : IUtf8JsonReaderContext, IMCDeserializationOptions
+        {
+            public bool CreateUnexistingCultures { get; set; }
+
+            public NormalizedCultureInfo? DefaultCulture { get; set; }
+
+            public void ReadMoreData( ref Utf8JsonReader reader )
+            {
+            }
+
+            public void SkipMoreData( ref Utf8JsonReader reader )
+            {
+            }
+        }
+
+        [Test]
+        public void safe_json_deserialization_of_FormattedString_thanks_to_IMCDeserializationOptions()
+        {
+            var arTN = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" );
+            var f = new FormattedString( arTN, "plain text" );
+
+            string? text = null;
+            TestHelper.JsonIdempotenceCheck( f,
+                                 GlobalizationJsonHelper.WriteAsJsonArray,
+                                 GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                 null,
+                                 t => text = t );
+            text.Should().Be( """["plain text","ar-tn",[]]""" );
+
+            ClearCache();
+
+            // No options: CodeDefault 'en' is selected.
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                             null,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'en' instead of 'ar-tn'." );
+
+            text.Should().Be( """["plain text","en",[]]""" );
+
+            // Allow creation: ar-tn is created.
+            var options = new TestOptions() { CreateUnexistingCultures = true };
+            TestHelper.JsonIdempotenceCheck( f,
+                                 GlobalizationJsonHelper.WriteAsJsonArray,
+                                 GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                 options,
+                                 jsonText2: t => text = t );
+            text.Should().Be( """["plain text","ar-tn",[]]""" );
+
+            // Disabling auto creation but uses "es-es" as the default culture.
+            ClearCache();
+            options.CreateUnexistingCultures = false;
+            options.DefaultCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "es-ES" );
+
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                             options,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'es-es' (the default) instead of 'ar-tn'." );
+
+            text.Should().Be( """["plain text","es-es",[]]""" );
+
+            // Disabling auto creation and "es-es" as default but registering 'ar': "ar" will be selected.
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar" );
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
+                                             null,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'ar' instead of 'ar-tn'." );
+
+            text.Should().Be( """["plain text","ar",[]]""" );
+
+        }
+
+        [Test]
+        public void safe_json_deserialization_of_MCString_thanks_to_IMCDeserializationOptions()
+        {
+            var arTN = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" );
+            var deDE = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "de-de" );
+            var s = MCString.CreateFromProperties( "t1", new CodeString( arTN, "t2", "r" ), deDE );
+
+            string? text = null;
+            TestHelper.JsonIdempotenceCheck( s,
+                                 GlobalizationJsonHelper.WriteAsJsonArray,
+                                 GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                 null,
+                                 t => text = t );
+            text.Should().Be( """["t1","de-de","r","t2","ar-tn",[]]""" );
+
+            ClearCache();
+
+            // No options: CodeDefault 'en' is selected.
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( s,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                             null,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'en' instead of 'ar-tn'." );
+
+            text.Should().Be( """["t1","en","r","t2","en",[]]""" );
+
+            // Allow creation: ar-tn and de-de are created.
+            var options = new TestOptions() { CreateUnexistingCultures = true };
+            TestHelper.JsonIdempotenceCheck( s,
+                                 GlobalizationJsonHelper.WriteAsJsonArray,
+                                 GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                 options,
+                                 jsonText2: t => text = t );
+            text.Should().Be( """["t1","de-de","r","t2","ar-tn",[]]""" );
+
+            // Disabling auto creation but uses "es-es" as the default culture.
+            ClearCache();
+            options.CreateUnexistingCultures = false;
+            options.DefaultCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "es-ES" );
+
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( s,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                             options,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'es-es' (the default) instead of 'ar-tn' and 'de-de'." );
+
+            text.Should().Be( """["t1","es-es","r","t2","es-es",[]]""" );
+
+            // Disabling auto creation and "es-es" as default but registering 'ar': "ar" will be selected.
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar" );
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( s,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                             options,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'ar' instead of 'ar-tn'." );
+
+            text.Should().Be( """["t1","es-es","r","t2","ar",[]]""" );
+
+            // Allowing "de".
+            NormalizedCultureInfo.EnsureNormalizedCultureInfo( "de" );
+            FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( s,
+                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             GlobalizationJsonHelper.ReadMCStringFromJsonArray,
+                                             null,
+                                             jsonText2: t => text = t ) )
+                          .Should().Throw<CKException>( "Deseserialized form uses 'ar' instead of 'ar-tn'." );
+
+            text.Should().Be( """["t1","de","r","t2","ar",[]]""" );
+
         }
 
     }

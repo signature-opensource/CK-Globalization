@@ -55,5 +55,5 @@ It can be used as a simple "ValidationContext" that enables code to return error
 informations.
 
 The [`ScopedUserMessageCollector`](ScopedUserMessageCollector.cs) is a message collector exposed as
-a scoped service: such instance is shared by all the particpants of a "Unit of Work" and can be reused
+a scoped service: such instance is shared by all the participants of a "Unit of Work" and can be reused
 accross the Unit of Work.

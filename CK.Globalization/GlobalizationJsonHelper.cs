@@ -7,7 +7,7 @@ namespace CK.Core
     /// <summary>
     /// Static helper that serializes SimpleUserMessage, UserMessage, MCString, CodeString and FormattedString as JSON arrays.
     /// </summary>
-    public static class GlobalizationJsonHelper
+    public static partial class GlobalizationJsonHelper
     {
         static void ReadEndArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context, string typeName )
         {
@@ -20,6 +20,26 @@ namespace CK.Core
             if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
             if( r.TokenType != JsonTokenType.StartArray ) r.ThrowExpectedJsonException( $"{typeName} array" );
             r.ReadWithMoreData( context );
+        }
+
+        /// <summary>
+        /// Use <see cref="IMCDeserializationOptions"/> that should be supported by <paramref name="context"/> to resolve
+        /// a culture.
+        /// <para>
+        /// To resolve a <see cref="NormalizedCultureInfo"/>, use <see cref="ExtendedCultureInfo.PrimaryCulture"/> on this result.
+        /// </para>
+        /// </summary>
+        /// <param name="name">The desrialized culture name.</param>
+        /// <param name="context">The context.</param>
+        /// <returns>The culture.</returns>
+        public static ExtendedCultureInfo ResolveCulture( string name, IUtf8JsonReaderContext context )
+        {
+            if( context is IMCDeserializationOptions o )
+            {
+                if( o.CreateUnexistingCultures ) return NormalizedCultureInfo.EnsureNormalizedCultureInfo( name );
+                return ExtendedCultureInfo.FindBestExtendedCultureInfo( name, o.DefaultCulture ?? NormalizedCultureInfo.CodeDefault );
+            }
+            return ExtendedCultureInfo.FindBestExtendedCultureInfo( name, NormalizedCultureInfo.CodeDefault );
         }
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -138,8 +158,9 @@ namespace CK.Core
             var formatCulture = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             var c = ReadCodeStringFromJsonArrayContent( ref r, context );
-            return MCString.CreateFromProperties( text, c, NormalizedCultureInfo.GetNormalizedCultureInfo( formatCulture ) );
+            return MCString.CreateFromProperties( text, c, ResolveCulture( formatCulture, context ).PrimaryCulture );
         }
+
         #endregion
 
         #region CodeString
@@ -228,7 +249,7 @@ namespace CK.Core
                 placeholders.Add( (start, length) );
             }
             ReadEndArray( ref r, context, "FormattedString's Placeholders" );
-            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ExtendedCultureInfo.GetExtendedCultureInfo( cultureName ) );
+            return FormattedString.CreateFromProperties( text, placeholders.ToArray(), ResolveCulture( cultureName, context ) );
         }
 
         #endregion

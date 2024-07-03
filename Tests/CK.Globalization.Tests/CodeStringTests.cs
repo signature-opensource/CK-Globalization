@@ -48,12 +48,12 @@ namespace CK.Globalization.Tests
         [Test]
         public void serialization_tests()
         {
-            CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
+            CheckSerializations( new CodeString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
             CheckSerializations( new CodeString( NormalizedCultureInfo.Invariant, "" ) );
-            CheckSerializations( new CodeString( NormalizedCultureInfo.GetNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
+            CheckSerializations( new CodeString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" ), $"This {GetType().Name}." ) );
             CheckSerializations( CodeString.Empty );
 
-            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.GetNormalizedCultureInfo( c ) ) )
+            foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.EnsureNormalizedCultureInfo( c ) ) )
             {
                 var d = new DateTime( 2023, 07, 27, 23, 59, 59, 999, DateTimeKind.Utc );
                 var value = 37.12;
