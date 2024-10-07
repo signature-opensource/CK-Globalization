@@ -18,7 +18,7 @@ public static class FrenchHelper
     /// <summary>
     /// Gets the "fr" culture.
     /// </summary>
-    public static NormalizedCultureInfo French => _french ?? NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
+    public static NormalizedCultureInfo French => _french ??= NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" );
 
     /// <summary>
     /// Helper that should be used temporary... unless the application is definitely in french. And you won't localize it.
