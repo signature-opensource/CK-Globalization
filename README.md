@@ -23,8 +23,8 @@ Even if solutions that involve code generation exist like [TypealizR](https://gi
 that secures this process by enforcing type safety, this is always more work for the developper.
 
 Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
-we always format a text with a "en" (our default) format but with placeholders rendered in the "current" culture and captures
-the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
+we always format a text with a "en" (our default) format but with placeholders rendered in the culture (provided by the DI)
+and captures the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
 An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
@@ -305,6 +305,27 @@ when exchanging with a "front" application that doesn't have to worry about tran
 Json support is available for all these objects in the static `GlobalizationJsonHelper` helper (Json
 serialization doesn't pollute the API). The Json format uses array of values to be as compact as
 possible.
+
+## MCException
+The `MCException` has a `MCString Message { get; }` (hides the base `Exception.Message` property that is the `MCString.Text`).
+It has numerous constructors. This type enables to throw culture aware exceptions and support a simple feature that is to secure
+a little bit the _exception leak_ issue.
+
+An extension method can recursively extract all `UserMessage` (with their depth) from an exception's message and its children.
+
+```csharp
+public static List<UserMessage> GetUserMessages( this Exception ex,
+                                                 CurrentCultureInfo? culture,
+                                                 string? defaultGenericMessage = "An unhandled error occurred.",
+                                                 byte depth = 0,
+                                                 bool? leakAll = null )
+```
+
+The `leakAll` parameter states whether all exceptions must be exposed or only the `MCException` ones. When null, it defaults
+to `CoreApplicationIdentity.IsDevelopmentAndInitialized`: we want to be sure to be in "#Dev" environment to leak the exceptions.
+
+The idea here is that if the developper took the time to emit a `MCException` rather than a mere exception, this exception is then
+"safe enough" to be displayed to an end user.
 
 ## The ResName is optional but important.
 When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.

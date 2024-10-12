@@ -197,7 +197,8 @@ public class UserMessageCollector : IScopedAutoService
     /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
     /// <param name="leakAll">
     /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
-    /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+    /// Defaults to <see cref="CoreApplicationIdentity.IsDevelopmentAndInitialized"/>: we want to be sure to be in "#Dev" environment
+    /// to leak the exceptions.
     /// </param>
     /// <returns>The number of messages that have been added.</returns>
     public int AppendErrors( Exception ex, string? defaultGenericMessage = "An unhandled error occurred.", bool? leakAll = null )
@@ -214,7 +215,8 @@ public class UserMessageCollector : IScopedAutoService
     /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
     /// <param name="leakAll">
     /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
-    /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+    /// Defaults to <see cref="CoreApplicationIdentity.IsDevelopmentAndInitialized"/>: we want to be sure to be in "#Dev" environment
+    /// to leak the exceptions.
     /// </param>
     /// <returns>The number of messages that have been added.</returns>
     public int PrependErrors( Exception ex, string? defaultGenericMessage = "An unhandled error occurred.", bool? leakAll = null )

@@ -19,7 +19,8 @@ public static class UserMessageExceptionExtensions
     /// <param name="defaultGenericMessage">Message used when <paramref name="leakAll"/> is false and there is no <see cref="MCException"/> available.</param>
     /// <param name="leakAll">
     /// Whether all exceptions must be exposed or only the <see cref="MCException"/> ones.
-    /// Defaults to <see cref="CoreApplicationIdentity.EnvironmentName"/> == "#Dev".
+    /// Defaults to <see cref="CoreApplicationIdentity.IsDevelopmentAndInitialized"/>: we want to be sure to be in "#Dev" environment
+    /// to leak the exceptions.
     /// </param>
     /// <returns>A list of one or more messages.</returns>
     public static List<UserMessage> GetUserMessages( this Exception ex,
@@ -73,7 +74,7 @@ public static class UserMessageExceptionExtensions
         Throw.CheckNotNullArgument( culture != null );
         Throw.CheckNotNullArgument( collector );
 
-        var all = leakAll ?? (CoreApplicationIdentity.IsInitialized && CoreApplicationIdentity.Instance.EnvironmentName == CoreApplicationIdentity.DefaultEnvironmentName);
+        var all = leakAll ?? CoreApplicationIdentity.IsDevelopmentAndInitialized;
 
         if( all )
         {
