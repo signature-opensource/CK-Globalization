@@ -366,7 +366,7 @@ public static readonly StaticGate Track;
 Issues that are dynamically analyzed are:
 
 - Calls to `NormalizedCultureInfo.SetCachedTranslations` can raise `TranslationDuplicateResource`
-  and `TranslationFormatError` these issues are only emitted by <see cref="OnNewIssue"/> and logged.
+  and `TranslationFormatError` these issues are only emitted by `OnNewIssue` and logged.
   They are not collected (they are also returned to the caller of SetCachedTranslations).
 - `MissingTranslationResource` is emitted whenever a Bad or Awful translation is detected.
 - `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments
