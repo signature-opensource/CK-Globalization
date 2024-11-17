@@ -18,9 +18,6 @@ public class CurrentCultureTests
             .Invoke( null, null );
     }
 
-
-
-
     [Test]
     public void demo()
     {

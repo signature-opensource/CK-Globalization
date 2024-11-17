@@ -45,11 +45,73 @@ public static class GlobalizationFileHelper
         Throw.CheckArgument( localeRootPath.IsRooted );
         foreach( var d in Directory.GetDirectories( localeRootPath ) )
         {
-            HandleLocalFolder( monitor, localeRootPath, d, loadOnlyExisting );
+            HandleLocaleFolder( monitor, true, localeRootPath, d, loadOnlyExisting );
         }
     }
 
-    static void HandleLocalFolder( IActivityMonitor monitor, NormalizedPath localeRootPath, NormalizedPath subPath, bool loadOnlyExisting )
+    /// <summary>
+    /// Read an Utf8 json stream of translations and throws on any error.
+    /// <para>
+    /// Json comments are skipped, trailing commas are allowed.
+    /// The stream must contain an object with properties that can be other objects or strings.
+    /// Subordinated objects are mapped to dot seprated property names in the result.
+    /// </para>
+    /// </summary>
+    /// <param name="s">A Utf8 json stream.</param>
+    /// <returns>The translations.</returns>
+    public static Dictionary<string, string> ReadJsonTranslationFile( Stream s )
+    {
+        using var context = Utf8JsonStreamReader.Create( s, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }, out var reader );
+        var result = new Dictionary<string, string>();
+        ReadJson( ref reader, context, result );
+        return result;
+
+        static void ReadJson( ref Utf8JsonReader r, IUtf8JsonReaderContext context, Dictionary<string, string> target )
+        {
+            if( r.TokenType == JsonTokenType.None && !r.Read() )
+            {
+                Throw.InvalidDataException( $"Expected a json object." );
+            }
+            Throw.CheckData( r.TokenType == JsonTokenType.StartObject );
+            ReadObject( ref r, context, target, "" );
+
+            static void ReadObject( ref Utf8JsonReader r, IUtf8JsonReaderContext context, Dictionary<string, string> target, string parentPath )
+            {
+                Throw.DebugAssert( r.TokenType == JsonTokenType.StartObject );
+                Throw.DebugAssert( parentPath.Length == 0 || parentPath[^1] == '.' );
+
+                r.ReadWithMoreData( context );
+                while( r.TokenType == JsonTokenType.PropertyName )
+                {
+                    var propertyName = r.GetString();
+                    Throw.CheckData( "Expected non empty property name.", !string.IsNullOrWhiteSpace( propertyName ) );
+                    Throw.CheckData( "Property name cannot end or start with '.' nor contain '..'.",
+                                     propertyName[0] != '.' && propertyName[^1] != '.' && !propertyName.Contains( ".." ) );
+                    propertyName = parentPath + propertyName;
+                    r.ReadWithMoreData( context );
+                    if( r.TokenType == JsonTokenType.StartObject )
+                    {
+                        ReadObject( ref r, context, target, parentPath + propertyName + '.' );
+                    }
+                    else
+                    {
+                        Throw.CheckData( "Expected a string or an object.", r.TokenType == JsonTokenType.String );
+                        if( !target.TryAdd( propertyName, r.GetString()! ) )
+                        {
+                            Throw.InvalidDataException( $"Duplicate key '{propertyName}' found." );
+                        }
+                    }
+                    r.ReadWithMoreData( context );
+                }
+            }
+        }
+    }
+
+    static void HandleLocaleFolder( IActivityMonitor monitor,
+                                    bool isRoot,
+                                    NormalizedPath localeRootPath,
+                                    NormalizedPath subPath,
+                                    bool loadOnlyExisting )
     {
         var cName = subPath.LastPart;
         if( !NormalizedCultureInfo.IsValidCultureName( cName ) )
@@ -57,14 +119,17 @@ public static class GlobalizationFileHelper
             monitor.Warn( $"Skipping directory '{subPath}' that has an invalid culture name." );
             return;
         }
-        int specificDepth = subPath.Parts.Count - localeRootPath.Parts.Count - 1;
-        if( specificDepth > 0 )
+        if( !isRoot )
         {
-            var cParentName = subPath.Parts[^2];
-            if( cName.Length < cParentName.Length + 2 || cName[cParentName.Length] != '-' || !cName.StartsWith( cParentName, StringComparison.OrdinalIgnoreCase ) )
+            int specificDepth = subPath.Parts.Count - localeRootPath.Parts.Count;
+            if( specificDepth > 0 )
             {
-                monitor.Warn( $"Skipping directory '{subPath}'. Its name must start with: '{cParentName}-'." );
-                return;
+                var cParentName = subPath.Parts[^2];
+                if( cName.Length < cParentName.Length + 2 || cName[cParentName.Length] != '-' || !cName.StartsWith( cParentName, StringComparison.OrdinalIgnoreCase ) )
+                {
+                    monitor.Warn( $"Skipping directory '{subPath}'. Its name must start with: '{cParentName}-'." );
+                    return;
+                }
             }
         }
         // Don't try to load a "en.json" file.
@@ -76,9 +141,9 @@ public static class GlobalizationFileHelper
                 return;
             }
         }
-        foreach( var sub in Directory.GetDirectories( localeRootPath ) )
+        foreach( var sub in Directory.GetDirectories( localeRootPath.AppendPart( cName ) ) )
         {
-            HandleLocalFolder( monitor, subPath, sub, loadOnlyExisting );
+            HandleLocaleFolder( monitor, false, subPath, sub, loadOnlyExisting );
         }
     }
 
@@ -102,12 +167,7 @@ public static class GlobalizationFileHelper
             Dictionary<string, string>? d;
             using( var content = File.OpenRead( pJ ) )
             {
-                d = JsonSerializer.Deserialize<Dictionary<string, string>>( content );
-                if( d == null )
-                {
-                    monitor.Error( $"Invalid file '{pJ}'. Null has been deserialized. Skipping directory." );
-                    return false;
-                }
+                d = ReadJsonTranslationFile( content );
             }
             var c = loadOnlyExisting
                         ? ExtendedCultureInfo.FindBestExtendedCultureInfo( cName, NormalizedCultureInfo.Invariant ).PrimaryCulture
