@@ -58,10 +58,16 @@ public static class GlobalizationFileHelper
     /// </para>
     /// </summary>
     /// <param name="s">A Utf8 json stream.</param>
+    /// <param name="skipComments">Whether comments are allowed and skipped (.jsonc) or forbidden (.json).</param>
     /// <returns>The translations.</returns>
-    public static Dictionary<string, string> ReadJsonTranslationFile( Stream s )
+    public static Dictionary<string, string> ReadJsonTranslationFile( Stream s, bool skipComments )
     {
-        using var context = Utf8JsonStreamReader.Create( s, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }, out var reader );
+        var options = new JsonReaderOptions
+        {
+            CommentHandling = skipComments ? JsonCommentHandling.Skip : JsonCommentHandling.Disallow,
+            AllowTrailingCommas = true
+        };
+        using var context = Utf8JsonStreamReader.Create( s, options, out var reader );
         var result = new Dictionary<string, string>();
         ReadJson( ref reader, context, result );
         return result;
@@ -150,6 +156,7 @@ public static class GlobalizationFileHelper
     static bool HandleTranslationFiles( IActivityMonitor monitor, NormalizedPath subPath, string cName, bool loadOnlyExisting )
     {
         var expectedFile = subPath.AppendPart( cName );
+        bool isJsonC = false;
         var pJ = expectedFile + ".json";
         if( !File.Exists( pJ ) )
         {
@@ -159,6 +166,7 @@ public static class GlobalizationFileHelper
                 monitor.Warn( $"Expected file '{pJ}.json' or '.jsonc'. Skipped directory." );
                 return false;
             }
+            isJsonC = true;
         }
         try
         {
@@ -167,7 +175,7 @@ public static class GlobalizationFileHelper
             Dictionary<string, string>? d;
             using( var content = File.OpenRead( pJ ) )
             {
-                d = ReadJsonTranslationFile( content );
+                d = ReadJsonTranslationFile( content, skipComments: isJsonC );
             }
             var c = loadOnlyExisting
                         ? ExtendedCultureInfo.FindBestExtendedCultureInfo( cName, NormalizedCultureInfo.Invariant ).PrimaryCulture
