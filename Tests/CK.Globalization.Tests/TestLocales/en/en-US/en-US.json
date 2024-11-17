@@ -1,3 +1,6 @@
+// Comments are handled...
 {
+    // ..anywhere
     "RootTitle": "Headline in the States"
+    //...and both in json and jsonc files.
 }
