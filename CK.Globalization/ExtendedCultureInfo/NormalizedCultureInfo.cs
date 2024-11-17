@@ -15,7 +15,7 @@ namespace CK.Core;
 /// that is its own <see cref="ExtendedCultureInfo.PrimaryCulture"/> and whose <see cref="ExtendedCultureInfo.Fallbacks"/>
 /// are computed from <see cref="CultureInfo.Parent"/> path.
 /// </summary>
-public sealed class NormalizedCultureInfo : ExtendedCultureInfo
+public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
 {
     readonly CultureInfo _culture;
     // This is not exposed.
@@ -261,9 +261,9 @@ public sealed class NormalizedCultureInfo : ExtendedCultureInfo
     /// </summary>
     /// <param name="name">A potential culture name.</param>
     /// <returns>True if this name is a vald name, false otherwise.</returns>
-    public static bool IsValidCultureName( string name )
+    public static bool IsValidCultureName( ReadOnlySpan<char> name )
     {
-        return !String.IsNullOrWhiteSpace( name ) && Regex.IsMatch( name, @"^(?!-)[0-9a-zA-Z]{0,8}((-[0-9a-zA-Z]{1,8})+)*$" );
+        return SimpleBCP47Name().IsMatch( name );
     }
 
     static NormalizedCultureInfo DoRegister( string name, CultureInfo cultureInfo, Dictionary<object, ExtendedCultureInfo> all )
@@ -479,4 +479,7 @@ public sealed class NormalizedCultureInfo : ExtendedCultureInfo
         }
         return id;
     }
+
+    [GeneratedRegex( @"^(?!-)[0-9a-zA-Z]{0,8}((-[0-9a-zA-Z]{1,8})+)*$" )]
+    private static partial Regex SimpleBCP47Name();
 }
