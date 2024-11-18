@@ -43,9 +43,8 @@ public class TranslationService : ISingletonAutoService
     public virtual bool SupportAsyncTranslation => false;
 
     /// <summary>
-    /// Tries to get a good translation only. If a translation with a culture
-    /// that <see cref="NormalizedCultureInfo.HasSameNeutral(NormalizedCultureInfo)"/> as the
-    /// primary content culture cannot be found, null is returned.
+    /// Tries to get a good translation only. If a translation with the same
+    /// <see cref="NormalizedCultureInfo.NeutralCulture"/> cannot be found, null is returned.
     /// <para>
     /// This is an helper that can be called by a specialized <see cref="TranslateAsync(CodeString)"/>.
     /// </para>
@@ -60,7 +59,7 @@ public class TranslationService : ISingletonAutoService
         {
             foreach( var c in s.TargetCulture.Fallbacks )
             {
-                if( !c.HasSameNeutral( primary ) ) break;
+                if( c.NeutralCulture != primary.NeutralCulture ) break;
                 r = TryTranslate( c, s );
                 if( r != null ) break;
             }

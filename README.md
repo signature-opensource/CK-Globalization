@@ -62,7 +62,7 @@ The .NET cache behavior is far from perfect. One cannot create a new CultureInfo
 should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
 insentitive.
 
-The `static bool NormalizedCultureInfo.IsValidCultureName( string name )` helper is available to check culture
+The `static bool NormalizedCultureInfo.IsValidCultureName( ReadOnlySpan<char> name )` helper is available to check culture
 name syntax but ultimately the framework's `CultureInfo.GetCultureInfo( string name )` decides (and may throw
 the badly named `CultureNotFoundException`: InvalidCultureNameException would be better).
 
@@ -160,7 +160,8 @@ But then interpretations differ. About the "en" code default for instance:
   - **and**, as we are NOT implementing a "general purpose i18n" library, we don't support
     translating an already translated string (translations always start from a "en", code emitted text),
     there is no point to have the default in a "user preference list": "en" is automatically removed.
-- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense in a document library.
+- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense
+  in the context of a "document library".
 
 > Fallbacks for translation and selection actually differ (at least for the "en" handling).
 

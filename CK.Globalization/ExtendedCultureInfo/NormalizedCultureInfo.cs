@@ -18,13 +18,15 @@ namespace CK.Core;
 public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
 {
     readonly CultureInfo _culture;
-    // This is not exposed.
-    // It is the InvariantCulture for all the "en" culture (including "en").
+    // The neutral for Invariant is "en".
     readonly NormalizedCultureInfo _neutral;
     Dictionary<string, PositionalCompositeFormat> _translations;
 
     /// <summary>
-    /// The invariant culture has only itself as a fallback.
+    /// The invariant culture has no fallback and its <see cref="NeutralCulture"/> is the <see cref="CodeDefault"/>.
+    /// <para>
+    /// It exists almost only to represent the <see cref="CultureInfo.InvariantCulture"/> in the NormalizedCulture world.
+    /// </para>
     /// </summary>
     public static readonly NormalizedCultureInfo Invariant;
 
@@ -40,12 +42,14 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     public CultureInfo Culture => _culture;
 
     /// <summary>
-    /// Gets whether this culture share the same top-most neutral culture (the same language)
-    /// with the other one.
+    /// Gets the top-most neutral culture (the same base language).
+    /// <para>
+    /// For the <see cref="Invariant"/> (""), this is the <see cref="CodeDefault"/> ("en"),
+    /// for any regular culture, it is this culture if it is a neutral one or the last culture of
+    /// the <see cref="ExtendedCultureInfo.Fallbacks"/>.
+    /// </para>
     /// </summary>
-    /// <param name="other">The other culture.</param>
-    /// <returns>True if this and other share the same neutral culture.</returns>
-    public bool HasSameNeutral( NormalizedCultureInfo other ) => _neutral == other._neutral;
+    public NormalizedCultureInfo NeutralCulture => _neutral;
 
     /// <summary>
     /// Sets a cached set of resource translation formats from a dictionary of resource name to positional composite
@@ -116,17 +120,18 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         return _translations.TryGetValue( resourceName, out format );
     }
 
-    // Constructor for defaults (Invariant and en).
+    // Constructor for defaults ("en" first and then Invariant: the Invariant._neutral is "en").
     NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations,
                            string name,
                            int id,
                            CultureInfo c,
-                           NormalizedCultureInfo? invCulture )
+                           NormalizedCultureInfo? enForInvariant )
         : base( name, id )
     {
-        Throw.DebugAssert( (name.Length != 0) == (invCulture != null) );
+        Throw.DebugAssert( name == "en" || name == "" );
+        Throw.DebugAssert( (name == "en") == (enForInvariant == null) );
         _culture = c;
-        _neutral = invCulture ?? this;
+        _neutral = enForInvariant ?? this;
         _translations = definitelyNoTranslations;
     }
 
@@ -135,6 +140,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     {
         _culture = culture;
         _neutral = fallbacks.Length > 0 ? fallbacks[0]._neutral : this;
+        Throw.DebugAssert( _neutral == this || _neutral == fallbacks[^1] );
         _translations = _noTranslations;
     }
 
@@ -145,11 +151,12 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     {
         _noTranslations = new Dictionary<string, PositionalCompositeFormat>();
         var cInv = CultureInfo.InvariantCulture;
-        Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, null );
         var cEn = CultureInfo.GetCultureInfo( "en" );
+        var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, null );
+        Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, en );
         bool isInvariantModeWithPredefinedOnly = cEn == cInv;
+
         Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
-        var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, Invariant );
         _all = new Dictionary<object, ExtendedCultureInfo>()
         {
             { "", Invariant },
@@ -253,6 +260,14 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     }
 
     /// <summary>
+    /// Tries to retrieve an already registered <see cref="NormalizedCultureInfo"/> from its <see cref="Name"/>
+    /// or returns null.
+    /// </summary>
+    /// <param name="name">Culture name.</param>
+    /// <returns>The culture if found, null otherwise.</returns>
+    public static NormalizedCultureInfo? FindNormalizedCultureInfo( string name ) => DoFindExtendedCultureInfo( ref name ) as NormalizedCultureInfo;
+
+    /// <summary>
     /// Basic check of a BCP47 language tag (see https://www.rfc-editor.org/rfc/rfc5646.txt).
     /// <para>
     /// This can be used by external code to avoid creating NormalizedCultureInfo with uncontrolled names,
@@ -276,16 +291,16 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         {
             return exist.PrimaryCulture;
         }
-        List<NormalizedCultureInfo>? fallbacks = null;
+        ImmutableArray<NormalizedCultureInfo>.Builder? fallbacks = null;
         var parent = cultureInfo.Parent;
         while( parent != CultureInfo.InvariantCulture )
         {
-            fallbacks ??= new List<NormalizedCultureInfo>();
+            fallbacks ??= ImmutableArray.CreateBuilder<NormalizedCultureInfo>();
             fallbacks.Add( DoRegister( parent.Name.ToLowerInvariant(), parent, all ) );
             parent = parent.Parent;
         }
         int id = ComputeId( all, name );
-        var newOne = new NormalizedCultureInfo( cultureInfo, name, id, fallbacks != null ? fallbacks.ToImmutableArray() : ImmutableArray<NormalizedCultureInfo>.Empty );
+        var newOne = new NormalizedCultureInfo( cultureInfo, name, id, fallbacks != null ? fallbacks.DrainToImmutable() : ImmutableArray<NormalizedCultureInfo>.Empty );
         // Register with the single normalized name.
         all.Add( name, newOne );
         // If the CultureInfo.Name differs ("fr-FR" vs. "fr-fr") also register it.

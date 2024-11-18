@@ -23,7 +23,7 @@ namespace CK.Core;
 /// </list>
 /// <para>
 /// This is an ambient service: all DI container can provide a scoped instance
-/// (the <see cref="NormalizedCultureInfoUbiquitousServiceDefault"/> singleton is always able to
+/// (the <see cref="NormalizedCultureInfoAmbientServiceDefault"/> singleton is always able to
 /// provide a default value).
 /// </para>
 /// </summary>
@@ -59,6 +59,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     internal ExtendedCultureInfo( string name, int id, ImmutableArray<NormalizedCultureInfo> fallbacks )
     {
         Throw.DebugAssert( name.Length > 0 && !name.Contains( ',' ) && !fallbacks.Contains( this ) );
+        Throw.DebugAssert( !fallbacks.Contains( this ) && !fallbacks.Contains( NormalizedCultureInfo.Invariant ) );
         _name = name;
         _fullName = fallbacks.Length > 0
                         ? string.Join( ',', fallbacks.Select( n => n.Name ).Prepend( name ) )
@@ -91,23 +92,31 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     public string Name => _name;
 
     /// <summary>
-    /// Gets the comma separated names normalized in lowered invariant with the <see cref="PrimaryCulture"/> and <see cref="Fallbacks"/>.
+    /// Gets the comma separated names normalized in lowered invariant with the <see cref="PrimaryCulture"/> first
+    /// followed by the <see cref="Fallbacks"/>.
     /// </summary>
     public string FullName => _fullName;
 
     /// <summary>
-    /// Gets the primary culture.
+    /// Gets the primary, preferred, culture.
     /// For a ExtendedCultureInfo this is the first prefered culture, for a NormalizedCultureInfo it is itself.
     /// </summary>
     public NormalizedCultureInfo PrimaryCulture => _primary;
 
     /// <summary>
-    /// Gets the fallbacks. This is empty for <see cref="NormalizedCultureInfo.Invariant"/> and any neutral culture (like "fr").
+    /// Gets the fallbacks.
+    /// The <see cref="NormalizedCultureInfo.Invariant"/> never appears in this list: this is empty
+    /// for the Invariant and any neutral culture (like "fr").
+    /// <para>
+    /// For <see cref="NormalizedCultureInfo"/>, this is the ordered list of <see cref="CultureInfo.Parent"/> cultures from the
+    /// most specific to the most general one (the <see cref="NormalizedCultureInfo.NeutralCulture"/>).
+    /// </para>
     /// </summary>
     public ImmutableArray<NormalizedCultureInfo> Fallbacks => _fallbacks;
 
     /// <summary>
-    /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/> or "en" culture.
+    /// Gets whether this is a default culture: the <see cref="NormalizedCultureInfo.Invariant"/> ("")
+    /// or the <see cref="NormalizedCultureInfo.CodeDefault"/> "en" culture.
     /// </summary>
     public bool IsDefault => _name.Length == 0 || ReferenceEquals( _name, "en" );
 
@@ -126,7 +135,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     public static ExtendedCultureInfo EnsureExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoEnsureExtendedCultureInfo( commaSeparatedNames );
 
     /// <summary>
-    /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its <see cref="ExtendedCultureInfo.Name"/>
+    /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its <see cref="Name"/>
     /// or returns null.
     /// </summary>
     /// <param name="commaSeparatedNames">Comma separated culture names.</param>

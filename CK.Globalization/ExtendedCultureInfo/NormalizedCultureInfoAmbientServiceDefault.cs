@@ -7,7 +7,7 @@ namespace CK.Core;
 /// This satisfies the <see cref="ExtendedCultureInfo"/> ambient service.
 /// </para>
 /// </summary>
-public sealed class NormalizedCultureInfoUbiquitousServiceDefault : IAmbientServiceDefaultProvider<NormalizedCultureInfo>
+public sealed class NormalizedCultureInfoAmbientServiceDefault : IAmbientServiceDefaultProvider<NormalizedCultureInfo>
 {
     /// <summary>
     /// Gets the <see cref="NormalizedCultureInfo.CodeDefault"/>.
