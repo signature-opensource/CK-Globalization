@@ -52,6 +52,11 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     public NormalizedCultureInfo NeutralCulture => _neutral;
 
     /// <summary>
+    /// Gets whether this is a neutral culture (like "en", "fr", etc.).
+    /// </summary>
+    public bool IsNeutralCulture => _neutral == this;
+
+    /// <summary>
     /// Sets a cached set of resource translation formats from a dictionary of resource name to positional composite
     /// string formats. See <see cref="SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
     /// </summary>
