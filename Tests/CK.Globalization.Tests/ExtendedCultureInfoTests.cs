@@ -172,4 +172,16 @@ public partial class ExtendedCultureInfoTests
         best.Name.Should().Be( expectedBest );
     }
 
+    [Test]
+    public void specific_en_cultures_have_the_CodeDefault_en_as_their_last_fallback()
+    {
+        var enGB = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en-GB" );
+        enGB.Fallbacks.Should().HaveCount( 1 );
+        enGB.Fallbacks[^1].Name.Should().Be( "en" );
+
+        var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
+        frFR.Fallbacks.Should().HaveCount( 1 );
+        frFR.Fallbacks[^1].Name.Should().Be( "fr" );
+    }
+
 }
