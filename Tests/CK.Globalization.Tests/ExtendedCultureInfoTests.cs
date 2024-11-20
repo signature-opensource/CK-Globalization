@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using static CK.Testing.MonitorTestHelper;
@@ -184,4 +185,27 @@ public partial class ExtendedCultureInfoTests
         frFR.Fallbacks[^1].Name.Should().Be( "fr" );
     }
 
+    [Test]
+    public void some_SpecificCulture_dont_exist_in_AllCultures_so_we_use_enUS()
+    {
+        var issues = new List<string>();
+
+        foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.EnsureNormalizedCultureInfo( c ) ) )
+        {
+            if( culture.IsFakeSpecificCulture )
+            {
+                issues.Add( $"{culture.Name} -> {culture.SpecificCulture.Name}" );
+            }
+
+            //Console.WriteLine( $"{culture.Name} --> {culture.SpecificCulture.Name} {(culture.IsFakeSpecificCulture ? "(IsFakeSpecificCulture)" : "")}" );
+        }
+
+        NormalizedCultureInfo.CodeDefault.SpecificCulture.FullName.Should().Be( "en-us,en" );
+        NormalizedCultureInfo.Invariant.SpecificCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault.SpecificCulture );
+
+
+        issues.Should().BeEquivalentTo( ["ccp -> en-us", "ceb -> en-us", "ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
+
+
+    }
 }

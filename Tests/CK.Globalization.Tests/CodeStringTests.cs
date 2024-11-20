@@ -46,7 +46,7 @@ public class CodeStringTests
     }
 
     [Test]
-    public void serialization_tests()
+    public void serialization_tests_with_CultureTypes_AllCultures()
     {
         CheckSerializations( new CodeString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" ), "plain text" ) );
         CheckSerializations( new CodeString( NormalizedCultureInfo.Invariant, "" ) );
@@ -62,6 +62,7 @@ public class CodeStringTests
             // Console.WriteLine( f );
             CheckSerializations( f );
         }
+
         static string CheckSerializations( CodeString c )
         {
             // Versioned serializable.

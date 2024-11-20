@@ -18,12 +18,25 @@ namespace CK.Core;
 public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
 {
     readonly CultureInfo _culture;
-    // The neutral for Invariant is "en".
+    // The neutral for Invariant is the CodeDefault "en".
     readonly NormalizedCultureInfo _neutral;
+    // The worst case for .Net is Invariant... (that is Neutral!).
+    // Our worst case is is the "en-US" that is the CodeDefault "en" specific:
+    // we force the "specific aspect" but expose the IsFakeSpecificCulture. 
+    NormalizedCultureInfo? _specificCulture;
+    bool _isFakeSpecificCulture;
     Dictionary<string, PositionalCompositeFormat> _translations;
 
     /// <summary>
-    /// The invariant culture has no fallback and its <see cref="NeutralCulture"/> is the <see cref="CodeDefault"/>.
+    /// The invariant culture:
+    /// <list type="bullet">
+    ///     <item>Has an empty fallbacks.</item>
+    ///     <item>Never appears in any fallbacks.</item>
+    ///     <item>Is not considered neutral (<see cref="IsNeutralCulture"/> is false).</item>
+    ///     <item>Its <see cref="NeutralCulture"/> is the <see cref="CodeDefault"/>.</item>
+    ///     <item>Its <see cref="SpecificCulture"/> is "en-US".</item>
+    ///     <item><see cref="IsFakeSpecificCulture"/> is false: there's nothing surprising in the SpecificCulture to be "en-US".</item>
+    /// </list>
     /// <para>
     /// It exists almost only to represent the <see cref="CultureInfo.InvariantCulture"/> in the NormalizedCulture world.
     /// </para>
@@ -55,6 +68,81 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// Gets whether this is a neutral culture (like "en", "fr", etc.).
     /// </summary>
     public bool IsNeutralCulture => _neutral == this;
+
+    /// <summary>
+    /// Gets the predefined associated specific culture if this is a neutral culture
+    /// or this culture if it is already specific.
+    /// <para>
+    /// Unfortunately, some neutral cultures have NO associated specific culture, see <see cref="IsFakeSpecificCulture"/>
+    /// </para>
+    /// </summary>
+    public NormalizedCultureInfo SpecificCulture
+    {
+        get
+        {
+            // We cannot initialize the SpecificCulture while registering a neutral culture
+            // because we may be registering THE specific one (recursive call).
+            // We defer the initialization and rely on the cache lock (no more protection needed).
+            _specificCulture ??= ObtainSpecificCulture();
+            return _specificCulture;
+        }
+    }
+
+    /// <summary>
+    /// Gets whether the <see cref="SpecificCulture"/> is the "en-US" because this
+    /// neutral culture has no predefined associated specific culture. There are very
+    /// few cultures in this case.
+    /// <para>
+    /// .Net associates the Invariant culture in this case but this library choose to
+    /// enforce the "is specific" aspect by selecting the "en-US" (that is the
+    /// CodeDefault "en" specific culture).
+    /// </para>
+    /// </summary>
+    public bool IsFakeSpecificCulture
+    {
+        get
+        {
+            _specificCulture ??= ObtainSpecificCulture();
+            return _isFakeSpecificCulture;
+        }
+    }
+
+    NormalizedCultureInfo ObtainSpecificCulture()
+    {
+        if( _culture.IsNeutralCulture )
+        {
+            try
+            {
+                // This creates a new CultureInfo instance, we use the Name
+                // to retrieve a cached instance if possible.
+                var s = CultureInfo.CreateSpecificCulture( _culture.Name );
+                // If this returns the invariant, use the CodeDefault.SpecificCulture "en-US".
+                if( s.Name.Length > 0 )
+                {
+                    return EnsureNormalizedCultureInfo( s.Name );
+                }
+                else
+                {
+                    _isFakeSpecificCulture = true;
+                    return CodeDefault.SpecificCulture;
+                }
+            }
+            catch( CultureNotFoundException )
+            {
+                // This should not happen as our initial _culture.Name is valid (already a culture name)
+                // and the (.Net internal) _cultureData.SpecificCultureName is necessarily set.
+                _isFakeSpecificCulture = true;
+                return CodeDefault.SpecificCulture;
+            }
+        }
+        if( this == Invariant )
+        {
+            // We don't consider that Invariant.SpecificCulture == "en-US" is "fake" because
+            // its NeutralCulture is the CodeDefault.
+            return CodeDefault.SpecificCulture;
+        }
+        return this;
+    }
 
     /// <summary>
     /// Sets a cached set of resource translation formats from a dictionary of resource name to positional composite
@@ -125,7 +213,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         return _translations.TryGetValue( resourceName, out format );
     }
 
-    // Constructor for defaults ("en" first and then Invariant: the Invariant._neutral is "en").
+    // Constructor for defaults ("en" first and then Invariant: the Invariant._neutral and _specificCulture is "en").
     NormalizedCultureInfo( Dictionary<string, PositionalCompositeFormat> definitelyNoTranslations,
                            string name,
                            int id,
@@ -203,7 +291,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// Finds or creates a cached normalized culture info from its name.
     /// The name must be a valid BCP47 language tag otherwise a <see cref="CultureNotFoundException"/> is raised.
     /// <para>
-    /// This doesn't use <see cref="IsValidCultureName(string)"/>, this relies solely on <see cref="CultureInfo.GetCultureInfo(string)"/>
+    /// This doesn't use <see cref="IsValidCultureName(ReadOnlySpan{char})"/>, this relies solely on <see cref="CultureInfo.GetCultureInfo(string)"/>
     /// that validates and normalizes the casing as much as it can. If GetCultureInfo accepts the name, it is fine.
     /// </para>
     /// </summary>
@@ -238,7 +326,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     public static NormalizedCultureInfo EnsureNormalizedCultureInfo( CultureInfo cultureInfo )
     {
         Throw.CheckNotNullArgument( cultureInfo );
-        // Fast paths: lookup the cultureInfo instance and the its name ToLowerInvariant.
+        // Fast paths: lookup the cultureInfo instance and its ToLowerInvariant name.
         if( _all.TryGetValue( cultureInfo, out var e ) )
         {
             return e.PrimaryCulture;
