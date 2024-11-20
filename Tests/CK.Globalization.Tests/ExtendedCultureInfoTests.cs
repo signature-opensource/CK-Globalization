@@ -203,9 +203,14 @@ public partial class ExtendedCultureInfoTests
         NormalizedCultureInfo.CodeDefault.SpecificCulture.FullName.Should().Be( "en-us,en" );
         NormalizedCultureInfo.Invariant.SpecificCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault.SpecificCulture );
 
-
-        issues.Should().BeEquivalentTo( ["ccp -> en-us", "ceb -> en-us", "ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
-
-
+        // On Appveyor, "ccp" and "ceb" don't exist.
+        if( issues.Count == 3 )
+        {
+            issues.Should().BeEquivalentTo( ["ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
+        }
+        else
+        {
+            issues.Should().BeEquivalentTo( ["ccp -> en-us", "ceb -> en-us", "ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
+        }
     }
 }
