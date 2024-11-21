@@ -1,0 +1,6 @@
+// Comments are skipped...
+{
+    // ..anywhere
+    "RootTitle": "Headline in the States"
+    //...BUT ONLY in jsonc files.
+}

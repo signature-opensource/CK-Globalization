@@ -23,8 +23,8 @@ Even if solutions that involve code generation exist like [TypealizR](https://gi
 that secures this process by enforcing type safety, this is always more work for the developper.
 
 Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
-we always format a text with a "en" (our default) format but with placeholders rendered in the "current" culture and captures
-the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
+we always format a text with a "en" (our default) format but with placeholders rendered in the culture (provided by the DI)
+and captures the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
 *later* applies another format/enveloppe to this text and obtains the "translated" text.
 
 An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
@@ -62,7 +62,7 @@ The .NET cache behavior is far from perfect. One cannot create a new CultureInfo
 should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
 insentitive.
 
-The `static bool NormalizedCultureInfo.IsValidCultureName( string name )` helper is available to check culture
+The `static bool NormalizedCultureInfo.IsValidCultureName( ReadOnlySpan<char> name )` helper is available to check culture
 name syntax but ultimately the framework's `CultureInfo.GetCultureInfo( string name )` decides (and may throw
 the badly named `CultureNotFoundException`: InvalidCultureNameException would be better).
 
@@ -160,7 +160,8 @@ But then interpretations differ. About the "en" code default for instance:
   - **and**, as we are NOT implementing a "general purpose i18n" library, we don't support
     translating an already translated string (translations always start from a "en", code emitted text),
     there is no point to have the default in a "user preference list": "en" is automatically removed.
-- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense in a document library.
+- For selection, "fr,en,es" is a perfectly valid preference list: our "en" code default doesn't make sense
+  in the context of a "document library".
 
 > Fallbacks for translation and selection actually differ (at least for the "en" handling).
 
@@ -306,6 +307,27 @@ Json support is available for all these objects in the static `GlobalizationJson
 serialization doesn't pollute the API). The Json format uses array of values to be as compact as
 possible.
 
+## MCException
+The `MCException` has a `MCString Message { get; }` (hides the base `Exception.Message` property that is the `MCString.Text`).
+It has numerous constructors. This type enables to throw culture aware exceptions and support a simple feature that is to secure
+a little bit the _exception leak_ issue.
+
+An extension method can recursively extract all `UserMessage` (with their depth) from an exception's message and its children.
+
+```csharp
+public static List<UserMessage> GetUserMessages( this Exception ex,
+                                                 CurrentCultureInfo? culture,
+                                                 string? defaultGenericMessage = "An unhandled error occurred.",
+                                                 byte depth = 0,
+                                                 bool? leakAll = null )
+```
+
+The `leakAll` parameter states whether all exceptions must be exposed or only the `MCException` ones. When null, it defaults
+to `CoreApplicationIdentity.IsDevelopmentAndInitialized`: we want to be sure to be in "#Dev" environment to leak the exceptions.
+
+The idea here is that if the developper took the time to emit a `MCException` rather than a mere exception, this exception is then
+"safe enough" to be displayed to an end user.
+
 ## The ResName is optional but important.
 When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
 In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance
@@ -345,7 +367,7 @@ public static readonly StaticGate Track;
 Issues that are dynamically analyzed are:
 
 - Calls to `NormalizedCultureInfo.SetCachedTranslations` can raise `TranslationDuplicateResource`
-  and `TranslationFormatError` these issues are only emitted by <see cref="OnNewIssue"/> and logged.
+  and `TranslationFormatError` these issues are only emitted by `OnNewIssue` and logged.
   They are not collected (they are also returned to the caller of SetCachedTranslations).
 - `MissingTranslationResource` is emitted whenever a Bad or Awful translation is detected.
 - `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments

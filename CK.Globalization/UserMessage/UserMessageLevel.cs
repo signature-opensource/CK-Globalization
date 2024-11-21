@@ -1,28 +1,27 @@
-namespace CK.Core
+namespace CK.Core;
+
+/// <summary>
+/// Defines the <see cref="UserMessage.Level"/>.
+/// </summary>
+public enum UserMessageLevel
 {
     /// <summary>
-    /// Defines the <see cref="UserMessage.Level"/>.
+    /// Not applicable.
     /// </summary>
-    public enum UserMessageLevel
-    {
-        /// <summary>
-        /// Not applicable.
-        /// </summary>
-        None,
+    None,
 
-        /// <summary>
-        /// Information message.
-        /// </summary>
-        Info = LogLevel.Info,
+    /// <summary>
+    /// Information message.
+    /// </summary>
+    Info = LogLevel.Info,
 
-        /// <summary>
-        /// Warning.
-        /// </summary>
-        Warn = LogLevel.Warn,
+    /// <summary>
+    /// Warning.
+    /// </summary>
+    Warn = LogLevel.Warn,
 
-        /// <summary>
-        /// Error message.
-        /// </summary>
-        Error = LogLevel.Error
-    }
+    /// <summary>
+    /// Error message.
+    /// </summary>
+    Error = LogLevel.Error
 }
