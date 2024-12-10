@@ -49,15 +49,15 @@ public static partial class GlobalizationJsonHelper
     /// </summary>
     /// <param name="w">The writer.</param>
     /// <param name="v">The value to write.</param>
-    public static void WriteAsJsonArray( Utf8JsonWriter w, SimpleUserMessage v )
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly SimpleUserMessage v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
         w.WriteEndArray();
     }
 
     /// <inheritdoc cref="WriteAsJsonArray(Utf8JsonWriter, SimpleUserMessage)"/>.
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, SimpleUserMessage v )
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly SimpleUserMessage v )
     {
         w.WriteNumberValue( (int)v.Level );
         if( v.Level != UserMessageLevel.None )
@@ -134,15 +134,33 @@ public static partial class GlobalizationJsonHelper
     /// </summary>
     /// <param name="w">The writer.</param>
     /// <param name="v">The value to write.</param>
-    public static void WriteAsJsonArray( Utf8JsonWriter w, UserMessage v )
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly UserMessage v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
+        w.WriteEndArray();
+    }
+
+    /// <summary>
+    /// Writes a UserMessage as a full 8-cells array or as a <see cref="SimpleUserMessage"/> (3-cells).
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    /// <param name="asSimpleUserMessage">Whether to write a SimpleUserMessage.</param>
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly UserMessage v, bool asSimpleUserMessage )
+    {
+        w.WriteStartArray();
+        if( asSimpleUserMessage ) WriteJsonArrayContent( w, in v );
+        else
+        {
+            var s = v.AsSimpleUserMessage();
+            WriteJsonArrayContent( w, in s );
+        }
         w.WriteEndArray();
     }
 
     /// <inheritdoc cref="WriteAsJsonArray(Utf8JsonWriter, UserMessage)"/>
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, UserMessage v )
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly UserMessage v )
     {
         w.WriteNumberValue( (int)v.Level );
         if( v.Level != UserMessageLevel.None )
@@ -231,7 +249,7 @@ public static partial class GlobalizationJsonHelper
     public static void WriteJsonArrayContent( Utf8JsonWriter w, CodeString v )
     {
         w.WriteStringValue( v.ResName );
-        WriteJsonArrayContent( w, v.FormattedString );
+        WriteJsonArrayContent( w, in v.FormattedString );
     }
 
     public static CodeString ReadCodeStringFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
@@ -255,14 +273,14 @@ public static partial class GlobalizationJsonHelper
 
     #region FormattedString
 
-    public static void WriteAsJsonArray( Utf8JsonWriter w, FormattedString v )
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly FormattedString v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
         w.WriteEndArray();
     }
 
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, in FormattedString v )
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly FormattedString v )
     {
         w.WriteStringValue( v.Text );
         w.WriteStringValue( v.Culture.Name );

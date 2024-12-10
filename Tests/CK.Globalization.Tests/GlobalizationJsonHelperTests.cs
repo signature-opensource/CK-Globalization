@@ -20,7 +20,7 @@ public class GlobalizationJsonHelperTests
         using var mem = Util.RecyclableStreamManager.GetStream();
         using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem ) )
         {
-            GlobalizationJsonHelper.WriteAsJsonArray( w, message );
+            GlobalizationJsonHelper.WriteAsJsonArray( w, ref message );
         }
         Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).Should().Be( """[8,"The text.",37]""" );
         var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
@@ -34,7 +34,7 @@ public class GlobalizationJsonHelperTests
         var message = UserMessage.Warn( current, $"The {nameof(mem)} text with {current} placeholders.", resName: "Test.Res" ).With( 37 );
         using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem ) )
         {
-            GlobalizationJsonHelper.WriteAsJsonArray( w, message );
+            GlobalizationJsonHelper.WriteAsJsonArray( w, ref message );
         }
         Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).Should().Be( """
             [8,37,"The mem text with CK.Core.CurrentCultureInfo placeholders.","en","Test.Res","The mem text with CK.Core.CurrentCultureInfo placeholders.","en",[4,3,18,26]]

@@ -230,7 +230,7 @@ public class FormattedStringTests
             // Json
             string? text = null;
             TestHelper.JsonIdempotenceCheck( f,
-                                             GlobalizationJsonHelper.WriteAsJsonArray,
+                                             (w,f) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                                              GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                                              null,
                                              t => text = t );
@@ -267,7 +267,7 @@ public class FormattedStringTests
 
         string? text = null;
         TestHelper.JsonIdempotenceCheck( f,
-                                         GlobalizationJsonHelper.WriteAsJsonArray,
+                                         (w,f) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                                          GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                                          null,
                                          t => text = t );
@@ -306,7 +306,7 @@ public class FormattedStringTests
 
         string? text = null;
         TestHelper.JsonIdempotenceCheck( f,
-                             GlobalizationJsonHelper.WriteAsJsonArray,
+                             ( w, f ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                              GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                              null,
                              t => text = t );
@@ -316,7 +316,7 @@ public class FormattedStringTests
 
         // No options: CodeDefault 'en' is selected.
         FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
-                                         GlobalizationJsonHelper.WriteAsJsonArray,
+                                         ( w, f ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                                          GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                                          null,
                                          jsonText2: t => text = t ) )
@@ -327,7 +327,7 @@ public class FormattedStringTests
         // Allow creation: ar-tn is created.
         var options = new TestOptions() { CreateUnexistingCultures = true };
         TestHelper.JsonIdempotenceCheck( f,
-                             GlobalizationJsonHelper.WriteAsJsonArray,
+                             ( w, f ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                              GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                              options,
                              jsonText2: t => text = t );
@@ -339,7 +339,7 @@ public class FormattedStringTests
         options.DefaultCulture = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "es-ES" );
 
         FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
-                                         GlobalizationJsonHelper.WriteAsJsonArray,
+                                         ( w, f ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                                          GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                                          options,
                                          jsonText2: t => text = t ) )
@@ -350,7 +350,7 @@ public class FormattedStringTests
         // Disabling auto creation and "es-es" as default but registering 'ar': "ar" will be selected.
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar" );
         FluentActions.Invoking( () => TestHelper.JsonIdempotenceCheck( f,
-                                         GlobalizationJsonHelper.WriteAsJsonArray,
+                                         ( w, f ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref f ),
                                          GlobalizationJsonHelper.ReadFormattedStringFromJsonArray,
                                          null,
                                          jsonText2: t => text = t ) )
