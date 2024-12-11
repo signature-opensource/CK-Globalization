@@ -250,6 +250,10 @@ public class FormattedStringTests
                 backF.Culture.Should().BeEquivalentTo( f.Culture );
             }
             backF.GetPlaceholderContents().Select( c => c.ToString() ).Should().BeEquivalentTo( f.GetPlaceholderContents().Select( c => c.ToString() ) );
+
+            backF.Equals( f ).Should().BeTrue();
+            (backF == f).Should().BeTrue();
+            (backF != f).Should().BeFalse();
         }
     }
 
