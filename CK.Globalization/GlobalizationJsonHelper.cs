@@ -150,11 +150,14 @@ public static partial class GlobalizationJsonHelper
     public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly UserMessage v, bool asSimpleUserMessage )
     {
         w.WriteStartArray();
-        if( asSimpleUserMessage ) WriteJsonArrayContent( w, in v );
-        else
+        if( asSimpleUserMessage ) 
         {
             var s = v.AsSimpleUserMessage();
             WriteJsonArrayContent( w, in s );
+        }
+        else
+        {
+            WriteJsonArrayContent( w, in v );
         }
         w.WriteEndArray();
     }
