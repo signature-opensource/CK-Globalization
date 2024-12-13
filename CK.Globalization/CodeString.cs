@@ -128,7 +128,7 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     /// <summary>
     /// Gets the formatted string.
     /// </summary>
-    public FormattedString FormattedString => _f;
+    public ref readonly FormattedString FormattedString => ref _f;
 
     /// <summary>
     /// Intended for wrappers that capture the interpolated string handler.

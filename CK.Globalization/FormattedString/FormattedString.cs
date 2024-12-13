@@ -23,8 +23,10 @@ namespace CK.Core;
 /// </para>
 /// </summary>
 [SerializationVersion( 0 )]
-public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable
+public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<FormattedString>
 {
+    static ReadOnlySpan<byte> _resNamePrefix => "SHA."u8;
+
     /// <summary>
     /// The maximal number of placeholders that formatted strings support.
     /// </summary>
@@ -211,7 +213,44 @@ public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersion
         hash.GetCurrentHash( destination );
     }
 
-    static ReadOnlySpan<byte> _resNamePrefix => "SHA."u8;
+    /// <summary>
+    /// Checks exact equality (culture, placeholders and text).
+    /// </summary>
+    /// <param name="other">The other formatted string.</param>
+    /// <returns>Whether this is equal to other.</returns>
+    public bool Equals( FormattedString other )
+    {
+        return _culture == other._culture && _placeholders.AsSpan().SequenceEqual( other._placeholders.AsSpan() ) && _text == other._text;
+    }
+
+    /// <summary>
+    /// Gets the hashcode based on culture and text (avoids computing a hash code for the placholders).
+    /// </summary>
+    /// <returns>The hash code.</returns>
+    public override int GetHashCode() => HashCode.Combine( _text, _culture );
+
+    /// <summary>
+    /// Overridden to call <see cref="Equals(FormattedString)"/>.
+    /// </summary>
+    /// <param name="obj">The other object.</param>
+    /// <returns>Whether this is equal to the other FormattedString.</returns>
+    public override bool Equals( object? obj ) => obj is FormattedString o && Equals( o );
+
+    /// <summary>
+    /// Use <see cref="Equals(FormattedString)"/>.
+    /// </summary>
+    /// <param name="left">First to compare.</param>
+    /// <param name="right">Second to compare.</param>
+    /// <returns>Whether they are equal.</returns>
+    public static bool operator ==( FormattedString left, FormattedString right ) => left.Equals( right );
+
+    /// <summary>
+    /// Use <see cref="Equals(FormattedString)"/>.
+    /// </summary>
+    /// <param name="left">First to compare.</param>
+    /// <param name="right">Second to compare.</param>
+    /// <returns>Whether they differ.</returns>
+    public static bool operator !=( FormattedString left, FormattedString right ) => !(left == right);
 
     /// <summary>
     /// Gets the "Sha.XXX....XXX" automatic resource name that can be used to identify
@@ -411,6 +450,7 @@ public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersion
             w.WriteNullableString( _culture?.Name );
         }
     }
+
     #endregion
 
 }

@@ -27,7 +27,7 @@ public class UserMessageAndMCStringTests
         CheckSerializations( def );
         def.Message.IsTranslatable.Should().BeFalse( "default user message is not translatable." );
         SimpleUserMessage sDef = default;
-        TestHelper.JsonIdempotenceCheck( sDef, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
+        TestHelper.JsonIdempotenceCheck( sDef, ( w, m ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref m ), GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
     }
 
     [Test]
@@ -229,9 +229,9 @@ public class UserMessageAndMCStringTests
         cV.Level.Should().Be( m.Level );
         cV.ToString().Should().Be( m.ToString() );
 
-        TestHelper.JsonIdempotenceCheck( m, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadUserMessageFromJsonArray );
+        TestHelper.JsonIdempotenceCheck( m, ( w, m ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref m ), GlobalizationJsonHelper.ReadUserMessageFromJsonArray );
         TestHelper.JsonIdempotenceCheck( m.Message, GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadMCStringFromJsonArray );
 
-        TestHelper.JsonIdempotenceCheck( m.AsSimpleUserMessage(), GlobalizationJsonHelper.WriteAsJsonArray, GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
+        TestHelper.JsonIdempotenceCheck( m.AsSimpleUserMessage(), ( w, m ) => GlobalizationJsonHelper.WriteAsJsonArray( w, ref m ), GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray );
     }
 }

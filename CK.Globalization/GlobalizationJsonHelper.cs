@@ -42,17 +42,22 @@ public static partial class GlobalizationJsonHelper
         return ExtendedCultureInfo.FindBestExtendedCultureInfo( name, NormalizedCultureInfo.CodeDefault );
     }
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
     #region SimpleUserMessage
-    public static void WriteAsJsonArray( Utf8JsonWriter w, SimpleUserMessage v )
+
+    /// <summary>
+    /// Writes a 3-cells Json array [level,text,depth].
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly SimpleUserMessage v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
         w.WriteEndArray();
     }
 
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, SimpleUserMessage v )
+    /// <inheritdoc cref="WriteAsJsonArray(Utf8JsonWriter, SimpleUserMessage)"/>.
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly SimpleUserMessage v )
     {
         w.WriteNumberValue( (int)v.Level );
         if( v.Level != UserMessageLevel.None )
@@ -62,6 +67,18 @@ public static partial class GlobalizationJsonHelper
         }
     }
 
+    /// <summary>
+    /// Reads a SimpleUserMessage from a 3-cells array or from the bigger 8-cells array of a UserMessage.
+    /// <para>
+    /// The trick is that the regular 3-cells is [level,text,depth] and the UserMessage's one is
+    /// [level,depth,text,...]: when the 2nd position is a number, we know that this is a UserMessage
+    /// we can skip the remaining [..., MCString formatCulture, CodeString resName, FormattedString text, FormattedString cultureName,
+    /// FormattedString's Placeholders array].
+    /// </para>
+    /// </summary>
+    /// <param name="r">The reader.</param>
+    /// <param name="context">The reader context (can be <see cref="IUtf8JsonReaderContext.Empty"/>).</param>
+    /// <returns>The simple message.</returns>
     public static SimpleUserMessage ReadSimpleUserMessageFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         ReadStartArray( ref r, context, "SimpleUserMessage" );
@@ -70,6 +87,7 @@ public static partial class GlobalizationJsonHelper
         return s;
     }
 
+    /// <inheritdoc cref="ReadSimpleUserMessageFromJsonArray(ref Utf8JsonReader, IUtf8JsonReaderContext)"/>
     public static SimpleUserMessage ReadSimpleUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         r.SkipComments( context );
@@ -77,24 +95,75 @@ public static partial class GlobalizationJsonHelper
         r.ReadWithMoreData( context );
         if( level == UserMessageLevel.None ) return default;
         r.SkipComments( context );
-        var s = r.GetString() ?? string.Empty;
-        r.ReadWithMoreData( context );
-        r.SkipComments( context );
-        var depth = (byte)r.GetInt32();
-        r.ReadWithMoreData( context );
-        return new SimpleUserMessage( level, s, depth );
+
+        byte depth;
+        string text;
+        // If we have a number at the 2nd position, then it is the UserMessage's Depth.
+        if( r.TokenType == JsonTokenType.Number )
+        {
+            depth = (byte)r.GetInt32();
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
+            text = r.GetString() ?? string.Empty;
+            // Skip the MCString formatCulture.
+            r.ReadWithMoreData( context ); r.SkipWithMoreData( context );
+            // Skip the CodeString resName.
+            r.ReadWithMoreData( context ); r.SkipWithMoreData( context );
+            // Skip the FormattedString text.
+            r.ReadWithMoreData( context ); r.SkipWithMoreData( context );
+            // Skip the FormattedString cultureName.
+            r.ReadWithMoreData( context ); r.SkipWithMoreData( context );
+            // Skip the FormattedString's Placeholders array.
+            r.ReadWithMoreData( context ); r.SkipWithMoreData( context );
+        }
+        else
+        {
+            text = r.GetString() ?? string.Empty;
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
+            depth = (byte)r.GetInt32();
+            r.ReadWithMoreData( context );
+        }
+        return new SimpleUserMessage( level, text, depth );
     }
     #endregion
 
     #region UserMessage
-    public static void WriteAsJsonArray( Utf8JsonWriter w, UserMessage v )
+    /// <summary>
+    /// Writes a 8-cells Json array.
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly UserMessage v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
         w.WriteEndArray();
     }
 
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, UserMessage v )
+    /// <summary>
+    /// Writes a UserMessage as a full 8-cells array or as a <see cref="SimpleUserMessage"/> (3-cells).
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    /// <param name="asSimpleUserMessage">Whether to write a SimpleUserMessage.</param>
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly UserMessage v, bool asSimpleUserMessage )
+    {
+        w.WriteStartArray();
+        if( asSimpleUserMessage ) 
+        {
+            var s = v.AsSimpleUserMessage();
+            WriteJsonArrayContent( w, in s );
+        }
+        else
+        {
+            WriteJsonArrayContent( w, in v );
+        }
+        w.WriteEndArray();
+    }
+
+    /// <inheritdoc cref="WriteAsJsonArray(Utf8JsonWriter, UserMessage)"/>
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly UserMessage v )
     {
         w.WriteNumberValue( (int)v.Level );
         if( v.Level != UserMessageLevel.None )
@@ -104,6 +173,12 @@ public static partial class GlobalizationJsonHelper
         }
     }
 
+    /// <summary>
+    /// Reads a UserMessage from a 8-cells array.
+    /// </summary>
+    /// <param name="r">The reader.</param>
+    /// <param name="context">The reader context (can be <see cref="IUtf8JsonReaderContext.Empty"/>).</param>
+    /// <returns>The message.</returns>
     public static UserMessage ReadUserMessageFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         ReadStartArray( ref r, context, "UserMessage" );
@@ -112,6 +187,7 @@ public static partial class GlobalizationJsonHelper
         return s;
     }
 
+    /// <inheritdoc cref="ReadUserMessageFromJsonArray(ref Utf8JsonReader, IUtf8JsonReaderContext)"/>
     public static UserMessage ReadUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         r.SkipComments( context );
@@ -126,6 +202,8 @@ public static partial class GlobalizationJsonHelper
     }
 
     #endregion
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
     #region MCString
     public static void WriteAsJsonArray( Utf8JsonWriter w, MCString v )
@@ -174,7 +252,7 @@ public static partial class GlobalizationJsonHelper
     public static void WriteJsonArrayContent( Utf8JsonWriter w, CodeString v )
     {
         w.WriteStringValue( v.ResName );
-        WriteJsonArrayContent( w, v.FormattedString );
+        WriteJsonArrayContent( w, in v.FormattedString );
     }
 
     public static CodeString ReadCodeStringFromJsonArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
@@ -198,14 +276,14 @@ public static partial class GlobalizationJsonHelper
 
     #region FormattedString
 
-    public static void WriteAsJsonArray( Utf8JsonWriter w, FormattedString v )
+    public static void WriteAsJsonArray( Utf8JsonWriter w, ref readonly FormattedString v )
     {
         w.WriteStartArray();
-        WriteJsonArrayContent( w, v );
+        WriteJsonArrayContent( w, in v );
         w.WriteEndArray();
     }
 
-    public static void WriteJsonArrayContent( Utf8JsonWriter w, in FormattedString v )
+    public static void WriteJsonArrayContent( Utf8JsonWriter w, ref readonly FormattedString v )
     {
         w.WriteStringValue( v.Text );
         w.WriteStringValue( v.Culture.Name );
