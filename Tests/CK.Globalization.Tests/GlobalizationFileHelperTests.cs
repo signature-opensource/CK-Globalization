@@ -1,8 +1,7 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using static CK.Testing.MonitorTestHelper;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Globalization.Tests;
 
@@ -37,16 +36,16 @@ public class GlobalizationFileHelperTests
         var sFRCA = MCString.Create( frCA, "Headline", "RootTitle" );
         var sFRFR = MCString.Create( frFR, "Headline", "RootTitle" );
 
-        sDefault.Text.Should().Be( "Headline" );
-        sDE.Text.Should().Be( "Schlagzeile in Deutschland" );
-        sENUS.Text.Should().Be( "Headline in the States" );
-        sFR.Text.Should().Be( "Gros titre" );
-        sFRCA.Text.Should().Be( "Gros titre au Quebec" );
-        sFRFR.Text.Should().Be( "Gros titre en France" );
+        sDefault.Text.ShouldBe( "Headline" );
+        sDE.Text.ShouldBe( "Schlagzeile in Deutschland" );
+        sENUS.Text.ShouldBe( "Headline in the States" );
+        sFR.Text.ShouldBe( "Gros titre" );
+        sFRCA.Text.ShouldBe( "Gros titre au Quebec" );
+        sFRFR.Text.ShouldBe( "Gros titre en France" );
 
-        MCString.Create( frFR, "a page title", "Page.Title" ).Text.Should().Be( "Titre de la page en France" );
-        MCString.Create( frCA, "a page title", "Page.Title" ).Text.Should().Be( "Titre de la page" );
-        MCString.Create( de, "a page title", "Page.Title" ).Text.Should().Be( "a page title" );
+        MCString.Create( frFR, "a page title", "Page.Title" ).Text.ShouldBe( "Titre de la page en France" );
+        MCString.Create( frCA, "a page title", "Page.Title" ).Text.ShouldBe( "Titre de la page" );
+        MCString.Create( de, "a page title", "Page.Title" ).Text.ShouldBe( "a page title" );
 
 
         static CurrentCultureInfo CreateFor( string name )

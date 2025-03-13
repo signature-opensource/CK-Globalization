@@ -1,7 +1,5 @@
 using System;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core;
 

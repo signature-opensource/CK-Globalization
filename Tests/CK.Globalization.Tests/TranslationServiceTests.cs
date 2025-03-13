@@ -1,5 +1,5 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System;
@@ -26,8 +26,8 @@ public class TranslationServiceTests
         var s = new TranslationService();
         var c = new CodeString( NormalizedCultureInfo.Invariant, "Hop" );
         var t = await s.TranslateAsync( c );
-        t.Text.Should().BeSameAs( c.Text );
-        t.FormatCulture.Should().Be( NormalizedCultureInfo.CodeDefault );
+        t.Text.ShouldBeSameAs( c.Text );
+        t.FormatCulture.ShouldBe( NormalizedCultureInfo.CodeDefault );
     }
 
     [Test]
@@ -36,26 +36,26 @@ public class TranslationServiceTests
         var s = new TranslationService();
         var date = new DateTime( 2023, 8, 4, 18, 38, 47 );
         var c = new CodeString( NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" ), $"Hop {date:F}." );
-        c.Text.Should().Be( "Hop vendredi 4 août 2023 18:38:47." );
-        c.TargetCulture.Name.Should().Be( "fr-fr" );
+        c.Text.ShouldBe( "Hop vendredi 4 août 2023 18:38:47." );
+        c.TargetCulture.Name.ShouldBe( "fr-fr" );
 
         var t = await s.TranslateAsync( c );
-        t.Text.Should().Be( c.Text );
-        t.FormatCulture.Name.Should().Be( "en" );
-        t.TranslationQuality.Should().Be( MCString.Quality.Awful );
+        t.Text.ShouldBe( c.Text );
+        t.FormatCulture.Name.ShouldBe( "en" );
+        t.TranslationQuality.ShouldBe( MCString.Quality.Awful );
 
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est Hop {0} (en français)." } } );
 
         t = await s.TranslateAsync( c );
-        t.Text.Should().Be( "C'est Hop vendredi 4 août 2023 18:38:47 (en français)." );
-        t.FormatCulture.Name.Should().Be( "fr" );
-        t.TranslationQuality.Should().Be( MCString.Quality.Good );
+        t.Text.ShouldBe( "C'est Hop vendredi 4 août 2023 18:38:47 (en français)." );
+        t.FormatCulture.Name.ShouldBe( "fr" );
+        t.TranslationQuality.ShouldBe( MCString.Quality.Good );
 
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-fr" ).SetCachedTranslations( new Dictionary<string, string> { { c.ResName, "C'est {0} en France!" } } );
         t = await s.TranslateAsync( c );
-        t.Text.Should().Be( "C'est vendredi 4 août 2023 18:38:47 en France!" );
-        t.FormatCulture.Name.Should().Be( "fr-fr" );
-        t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+        t.Text.ShouldBe( "C'est vendredi 4 août 2023 18:38:47 en France!" );
+        t.FormatCulture.Name.ShouldBe( "fr-fr" );
+        t.TranslationQuality.ShouldBe( MCString.Quality.Perfect );
 
     }
 
@@ -86,37 +86,37 @@ public class TranslationServiceTests
         var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name} on {date:F}.", "Res.Name" );
         {
             var t = await s.TranslateAsync( c );
-            t.Text.Should().Be( "Suisse fr-ch le vendredi, 4 août 2023 18:38:47." );
-            t.FormatCulture.Name.Should().Be( "fr-ch" );
-            t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+            t.Text.ShouldBe( "Suisse fr-ch le vendredi, 4 août 2023 18:38:47." );
+            t.FormatCulture.Name.ShouldBe( "fr-ch" );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Perfect );
         }
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ch" ).SetCachedTranslations( new Dictionary<string, string>() );
         {
             var t = await s.TranslateAsync( c );
-            t.Text.Should().Be( "Canada fr-ch le vendredi, 4 août 2023 18:38:47." );
-            t.FormatCulture.Name.Should().Be( "fr-ca" );
-            t.TranslationQuality.Should().Be( MCString.Quality.Good );
+            t.Text.ShouldBe( "Canada fr-ch le vendredi, 4 août 2023 18:38:47." );
+            t.FormatCulture.Name.ShouldBe( "fr-ca" );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Good );
         }
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-ca" ).SetCachedTranslations( new Dictionary<string, string>() );
         {
             var t = await s.TranslateAsync( c );
-            t.Text.Should().Be( "France fr-ch le vendredi, 4 août 2023 18:38:47." );
-            t.FormatCulture.Name.Should().Be( "fr" );
-            t.TranslationQuality.Should().Be( MCString.Quality.Good );
+            t.Text.ShouldBe( "France fr-ch le vendredi, 4 août 2023 18:38:47." );
+            t.FormatCulture.Name.ShouldBe( "fr" );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Good );
         }
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>() );
         {
             var t = await s.TranslateAsync( c );
-            t.Text.Should().Be( "German fr-ch am vendredi, 4 août 2023 18:38:47." );
-            t.FormatCulture.Name.Should().Be( "de" );
-            t.TranslationQuality.Should().Be( MCString.Quality.Bad );
+            t.Text.ShouldBe( "German fr-ch am vendredi, 4 août 2023 18:38:47." );
+            t.FormatCulture.Name.ShouldBe( "de" );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Bad );
         }
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "de" ).SetCachedTranslations( new Dictionary<string, string>() );
         {
             var t = await s.TranslateAsync( c );
-            t.Text.Should().Be( "Hello from fr-ch on vendredi, 4 août 2023 18:38:47." );
-            t.FormatCulture.Name.Should().Be( "en" );
-            t.TranslationQuality.Should().Be( MCString.Quality.Awful );
+            t.Text.ShouldBe( "Hello from fr-ch on vendredi, 4 août 2023 18:38:47." );
+            t.FormatCulture.Name.ShouldBe( "en" );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Awful );
         }
     }
 
@@ -129,31 +129,31 @@ public class TranslationServiceTests
             var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr" );
             var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
             var t = await s.TranslateAsync( c );
-            t.TranslationQuality.Should().Be( MCString.Quality.Awful );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Awful );
         }
         {
             var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "en" );
             var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
             var t = await s.TranslateAsync( c );
-            t.TranslationQuality.Should().Be( MCString.Quality.Perfect );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Perfect );
         }
         {
             var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "en-us" );
             var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
             var t = await s.TranslateAsync( c );
-            t.TranslationQuality.Should().Be( MCString.Quality.Good );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Good );
         }
         {
             var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-fr,en-us" );
             var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
             var t = await s.TranslateAsync( c );
-            t.TranslationQuality.Should().Be( MCString.Quality.Bad );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Bad );
         }
         {
             var preferences = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-fr,en" );
             var c = new CodeString( preferences, $"Hello from {preferences.PrimaryCulture.Name}.", "Res.Name" );
             var t = await s.TranslateAsync( c );
-            t.TranslationQuality.Should().Be( MCString.Quality.Bad );
+            t.TranslationQuality.ShouldBe( MCString.Quality.Bad );
         }
     }
 

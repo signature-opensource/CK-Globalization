@@ -1,9 +1,8 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using Microsoft.IO;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
-using System;
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
@@ -22,10 +21,10 @@ public class GlobalizationJsonHelperTests
         {
             GlobalizationJsonHelper.WriteAsJsonArray( w, ref message );
         }
-        Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).Should().Be( """[8,"The text.",37]""" );
+        Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).ShouldBe( """[8,"The text.",37]""" );
         var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
         var messageBack = GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
-        messageBack.Should().Be( message );
+        messageBack.ShouldBe( message );
     }
 
     static UserMessage WriteTestUserMessage( RecyclableMemoryStream mem )
@@ -36,7 +35,7 @@ public class GlobalizationJsonHelperTests
         {
             GlobalizationJsonHelper.WriteAsJsonArray( w, ref message );
         }
-        Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).Should().Be( """
+        Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).ShouldBe( """
             [8,37,"The mem text with CK.Core.CurrentCultureInfo placeholders.","en","Test.Res","The mem text with CK.Core.CurrentCultureInfo placeholders.","en",[4,3,18,26]]
             """ );
         return message;
@@ -49,7 +48,7 @@ public class GlobalizationJsonHelperTests
         UserMessage message = WriteTestUserMessage( mem );
         var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
         var messageBack = GlobalizationJsonHelper.ReadUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
-        messageBack.Should().Be( message );
+        messageBack.ShouldBe( message );
     }
 
     [Test]
@@ -60,6 +59,6 @@ public class GlobalizationJsonHelperTests
 
         var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
         var simpleMessageBack = GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
-        simpleMessageBack.Should().Be( message.AsSimpleUserMessage() );
+        simpleMessageBack.ShouldBe( message.AsSimpleUserMessage() );
     }
 }

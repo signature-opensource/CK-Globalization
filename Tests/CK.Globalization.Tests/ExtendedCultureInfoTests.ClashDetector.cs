@@ -1,6 +1,6 @@
 using CK.Core;
 using CommunityToolkit.HighPerformance;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -93,7 +93,7 @@ public partial class ExtendedCultureInfoTests
         // "ca-es-valencia" (13 characters) is the longest (as of today on my computer).
         // BCP47 states that subtags cannot be longer than 8 characters: a 3 levels tag
         // may then be "8-8-8" = 26 characters.
-        allNames.Select( n => n.Length ).Max().Should().BeLessThan( 16 );
+        allNames.Select( n => n.Length ).Max().ShouldBeLessThan( 16 );
 
         using IncrementalHash sha1 = IncrementalHash.CreateHash( HashAlgorithmName.SHA1 );
         int oCount = allNames.Count();
