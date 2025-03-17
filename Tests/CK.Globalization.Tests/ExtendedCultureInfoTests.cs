@@ -1,6 +1,6 @@
 using CK.Core;
 using CommunityToolkit.HighPerformance;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System;
@@ -59,25 +59,24 @@ public partial class ExtendedCultureInfoTests
             expectedFullName = expectedFullName.Replace( "pa-guru-in", "pa-in" );
             expectedName = expectedName.Replace( "pa-guru-in", "pa-in" );
         }
-        n.FullName.Should().Be( expectedFullName );
-        n.Name.Should().Be( expectedName );
-        (isExtended == n is not NormalizedCultureInfo).Should().BeTrue( $"'{names}' => '{n.Name}'" );
+        n.FullName.ShouldBe( expectedFullName );
+        n.Name.ShouldBe( expectedName );
+        (isExtended == n is not NormalizedCultureInfo).ShouldBeTrue( $"'{names}' => '{n.Name}'" );
         var n1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.FullName );
-        n1.Should().BeSameAs( n );
+        n1.ShouldBeSameAs( n );
         var n2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.Name );
-        n2.Should().BeSameAs( n );
+        n2.ShouldBeSameAs( n );
         var n3 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.Name.ToUpperInvariant() );
-        n3.Should().BeSameAs( n );
+        n3.ShouldBeSameAs( n );
         var n4 = ExtendedCultureInfo.EnsureExtendedCultureInfo( n.FullName.ToUpperInvariant() );
-        n4.Should().BeSameAs( n );
+        n4.ShouldBeSameAs( n );
     }
 
     [Test]
     public void inventing_cultures()
     {
-        FluentActions.Invoking( () => new CultureInfo( "fr-fr-development" ) )
-            .Should()
-            .Throw<CultureNotFoundException>( "An invalid name (the 'development' subtag is longer than 8 characters) is the only way to not found a culture." );
+        Util.Invokable( () => new CultureInfo( "fr-fr-development" ) )
+            .ShouldThrow<CultureNotFoundException>( "An invalid name (the 'development' subtag is longer than 8 characters) is the only way to not found a culture." );
 
         // Not cached CultureInfo can be created by newing it.
         {
@@ -85,7 +84,7 @@ public partial class ExtendedCultureInfoTests
             var cValid = new CultureInfo( "a-valid-name" );
 
             var cDevFR = new CultureInfo( "fr-fr-dev" );
-            cDevFR.IsReadOnly.Should().BeFalse( "A non cached CultureInfo is mutable." );
+            cDevFR.IsReadOnly.ShouldBeFalse( "A non cached CultureInfo is mutable." );
             if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
             {
                 // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
@@ -97,16 +96,16 @@ public partial class ExtendedCultureInfoTests
             }
             else
             {
-                cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                cDevFR.Name.ShouldBe( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
             }
-            cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
+            cDevFR.Parent.Name.ShouldBe( "fr-FR", "The Parent is derived from the - separated names." );
             var cDevFRBack = CultureInfo.GetCultureInfo( "fr-fr-dev" );
-            cDevFRBack.Should().NotBeSameAs( cDevFR, "Not cached. Got another instance." );
+            cDevFRBack.ShouldNotBeSameAs( cDevFR, "Not cached. Got another instance." );
         }
         // CultureInfo is cached when CultureInfo.GetCultureInfo is used.
         {
             var cDevFR = CultureInfo.GetCultureInfo( "fr-fr-dev" );
-            cDevFR.IsReadOnly.Should().BeTrue( "A cached culture info is read only." );
+            cDevFR.IsReadOnly.ShouldBeTrue( "A cached culture info is read only." );
             if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
             {
                 // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
@@ -118,11 +117,11 @@ public partial class ExtendedCultureInfoTests
             }
             else
             {
-                cDevFR.Name.Should().BeEquivalentTo( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
+                cDevFR.Name.ShouldBe( "fr-fr-dev", "At least, the name must not be tampered (regardless casing)." );
             }
-            cDevFR.Parent.Name.Should().Be( "fr-FR", "The Parent is derived from the - separated names." );
+            cDevFR.Parent.Name.ShouldBe( "fr-FR", "The Parent is derived from the - separated names." );
             var cDevFRBack = CultureInfo.GetCultureInfo( "fR-fR-dEv" );
-            cDevFRBack.Should().BeSameAs( cDevFR, "...but lookup is case insensitive: this is why our ExtendedCultureInfo.Name is always lowered invariant." );
+            cDevFRBack.ShouldBeSameAs( cDevFR, "...but lookup is case insensitive: this is why our ExtendedCultureInfo.Name is always lowered invariant." );
         }
     }
 
@@ -141,18 +140,18 @@ public partial class ExtendedCultureInfoTests
             var c1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name1 );
             // Resolution differ on Appveyor. This only works if the resolution respects the original string.
             Assume.That( c1.Name == name1, $"Resolution differs: '{name1}' has been transformed to '{c1.Name}'." );
-            c1.Id.Should().Be( idClash );
-            c1.Name.GetDjb2HashCode().Should().Be( idClash );
+            c1.Id.ShouldBe( idClash );
+            c1.Name.GetDjb2HashCode().ShouldBe( idClash );
             var c2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name2 );
             Assume.That( c2.Name == name2, $"Resolution differs: '{name2}' has been transformed to '{c2.Name}'." );
-            c2.Name.GetDjb2HashCode().Should().Be( idClash );
-            c2.Id.Should().Be( idClash + 1 );
+            c2.Name.GetDjb2HashCode().ShouldBe( idClash );
+            c2.Id.ShouldBe( idClash + 1 );
             // Wait for detection.
             while( clashDetected == null ) ;
             var clash = GlobalizationIssues.IdentifierClashes.Single( i => i.Name == name2 );
-            clash.Id.Should().Be( idClash + 1 );
-            clash.Clashes.Should().BeEquivalentTo( new[] { name1 } );
-            clash.Should().BeSameAs( clashDetected );
+            clash.Id.ShouldBe( idClash + 1 );
+            clash.Clashes.ShouldBe( new[] { name1 } );
+            clash.ShouldBeSameAs( clashDetected );
         }
         finally
         {
@@ -170,19 +169,19 @@ public partial class ExtendedCultureInfoTests
         foreach( var c in registered ) NormalizedCultureInfo.EnsureNormalizedCultureInfo( c );
         var def = NormalizedCultureInfo.EnsureNormalizedCultureInfo( defaultCulture );
         var best = ExtendedCultureInfo.FindBestExtendedCultureInfo( candidate, def );
-        best.Name.Should().Be( expectedBest );
+        best.Name.ShouldBe( expectedBest );
     }
 
     [Test]
     public void specific_en_cultures_have_the_CodeDefault_en_as_their_last_fallback()
     {
         var enGB = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "en-GB" );
-        enGB.Fallbacks.Should().HaveCount( 1 );
-        enGB.Fallbacks[^1].Name.Should().Be( "en" );
+        enGB.Fallbacks.Count().ShouldBe( 1 );
+        enGB.Fallbacks[^1].Name.ShouldBe( "en" );
 
         var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
-        frFR.Fallbacks.Should().HaveCount( 1 );
-        frFR.Fallbacks[^1].Name.Should().Be( "fr" );
+        frFR.Fallbacks.Count().ShouldBe( 1 );
+        frFR.Fallbacks[^1].Name.ShouldBe( "fr" );
     }
 
     [Test]
@@ -200,17 +199,17 @@ public partial class ExtendedCultureInfoTests
             //Console.WriteLine( $"{culture.Name} --> {culture.SpecificCulture.Name} {(culture.IsFakeSpecificCulture ? "(IsFakeSpecificCulture)" : "")}" );
         }
 
-        NormalizedCultureInfo.CodeDefault.SpecificCulture.FullName.Should().Be( "en-us,en" );
-        NormalizedCultureInfo.Invariant.SpecificCulture.Should().BeSameAs( NormalizedCultureInfo.CodeDefault.SpecificCulture );
+        NormalizedCultureInfo.CodeDefault.SpecificCulture.FullName.ShouldBe( "en-us,en" );
+        NormalizedCultureInfo.Invariant.SpecificCulture.ShouldBeSameAs( NormalizedCultureInfo.CodeDefault.SpecificCulture );
 
         // On Appveyor, "ccp" and "ceb" don't exist.
         if( issues.Count == 3 )
         {
-            issues.Should().BeEquivalentTo( ["ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
+            issues.ShouldBe( ["ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
         }
         else
         {
-            issues.Should().BeEquivalentTo( ["ccp -> en-us", "ceb -> en-us", "ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
+            issues.ShouldBe( ["ccp -> en-us", "ceb -> en-us", "ckb -> en-us", "pa-guru -> en-us", "qu -> en-us"] );
         }
     }
 }

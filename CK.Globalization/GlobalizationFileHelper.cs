@@ -67,7 +67,7 @@ public static class GlobalizationFileHelper
             CommentHandling = skipComments ? JsonCommentHandling.Skip : JsonCommentHandling.Disallow,
             AllowTrailingCommas = true
         };
-        using var context = Utf8JsonStreamReader.Create( s, options, out var reader );
+        using var context = Utf8JsonStreamReaderContext.Create( s, options, out var reader );
         var result = new Dictionary<string, string>();
         ReadJson( ref reader, context, result );
         return result;

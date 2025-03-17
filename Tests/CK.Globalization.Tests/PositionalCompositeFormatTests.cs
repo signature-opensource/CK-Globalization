@@ -1,12 +1,8 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CK.Globalization.Tests;
 
@@ -18,70 +14,70 @@ public class PositionalCompositeFormatTests
     {
         if( Environment.Is64BitProcess )
         {
-            Unsafe.SizeOf<PositionalCompositeFormat>().Should().Be( 24 );
+            Unsafe.SizeOf<PositionalCompositeFormat>().ShouldBe( 24 );
         }
         else
         {
-            Unsafe.SizeOf<PositionalCompositeFormat>().Should().Be( 16 );
+            Unsafe.SizeOf<PositionalCompositeFormat>().ShouldBe( 16 );
         }
     }
 
     [Test]
     public void successful_parse()
     {
-        Unsafe.SizeOf<PositionalCompositeFormat>().Should().Be( 24 );
+        Unsafe.SizeOf<PositionalCompositeFormat>().ShouldBe( 24 );
 
         {
             PositionalCompositeFormat f = CreateAndCheckFormat( "A" );
-            f.ExpectedArgumentCount.Should().Be( 0 );
-            f.Format( "Any", "thing" ).Should().Be( "A" );
+            f.ExpectedArgumentCount.ShouldBe( 0 );
+            f.Format( "Any", "thing" ).ShouldBe( "A" );
         }
         {
             var f = CreateAndCheckFormat( "{0}" );
-            f.ExpectedArgumentCount.Should().Be( 1 );
-            f.Format( "One", "nop" ).Should().Be( "One" );
+            f.ExpectedArgumentCount.ShouldBe( 1 );
+            f.Format( "One", "nop" ).ShouldBe( "One" );
         }
         {
             var f = CreateAndCheckFormat( "{99}" );
-            f.ExpectedArgumentCount.Should().Be( 100 );
-            f.Format( "Not", "enough" ).Should().Be( "" );
+            f.ExpectedArgumentCount.ShouldBe( 100 );
+            f.Format( "Not", "enough" ).ShouldBe( "" );
         }
         {
             var f = CreateAndCheckFormat( " {10}" );
-            f.ExpectedArgumentCount.Should().Be( 11 );
-            f.Format( "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Got it!" ).Should().Be( " Got it!" );
+            f.ExpectedArgumentCount.ShouldBe( 11 );
+            f.Format( "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Got it!" ).ShouldBe( " Got it!" );
         }
         {
             var f = CreateAndCheckFormat( "ab{1}" );
-            f.ExpectedArgumentCount.Should().Be( 2 );
-            f.Format( "0", "Got it!", "in excess" ).Should().Be( "abGot it!" );
+            f.ExpectedArgumentCount.ShouldBe( 2 );
+            f.Format( "0", "Got it!", "in excess" ).ShouldBe( "abGot it!" );
         }
         {
             var f = CreateAndCheckFormat( "{2}ab" );
-            f.ExpectedArgumentCount.Should().Be( 3 );
-            f.Format( "0", "1", "Got it!", "in excess" ).Should().Be( "Got it!ab" );
+            f.ExpectedArgumentCount.ShouldBe( 3 );
+            f.Format( "0", "1", "Got it!", "in excess" ).ShouldBe( "Got it!ab" );
         }
         {
             var f = CreateAndCheckFormat( "{{}}" );
-            f.ExpectedArgumentCount.Should().Be( 0 );
-            f.Format().Should().Be( "{}" );
+            f.ExpectedArgumentCount.ShouldBe( 0 );
+            f.Format().ShouldBe( "{}" );
         }
         {
             var f = CreateAndCheckFormat( "{{{0}}}" );
-            f.ExpectedArgumentCount.Should().Be( 1 );
-            f.Format( "Got it!" ).Should().Be( "{Got it!}" );
+            f.ExpectedArgumentCount.ShouldBe( 1 );
+            f.Format( "Got it!" ).ShouldBe( "{Got it!}" );
         }
         {
             var f = CreateAndCheckFormat( "{3}{{{2}}}{{{1}}}-{{{{{0}}}}}={0}{1}{2}{3}" );
-            f.ExpectedArgumentCount.Should().Be( 4 );
-            f.Format( "A", "B", "C" ).Should().Be( "{C}{B}-{{A}}=ABC" );
+            f.ExpectedArgumentCount.ShouldBe( 4 );
+            f.Format( "A", "B", "C" ).ShouldBe( "{C}{B}-{{A}}=ABC" );
         }
     }
 
     static PositionalCompositeFormat CreateAndCheckFormat( string format )
     {
         var f = PositionalCompositeFormat.Parse( format );
-        f.GetFormatString().Should().Be( format );
+        f.GetFormatString().ShouldBe( format );
         return f;
     }
 
@@ -97,8 +93,8 @@ public class PositionalCompositeFormatTests
     [TestCase( "-{0}-{85:G}", "No alignment nor format specifier are allowed, expected '}' in '-{0}-{85:G}' at 8." )]
     public void error_parse( string format, string expectedError )
     {
-        PositionalCompositeFormat.TryParse( format, out var f, out var error ).Should().BeFalse();
-        f.Should().BeEquivalentTo( PositionalCompositeFormat.Invalid );
-        error.Should().Be( expectedError );
+        PositionalCompositeFormat.TryParse( format, out var f, out var error ).ShouldBeFalse();
+        f.ShouldBe( PositionalCompositeFormat.Invalid );
+        error.ShouldBe( expectedError );
     }
 }

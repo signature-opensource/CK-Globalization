@@ -1,5 +1,5 @@
 using CK.Core;
-using FluentAssertions;
+using Shouldly;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -30,15 +30,15 @@ public class UserMessageCollectorTests
         using( TestHelper.Monitor.CollectTexts( out var logs ) )
         {
             c.DumpLogs( TestHelper.Monitor );
-            logs.Should().BeEmpty();
+            logs.ShouldBeEmpty();
         }
         int v = -42;
-        FluentActions.Invoking( () => c.Add( UserMessageLevel.None, "nop" ) ).Should().Throw<ArgumentException>();
-        FluentActions.Invoking( () => c.Add( UserMessageLevel.None, $"v = {v}" ) ).Should().Throw<ArgumentException>();
-        FluentActions.Invoking( () => c.OpenGroup( UserMessageLevel.None, "nop" ) ).Should().Throw<ArgumentException>();
-        FluentActions.Invoking( () => c.OpenGroup( UserMessageLevel.None, $"v = {v}" ) ).Should().Throw<ArgumentException>();
+        Util.Invokable( () => c.Add( UserMessageLevel.None, "nop" ) ).ShouldThrow<ArgumentException>();
+        Util.Invokable( () => c.Add( UserMessageLevel.None, $"v = {v}" ) ).ShouldThrow<ArgumentException>();
+        Util.Invokable( () => c.OpenGroup( UserMessageLevel.None, "nop" ) ).ShouldThrow<ArgumentException>();
+        Util.Invokable( () => c.OpenGroup( UserMessageLevel.None, $"v = {v}" ) ).ShouldThrow<ArgumentException>();
 
-        c.Depth.Should().Be( 0 );
+        c.Depth.ShouldBe( 0 );
 
         NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr" ).SetCachedTranslations( new Dictionary<string, string>()
         {
@@ -50,22 +50,26 @@ public class UserMessageCollectorTests
         c.Warn( $"Value {v} should be positive.", "Validation.PositiveValueExpected" );
         c.Info( $"Value {v} should be positive.", "Validation.PositiveValueExpected" );
 
-        c.Depth.Should().Be( 0 );
-        c.ErrorCount.Should().Be( 1 );
-        c.UserMessages.Should().HaveCount( 3 ).And.AllSatisfy( m => m.Text.Should().Be( "La valeur -42 doit être positive." ) );
-        c.UserMessages[0].Level.Should().Be( UserMessageLevel.Error );
-        c.UserMessages[1].Level.Should().Be( UserMessageLevel.Warn );
-        c.UserMessages[2].Level.Should().Be( UserMessageLevel.Info );
+        c.Depth.ShouldBe( 0 );
+        c.ErrorCount.ShouldBe( 1 );
+        c.UserMessages.Count.ShouldBe( 3 );
+        foreach( var m in c.UserMessages )
+        {
+            m.Text.ShouldBe( "La valeur -42 doit être positive." );
+        }
+        c.UserMessages[0].Level.ShouldBe( UserMessageLevel.Error );
+        c.UserMessages[1].Level.ShouldBe( UserMessageLevel.Warn );
+        c.UserMessages[2].Level.ShouldBe( UserMessageLevel.Info );
         using( TestHelper.Monitor.CollectEntries( out var logs, LogLevelFilter.Info ) )
         {
             c.DumpLogs( TestHelper.Monitor );
-            logs.Should().HaveCount( 3 );
-            logs[0].MaskedLevel.Should().Be( LogLevel.Error );
-            logs[0].Text.Should().Be( "Value -42 should be positive." );
-            logs[1].MaskedLevel.Should().Be( LogLevel.Warn );
-            logs[1].Text.Should().Be( "Value -42 should be positive." );
-            logs[2].MaskedLevel.Should().Be( LogLevel.Info );
-            logs[2].Text.Should().Be( "Value -42 should be positive." );
+            logs.Count.ShouldBe( 3 );
+            logs[0].MaskedLevel.ShouldBe( LogLevel.Error );
+            logs[0].Text.ShouldBe( "Value -42 should be positive." );
+            logs[1].MaskedLevel.ShouldBe( LogLevel.Warn );
+            logs[1].Text.ShouldBe( "Value -42 should be positive." );
+            logs[2].MaskedLevel.ShouldBe( LogLevel.Info );
+            logs[2].Text.ShouldBe( "Value -42 should be positive." );
         }
 
         // Unclosed group.
@@ -90,51 +94,51 @@ public class UserMessageCollectorTests
                     using( c.OpenGroup( UserMessageLevel.Info, "I2" ) )
                     {
                         c.Info( "Done.", "Done" );
-                        c.Depth.Should().Be( 4 );
+                        c.Depth.ShouldBe( 4 );
                     }
-                    c.Depth.Should().Be( 3 );
+                    c.Depth.ShouldBe( 3 );
                 }
-                c.Depth.Should().Be( 2 );
+                c.Depth.ShouldBe( 2 );
             }
-            c.Depth.Should().Be( 1 );
+            c.Depth.ShouldBe( 1 );
         }
-        c.Depth.Should().Be( 0 );
-        c.ErrorCount.Should().Be( 3 );
-        c.UserMessages.Should().HaveCount( 10 );
-        c.UserMessages.Select( m => m.Depth ).Should().BeEquivalentTo( new[] { 0, 1, 2, 3, 3, 3, 1, 2, 3, 4 } );
+        c.Depth.ShouldBe( 0 );
+        c.ErrorCount.ShouldBe( 3 );
+        c.UserMessages.Count.ShouldBe( 10 );
+        c.UserMessages.Select( m => m.Depth.ToString() ).Concatenate().ShouldBe( "0, 1, 2, 3, 3, 3, 1, 2, 3, 4" );
 
         using( TestHelper.Monitor.CollectEntries( out var logs, LogLevelFilter.Info ) )
         {
             c.DumpLogs( TestHelper.Monitor );
-            logs.Should().HaveCount( 10 );
-            logs[0].MaskedLevel.Should().Be( LogLevel.Error );
-            logs[0].Text.Should().Be( "E" );
-            logs[1].MaskedLevel.Should().Be( LogLevel.Warn );
-            logs[1].Text.Should().Be( "W" );
-            logs[2].MaskedLevel.Should().Be( LogLevel.Info );
-            logs[2].Text.Should().Be( "I" );
+            logs.Count.ShouldBe( 10 );
+            logs[0].MaskedLevel.ShouldBe( LogLevel.Error );
+            logs[0].Text.ShouldBe( "E" );
+            logs[1].MaskedLevel.ShouldBe( LogLevel.Warn );
+            logs[1].Text.ShouldBe( "W" );
+            logs[2].MaskedLevel.ShouldBe( LogLevel.Info );
+            logs[2].Text.ShouldBe( "I" );
 
-            logs[3].MaskedLevel.Should().Be( LogLevel.Error );
-            logs[3].Text.Should().Be( "Value -42 should be positive." );
-            logs[4].MaskedLevel.Should().Be( LogLevel.Warn );
-            logs[4].Text.Should().Be( "Value -42 should be positive." );
-            logs[5].MaskedLevel.Should().Be( LogLevel.Info );
-            logs[5].Text.Should().Be( "Value -42 should be positive." );
+            logs[3].MaskedLevel.ShouldBe( LogLevel.Error );
+            logs[3].Text.ShouldBe( "Value -42 should be positive." );
+            logs[4].MaskedLevel.ShouldBe( LogLevel.Warn );
+            logs[4].Text.ShouldBe( "Value -42 should be positive." );
+            logs[5].MaskedLevel.ShouldBe( LogLevel.Info );
+            logs[5].Text.ShouldBe( "Value -42 should be positive." );
 
-            logs[6].MaskedLevel.Should().Be( LogLevel.Error );
-            logs[6].Text.Should().Be( "E2" );
-            logs[7].MaskedLevel.Should().Be( LogLevel.Warn );
-            logs[7].Text.Should().Be( "W2" );
-            logs[8].MaskedLevel.Should().Be( LogLevel.Info );
-            logs[8].Text.Should().Be( "I2" );
+            logs[6].MaskedLevel.ShouldBe( LogLevel.Error );
+            logs[6].Text.ShouldBe( "E2" );
+            logs[7].MaskedLevel.ShouldBe( LogLevel.Warn );
+            logs[7].Text.ShouldBe( "W2" );
+            logs[8].MaskedLevel.ShouldBe( LogLevel.Info );
+            logs[8].Text.ShouldBe( "I2" );
 
-            logs[9].MaskedLevel.Should().Be( LogLevel.Info );
-            logs[9].Text.Should().Be( "Done." );
+            logs[9].MaskedLevel.ShouldBe( LogLevel.Info );
+            logs[9].Text.ShouldBe( "Done." );
         }
 
         c.Clear();
-        c.Depth.Should().Be( 0 );
-        c.ErrorCount.Should().Be( 0 );
+        c.Depth.ShouldBe( 0 );
+        c.ErrorCount.ShouldBe( 0 );
 
     }
 
@@ -143,8 +147,8 @@ public class UserMessageCollectorTests
     {
         var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
         var c = new UserMessageCollector( current );
-        FluentActions.Invoking( () => c.UserMessages.Add( new UserMessage() ) ).Should().Throw<ArgumentException>();
-        FluentActions.Invoking( () => c.UserMessages.Insert( 0, new UserMessage() ) ).Should().Throw<ArgumentException>();
+        Util.Invokable( () => c.UserMessages.Add( new UserMessage() ) ).ShouldThrow<ArgumentException>();
+        Util.Invokable( () => c.UserMessages.Insert( 0, new UserMessage() ) ).ShouldThrow<ArgumentException>();
     }
 
     [Test]
@@ -152,32 +156,32 @@ public class UserMessageCollectorTests
     {
         var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
         var c = new UserMessageCollector( current );
-        c.ErrorCount.Should().Be( 0 );
+        c.ErrorCount.ShouldBe( 0 );
         c.Info( "Pop" );
         c.Warn( "Pop" );
         var e1 = c.Error( "Pop" );
-        c.ErrorCount.Should().Be( 1 );
+        c.ErrorCount.ShouldBe( 1 );
         c.UserMessages.Add( e1 );
-        c.ErrorCount.Should().Be( 2 );
+        c.ErrorCount.ShouldBe( 2 );
         c.UserMessages.Remove( e1 );
-        c.ErrorCount.Should().Be( 1 );
+        c.ErrorCount.ShouldBe( 1 );
         c.UserMessages.Remove( e1 );
-        c.ErrorCount.Should().Be( 0 );
-        c.UserMessages.Count.Should().Be( 2 );
+        c.ErrorCount.ShouldBe( 0 );
+        c.UserMessages.Count.ShouldBe( 2 );
 
         c.UserMessages.Insert( 1, e1 );
-        c.ErrorCount.Should().Be( 1 );
+        c.ErrorCount.ShouldBe( 1 );
 
         c.UserMessages.Insert( 3, e1 );
-        c.ErrorCount.Should().Be( 2 );
+        c.ErrorCount.ShouldBe( 2 );
 
         c.UserMessages.Insert( 0, e1 );
-        c.ErrorCount.Should().Be( 3 );
+        c.ErrorCount.ShouldBe( 3 );
 
         c.UserMessages.RemoveAt( 0 );
-        c.ErrorCount.Should().Be( 2 );
+        c.ErrorCount.ShouldBe( 2 );
 
         c.UserMessages.RemoveAt( 1 );
-        c.ErrorCount.Should().Be( 1 );
+        c.ErrorCount.ShouldBe( 1 );
     }
 }
