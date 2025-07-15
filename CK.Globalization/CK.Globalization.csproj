@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CK.Abstractions" Version="27.0.1--0007-develop" />
+    <PackageReference Include="CK.Abstractions" Version="27.0.1--0008-develop" />
     <PackageReference Include="CK.ActivityMonitor.SimpleSender" Version="24.0.1--0001-develop" />
     <PackageReference Include="CK.PerfectEvent" Version="25.0.1--0001-develop" />
   </ItemGroup>
