@@ -6,7 +6,8 @@ using System.Linq;
 namespace CK.Core;
 
 /// <summary>
-/// Captures the existing culture.
+/// Captures the existing cultures: <see cref="ExtendedCultureInfo.All"/> exposes them
+/// and an up-to-date snapshot is also sent in the <see cref="ExtendedCultureInfoCreatedEvent.All"/> event.
 /// </summary>
 public readonly struct AllCultureSnapshot : IEnumerable<ExtendedCultureInfo>
 {
