@@ -1,5 +1,4 @@
 using CK.Core;
-using Shouldly;
 using Microsoft.IO;
 using NUnit.Framework;
 using NUnit.Framework.Internal;

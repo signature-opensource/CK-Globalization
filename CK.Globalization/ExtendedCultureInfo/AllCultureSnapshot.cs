@@ -85,7 +85,13 @@ public readonly struct AllCultureSnapshot : IEnumerable<ExtendedCultureInfo>
     /// Gets the enumerator for all the cultures.
     /// </summary>
     /// <returns>The enumerator.</returns>
-    public IEnumerator<ExtendedCultureInfo> GetEnumerator() => _all?.Values.GetEnumerator() ?? Enumerable.Empty<ExtendedCultureInfo>().GetEnumerator();
+    public IEnumerator<ExtendedCultureInfo> GetEnumerator()
+    {
+        return _all?.Where( kv => ReferenceEquals( kv.Key, kv.Value.Name ) )
+                    .Select( kv => kv.Value )
+                    .GetEnumerator()
+                ?? Enumerable.Empty<ExtendedCultureInfo>().GetEnumerator();
+    }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

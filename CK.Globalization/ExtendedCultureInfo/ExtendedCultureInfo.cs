@@ -1,12 +1,9 @@
-using CK.PerfectEvent;
 using CommunityToolkit.HighPerformance;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CK.Core;
 
@@ -143,29 +140,11 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 
     /// <summary>
     /// Gets all the registered cultures.
-    /// </summary>
-    public static AllCultureSnapshot All => NormalizedCultureInfo.GetAll();
-
-    /// <summary>
-    /// Raised whenever a new <see cref="ExtendedCultureInfo"/> is registered. This event is raised sequentially: this
-    /// allows to track culture registrations without concurrency issues. See <see cref="ExtendedCultureInfoTracker"/>.
     /// <para>
-    /// When a new Culture appears, more than one culture can be created unde the hood. The <see cref="Fallbacks"/>
-    /// or the <see cref="NormalizedCultureInfo.SpecificCulture"/> may have been created but only the registered
-    /// one surfaces here.
+    /// See also <see cref="GlobalizationAgent.CultureCreated"/> event.
     /// </para>
     /// </summary>
-    public static PerfectEvent<ExtendedCultureInfoCreatedEvent> CultureCreated => GlobalizationIssues.CultureCreated;
-
-    /// <summary>
-    /// Starts the provided tracker.
-    /// </summary>
-    /// <param name="tracker">The tracker to start.</param>
-    /// <returns>The awaitable.</returns>
-    public static Task StartTrackerAsync( ExtendedCultureInfoTracker tracker, CancellationToken cancellationToken = default )
-    {
-        return GlobalizationIssues.StartTrackerAsync( tracker, cancellationToken );
-    }
+    public static AllCultureSnapshot All => NormalizedCultureInfo.GetAll();
 
     /// <summary>
     /// Overridden to return the <see cref="Name"/>.

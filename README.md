@@ -204,15 +204,15 @@ All NormalizedCulture (except the "en" and Invariant default ones) can have a ca
 It can always be set (the new one replaces the current one). This is a thread safe atomic operation:
 
 ```csharp
-public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+public IReadOnlyList<GlobalizationAgent.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
 ```
 The `Format` string is a positional-only composite format (see https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):
 only `{0}`, `{1}` etc. placeholders are allowed, without alignement nor format specifier. This format string is parsed and kept as a structure
-optimized to generate strings. If the format cannot be parsed successfully, a `GlobalizationIssues.ResourceFormatError` is emitted.
+optimized to generate strings. If the format cannot be parsed successfully, a `GlobalizationAgent.ResourceFormatError` is emitted.
 
 As discussed before, translations must be "compact": a resource defined in "es-es" MUST be defined in "es" but because translations can be
 set in any order (specific "es-es" before more generic "es") and setting the set is a lock-free operation, we don't check this
-requirement. If a neutral (top culture like "es") misses a resource, a `GlobalizationIssues.MissingTranslationResource` will be emitted.
+requirement. If a neutral (top culture like "es") misses a resource, a `GlobalizationAgent.MissingTranslationResource` will be emitted.
 
 ## ITranslationService and MCString.
 The translation is primarily synchronous and relies on the basic cached translations carried by
@@ -355,8 +355,8 @@ ideally a Code Analyzer would discover all the CodeString and generate an embedd
 of all the CodeString, source code location and hash of the format string.
 Currently this analysis is done dynamically.
 
-## The GlobalizationIssues.
-The `GlobalizationIssues` static class centralizes the collect of issues and raises `OnNewIssue` event.
+## The GlobalizationAgent and the globalization issues.
+The `GlobalizationAgent` static class centralizes the collect of issues and raises `OnNewIssue` event.
 It is driven by a StaticGate:
 ```csharp
 /// <summary>
@@ -368,7 +368,7 @@ Issues that are dynamically analyzed are:
 
 - Calls to `NormalizedCultureInfo.SetCachedTranslations` can raise `TranslationDuplicateResource`
   and `TranslationFormatError` these issues are only emitted by `OnNewIssue` and logged.
-  They are not collected (they are also returned to the caller of SetCachedTranslations).
+  They are not collected in the `IssuesReport` (they are also returned to the caller of SetCachedTranslations).
 - `MissingTranslationResource` is emitted whenever a Bad or Awful translation is detected.
 - `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments
   than a CodeString placeholders contains.
@@ -379,16 +379,17 @@ Issues that are dynamically analyzed are:
 is raised only once.
 
 All dynamic issues (except the `TranslationDuplicateResource` and `TranslationFormatError`) can be retrieved thanks
-to the `GetReportAsync` method:
+to the `GetIssuesReportAsync` method:
 ```csharp
 /// <summary>
-/// Obtains a <see cref="Report"/> with the detected issues so far.
+/// Obtains a report with the detected issues so far.
 /// </summary>
+/// <param name="reset">True to reset the collected information.</param>
 /// <returns>The current issues.</returns>
-public static Task<Report> GetReportAsync() { ... }
+public static Task<IssuesReport> GetIssuesReportAsync( bool reset ) { ... }
 ```
 
-The `GlobalizationIssues.Report` exposes the dynamic issues plus 3 other computed issues:
+The `GlobalizationAgent.IssuesReport` exposes the dynamic issues plus 3 other computed issues:
 
 - `AutomaticResourceNamesCanUseExistingResName` when anutomatic "SHA.XXX" resource name can reuse
   an existing explicit ResName.
@@ -399,7 +400,7 @@ The `GlobalizationIssues.Report` exposes the dynamic issues plus 3 other compute
 
 ## Future
 A static Code Analyzer should discover CodeString and generate a resource file that contains the CodeString
-source location, the format string and its hash. A CKSetup component could then detect `AutomaticResourceNamesCanUseExistingResName`,
+source location, the format string and its hash. A CKomposable engine could then detect `AutomaticResourceNamesCanUseExistingResName`,
 `ResourceNamesCanBeMerged` and `SameResNameWithDifferentFormat` when compiling the final application and a new
 `TranslationUselessResource` could then be immediately emitted when setting a translation cache.
 
