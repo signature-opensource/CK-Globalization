@@ -168,7 +168,7 @@ public partial class ExtendedCultureInfoTests
     {
         foreach( var c in registered ) NormalizedCultureInfo.EnsureNormalizedCultureInfo( c );
         var def = NormalizedCultureInfo.EnsureNormalizedCultureInfo( defaultCulture );
-        var best = ExtendedCultureInfo.FindBestExtendedCultureInfo( candidate, def );
+        var best = ExtendedCultureInfo.All.FindBestExtendedCultureInfo( candidate, def );
         best.Name.ShouldBe( expectedBest );
     }
 

@@ -178,7 +178,7 @@ public static class GlobalizationFileHelper
                 d = ReadJsonTranslationFile( content, skipComments: isJsonC );
             }
             var c = loadOnlyExisting
-                        ? ExtendedCultureInfo.FindBestExtendedCultureInfo( cName, NormalizedCultureInfo.Invariant ).PrimaryCulture
+                        ? ExtendedCultureInfo.All.FindBestExtendedCultureInfo( cName, NormalizedCultureInfo.Invariant ).PrimaryCulture
                         : NormalizedCultureInfo.EnsureNormalizedCultureInfo( cName );
             // Name must match otherwise there's a problem.
             if( !cName.Equals( c.Name, StringComparison.OrdinalIgnoreCase ) )

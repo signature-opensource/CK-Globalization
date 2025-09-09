@@ -114,11 +114,11 @@ public static partial class GlobalizationIssues
     public static Task<Report> GetReportAsync( bool reset )
     {
         var tcs = new TaskCompletionSource<Report>();
-        _channel.Writer.TryWrite( new PrivateGetReport( tcs, reset ) );
+        _channel.Writer.TryWrite( new ReportRequest( tcs, reset ) );
         return tcs.Task;
     }
 
-    static void HandleGetReport( PrivateGetReport report )
+    static void HandleGetReport( ReportRequest report )
     {
         var missingTranslations = _missingTranslations?.Values.Select( c => new MissingTranslationResource( c ) ).ToArray() ?? Array.Empty<MissingTranslationResource>();
         var formatArgumentCountErrors = _formatArgumentError?.Values.ToArray() ?? Array.Empty<FormatArgumentCountError>();
@@ -212,4 +212,5 @@ public static partial class GlobalizationIssues
             }
         }
     }
+
 }

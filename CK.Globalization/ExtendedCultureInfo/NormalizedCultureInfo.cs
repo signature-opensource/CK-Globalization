@@ -21,7 +21,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     // The neutral for Invariant is the CodeDefault "en".
     readonly NormalizedCultureInfo _neutral;
     // The worst case for .Net is Invariant... (that is Neutral!).
-    // Our worst case is is the "en-US" that is the CodeDefault "en" specific:
+    // Our worst case is the "en-US" that is the CodeDefault "en" specific:
     // we force the "specific aspect" but expose the IsFakeSpecificCulture. 
     NormalizedCultureInfo? _specificCulture;
     bool _isFakeSpecificCulture;
@@ -343,22 +343,20 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         // Unfortunately, non read only CultureInfo seems common: the NUnit [SetCulture(...)] attribute for instance
         // sets a non readonly culture.
         // So we drop any check here (and pray).
+        NormalizedCultureInfo c;
+        AllCultureSnapshot snapshot;
         lock( _all )
         {
             var all = new Dictionary<object, ExtendedCultureInfo>( _all );
-            var c = DoRegister( name, cultureInfo, all );
+            c = DoRegister( name, cultureInfo, all );
             _all = all;
-            return c;
+            snapshot = new AllCultureSnapshot( all );
         }
+        // Obviously don't raise the event in the lock but also avoid submitting the job
+        // to the queue while the lock is taken.
+        GlobalizationIssues.OnNewCulture( snapshot, c );
+        return c;
     }
-
-    /// <summary>
-    /// Tries to retrieve an already registered <see cref="NormalizedCultureInfo"/> from its <see cref="Name"/>
-    /// or returns null.
-    /// </summary>
-    /// <param name="name">Culture name.</param>
-    /// <returns>The culture if found, null otherwise.</returns>
-    public static NormalizedCultureInfo? FindNormalizedCultureInfo( string name ) => DoFindExtendedCultureInfo( ref name ) as NormalizedCultureInfo;
 
     /// <summary>
     /// Basic check of a BCP47 language tag (see https://www.rfc-editor.org/rfc/rfc5646.txt).
@@ -412,56 +410,19 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         return newOne;
     }
 
-    internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
-
-    internal static IEnumerable<ExtendedCultureInfo> GetAll() => _all.Values;
-
-    internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
-    {
-        Throw.CheckNotNullArgument( commaSeparatedNames );
-        // Fast path.
-        if( !_all.TryGetValue( commaSeparatedNames, out var e ) )
-        {
-            // Let a chance to a very basic preprocessing.
-            commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
-            _all.TryGetValue( commaSeparatedNames, out e );
-        }
-        return e;
-    }
-
-    internal static ExtendedCultureInfo DoFindBestExtendedCultureInfo( string commaSeparatedNames, NormalizedCultureInfo defaultCulture )
-    {
-        Throw.CheckNotNullArgument( defaultCulture );
-
-        var best = DoFindExtendedCultureInfo( ref commaSeparatedNames );
-        if( best != null ) return best;
-
-        var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
-        for( int i = 0; i < fullNames.Length; i++ )
-        {
-            string? one = fullNames[i];
-            if( _all.TryGetValue( one, out best ) ) return best;
-            var idx = one.LastIndexOf( '-' );
-            while( idx > 1 )
-            {
-                one = one.Substring( 0, idx );
-                if( _all.TryGetValue( one, out best ) ) return best;
-                idx = one.LastIndexOf( '-' );
-            }
-        }
-        return defaultCulture;
-    }
+    internal static AllCultureSnapshot GetAll() => new AllCultureSnapshot( _all );
 
     internal static ExtendedCultureInfo DoEnsureExtendedCultureInfo( string commaSeparatedNames )
     {
-        var e = DoFindExtendedCultureInfo( ref commaSeparatedNames );
+        var e = new AllCultureSnapshot( _all ).DoFindExtendedCultureInfo( ref commaSeparatedNames );
         if( e != null ) return e;
         var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
-        // Single name: use the GetNormalizedCultureInfo.
+        // Single name: use the EnsureNormalizedCultureInfo.
         if( fullNames.Length == 1 )
         {
             return EnsureNormalizedCultureInfo( fullNames[0] );
         }
+        Dictionary<object, ExtendedCultureInfo>? snapshotForEvent = null; 
         lock( _all )
         {
             var allCultures = new List<NormalizedCultureInfo>();
@@ -541,10 +502,17 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
                 e = new ExtendedCultureInfo( allCultures, names, id );
                 all.Add( e.Name, e );
                 all.Add( id, e );
+                snapshotForEvent = all;
             }
             _all = all;
-            return e;
         }
+        // Obviously don't raise the event in the lock but also avoid submitting the job
+        // to the queue while the lock is taken.
+        if( snapshotForEvent != null )
+        {
+            GlobalizationIssues.OnNewCulture( new AllCultureSnapshot( snapshotForEvent ), e );
+        }
+        return e;
 
         static int FallbackDepth( NormalizedCultureInfo spec, NormalizedCultureInfo gen ) => spec.Fallbacks.IndexOf( gen );
 

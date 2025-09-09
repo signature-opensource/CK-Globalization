@@ -4,13 +4,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace CK.Core;
 
 /// <summary>
-/// Tracks and collects globalization issues:
+/// Micro Agent that tracks and collects globalization issues:
 /// <list type="bullet">
 ///     <item>
 ///     Calls to <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/> can raise <see cref="TranslationDuplicateResource"/>
@@ -67,9 +68,10 @@ public static partial class GlobalizationIssues
         public int GetHashCode( byte[] obj ) => obj.GetDjb2HashCode();
     }
 
-    static readonly Channel<Issue?> _channel;
+    static readonly Channel<object?> _channel;
     static readonly IActivityMonitor _monitor;
     static readonly PerfectEventSender<Issue> _onNewIssue;
+    static readonly PerfectEventSender<ExtendedCultureInfoCreatedEvent> _onNewCulture;
     internal readonly record struct ResKey( NormalizedCultureInfo Culture, string ResName );
     static Dictionary<ResKey, CodeString>? _missingTranslations;
     static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
@@ -88,10 +90,11 @@ public static partial class GlobalizationIssues
     static GlobalizationIssues()
     {
         Track = new StaticGate( "CK.Core.GlobalizationIssues.Track", false );
-        _channel = Channel.CreateUnbounded<Issue?>( new UnboundedChannelOptions { SingleReader = true } );
+        _channel = Channel.CreateUnbounded<object?>( new UnboundedChannelOptions { SingleReader = true } );
         _monitor = new ActivityMonitor( nameof( GlobalizationIssues ) );
         _monitor.AutoTags = ActivityMonitor.Tags.Register( "Globalization" );
         _onNewIssue = new PerfectEventSender<Issue>();
+        _onNewCulture = new PerfectEventSender<ExtendedCultureInfoCreatedEvent>();
         _identifierClashes = Array.Empty<CultureIdentifierClash>();
         _codeSringOccurrence = new ConcurrentDictionary<byte[], CodeStringSourceLocation[]>( new SHAComparer() );
         _ = Task.Run( RunAsync );
@@ -101,39 +104,72 @@ public static partial class GlobalizationIssues
 
         static async Task RunAsync()
         {
-            Issue? o;
+            object? o;
             while( (o = await _channel.Reader.ReadAsync().ConfigureAwait( false )) != null )
             {
                 try
                 {
-                    switch( o )
+                    if( o is Issue issue )
                     {
-                        case PrivateCodeStringCreated s:
-                            HandleStringCreated( s.String, s.FilePath, s.LineNumber );
-                            // This one emits no issue.
-                            continue;
-                        case PrivateMissingTranslationResource m:
-                            // May emit one MissingTranslationResource issue and may be one FormatArgumentCountError issue.
-                            await HandleMissingTranslationResourceAsync( m.Format, m.MCString );
-                            continue;
-                        case PrivateFormatArgumentCountError d:
-                            // May emit a FormatArgumentCountError issue.
-                            await HandleFormatArgumentCountErrorAsync( d.Format, d.MCString );
-                            continue;
-                        case CultureIdentifierClash c:
-                            Util.InterlockedAdd( ref _identifierClashes, c );
-                            _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
-                                                    ActivityMonitor.Tags.ToBeInvestigated,
-                                                    c.ToString(),
-                                                    null );
-                            break;
-                        default:
-                            Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource );
-                            _monitor.Warn( o.ToString() );
-                            break;
+                        switch( issue )
+                        {
+                            case PrivateCodeStringCreated s:
+                                HandleStringCreated( s.String, s.FilePath, s.LineNumber );
+                                // This one emits no issue.
+                                continue;
+                            case PrivateMissingTranslationResource m:
+                                // May emit one MissingTranslationResource issue and may be one FormatArgumentCountError issue.
+                                await HandleMissingTranslationResourceAsync( m.Format, m.MCString );
+                                continue;
+                            case PrivateFormatArgumentCountError d:
+                                // May emit a FormatArgumentCountError issue.
+                                await HandleFormatArgumentCountErrorAsync( d.Format, d.MCString );
+                                continue;
+                            case CultureIdentifierClash c:
+                                Util.InterlockedAdd( ref _identifierClashes, c );
+                                _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
+                                                        ActivityMonitor.Tags.ToBeInvestigated,
+                                                        c.ToString(),
+                                                        null );
+                                break;
+                            default:
+                                Throw.DebugAssert( issue is TranslationFormatError || issue is TranslationDuplicateResource );
+                                _monitor.Warn( issue.ToString() );
+                                break;
+                        }
+                        Throw.DebugAssert( issue is TranslationFormatError || issue is TranslationDuplicateResource || issue is CultureIdentifierClash );
+                        await _onNewIssue.SafeRaiseAsync( _monitor, issue ).ConfigureAwait( false );
                     }
-                    Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource || o is CultureIdentifierClash );
-                    await _onNewIssue.SafeRaiseAsync( _monitor, o ).ConfigureAwait( false );
+                    else
+                    {
+                        switch( o )
+                        {
+                            case ExtendedCultureInfoCreatedEvent newOne:
+                                await _onNewCulture.SafeRaiseAsync( _monitor, newOne ).ConfigureAwait( false );
+                                break;
+                            case StartTrackerRequest tracker:
+                                try
+                                {
+                                    await tracker.Tracker.DoInitializeAsync( _monitor, ExtendedCultureInfo.All, tracker.CancellationToken );
+                                    tracker.TCS.SetResult();
+                                }
+                                catch( OperationCanceledException ) when (tracker.CancellationToken.IsCancellationRequested)
+                                {
+                                    tracker.TCS.SetCanceled();
+                                }
+                                catch( Exception ex )
+                                {
+                                    tracker.TCS.SetException( ex );
+                                }
+                                break;
+                            case ReportRequest report:
+                                HandleGetReport( report );
+                                break;
+                            default:
+                                Throw.NotSupportedException( o.ToString() );
+                                break;
+                        }
+                    }
                 }
                 catch( Exception ex )
                 {
@@ -142,6 +178,8 @@ public static partial class GlobalizationIssues
             }
         }
     }
+
+    internal static PerfectEvent<ExtendedCultureInfoCreatedEvent> CultureCreated => _onNewCulture.PerfectEvent;
 
     /// <summary>
     /// Captures the source declaration of a <see cref="CodeString"/>.
@@ -267,6 +305,18 @@ public static partial class GlobalizationIssues
         {
             _channel.Writer.TryWrite( new PrivateMissingTranslationResource( null, mc ) );
         }
+    }
+
+    internal static void OnNewCulture( AllCultureSnapshot snapshot, ExtendedCultureInfo e )
+    {
+        _channel.Writer.TryWrite( new ExtendedCultureInfoCreatedEvent( snapshot, e ) );
+    }
+
+    internal static Task StartTrackerAsync( ExtendedCultureInfoTracker tracker, CancellationToken cancellationToken )
+    {
+        var tcs = new TaskCompletionSource();
+        _channel.Writer.TryWrite( new StartTrackerRequest( tcs, tracker, cancellationToken ) );
+        return tcs.Task;
     }
 
     /// <summary>
@@ -404,6 +454,6 @@ public static partial class GlobalizationIssues
     sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
     sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
     sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
-    sealed record PrivateGetReport( TaskCompletionSource<Report> TCS, bool Reset ) : Issue;
-
+    sealed record ReportRequest( TaskCompletionSource<Report> TCS, bool Reset );
+    sealed record StartTrackerRequest( TaskCompletionSource TCS, ExtendedCultureInfoTracker Tracker, CancellationToken CancellationToken );
 }
