@@ -68,6 +68,15 @@ public readonly struct AllCultureSnapshot : IEnumerable<ExtendedCultureInfo>
     /// <returns>The culture if found, null otherwise.</returns>
     public ExtendedCultureInfo? FindExtendedCultureInfo( string commaSeparatedNames ) => DoFindExtendedCultureInfo( ref commaSeparatedNames );
 
+    /// <summary>
+    /// Tries to retrieve an already registered <see cref="NormalizedCultureInfo"/> from its <see cref="Name"/>
+    /// or returns null.
+    /// </summary>
+    /// <param name="name">Culture name.</param>
+    /// <returns>The culture if found, null otherwise.</returns>
+    public NormalizedCultureInfo? FindNormalizedCultureInfo( string name ) => DoFindExtendedCultureInfo( ref name ) as NormalizedCultureInfo;
+
+
     internal ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
     {
         Throw.CheckNotNullArgument( commaSeparatedNames );
