@@ -26,6 +26,10 @@ namespace CK.Core;
 /// (the <see cref="NormalizedCultureInfoAmbientServiceDefault"/> singleton is always able to
 /// provide a default value).
 /// </para>
+/// <para>
+/// The static <see cref="All"/> properties exposes all the registered cultures and the <see cref="CultureCreated"/>
+/// event is raised when a new culture is registered.
+/// </para>
 /// </summary>
 public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 {
@@ -135,37 +139,12 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     public static ExtendedCultureInfo EnsureExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoEnsureExtendedCultureInfo( commaSeparatedNames );
 
     /// <summary>
-    /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its <see cref="Name"/>
-    /// or returns null.
-    /// </summary>
-    /// <param name="commaSeparatedNames">Comma separated culture names.</param>
-    /// <returns>The culture if found, null otherwise.</returns>
-    public static ExtendedCultureInfo? FindExtendedCultureInfo( string commaSeparatedNames ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( ref commaSeparatedNames );
-
-    /// <summary>
-    /// Finds the best <see cref="ExtendedCultureInfo"/> from a comma separated list of culture names.
+    /// Gets all the registered cultures.
     /// <para>
-    /// Currently, this ony returns NormalizedCultureInfo but this can be enhanced in the future.
-    /// The order of the entries matters: "fr-CA, es-ES" with existing "fr-fr" and "es-es" cultures will select "fr".
+    /// See also <see cref="GlobalizationAgent.CultureCreated"/> event.
     /// </para>
     /// </summary>
-    /// <param name="commaSeparatedNames">Comma separated culture names.</param>
-    /// <param name="defaultCulture">Ultimate default to consider.</param>
-    /// <returns>The best existing culture.</returns>
-    public static ExtendedCultureInfo FindBestExtendedCultureInfo( string commaSeparatedNames, NormalizedCultureInfo defaultCulture ) => NormalizedCultureInfo.DoFindBestExtendedCultureInfo( commaSeparatedNames, defaultCulture );
-
-    /// <summary>
-    /// Tries to retrieve an already registered <see cref="ExtendedCultureInfo"/> from its identifier (the <see cref="ExtendedCultureInfo.Id"/>)
-    /// or returns null.
-    /// </summary>
-    /// <param name="id">The identifier.</param>
-    /// <returns>The culture if found, null otherwise.</returns>
-    public static ExtendedCultureInfo? FindExtendedCultureInfo( int id ) => NormalizedCultureInfo.DoFindExtendedCultureInfo( id );
-
-    /// <summary>
-    /// Gets all the registered cultures.
-    /// </summary>
-    public static IEnumerable<ExtendedCultureInfo> All => NormalizedCultureInfo.GetAll();
+    public static AllCultureSnapshot All => NormalizedCultureInfo.GetAll();
 
     /// <summary>
     /// Overridden to return the <see cref="Name"/>.

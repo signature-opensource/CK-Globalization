@@ -1,5 +1,4 @@
 using CK.Core;
-using Shouldly;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
@@ -28,19 +27,19 @@ public class CodeStringTests
     [Test]
     public void source_location_tests()
     {
-        GlobalizationIssues.Track.IsOpen = true;
+        GlobalizationAgent.Track.IsOpen = true;
 
         var c1 = new CodeString( NormalizedCultureInfo.Invariant, "plaintext" );
         // Let the async loop process the event. 
         Thread.Sleep( 40 );
-        var c1Loc = GlobalizationIssues.GetSourceLocation( c1 );
+        var c1Loc = GlobalizationAgent.GetSourceLocation( c1 );
         c1Loc[0].FilePath.ShouldBe( ThisFile() );
 
         var c2 = new CodeString( NormalizedCultureInfo.Invariant, "plaintext" );
         Thread.Sleep( 20 );
-        var c1AndC2Loc = GlobalizationIssues.GetSourceLocation( c1 );
+        var c1AndC2Loc = GlobalizationAgent.GetSourceLocation( c1 );
         c1AndC2Loc.Count.ShouldBe( 2 );
-        c1AndC2Loc.ShouldBe( GlobalizationIssues.GetSourceLocation( c2 ) );
+        c1AndC2Loc.ShouldBe( GlobalizationAgent.GetSourceLocation( c2 ) );
         c1AndC2Loc[1].FilePath.ShouldBe( c1AndC2Loc[0].FilePath );
         c1AndC2Loc[1].FilePath.ShouldBe( ThisFile() );
         c1AndC2Loc[1].LineNumber.ShouldBe( c1AndC2Loc[0].LineNumber + 6 );

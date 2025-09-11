@@ -147,7 +147,7 @@ public sealed class MCString
     /// <para>
     /// There's no real reason to create a MCString directly: only a translation service
     /// should call this.
-    /// Translation issues are tracked if <see cref="GlobalizationIssues.Track"/> is opened.
+    /// Translation issues are tracked if <see cref="GlobalizationAgent.Track"/> is opened.
     /// </para>
     /// </summary>
     /// <param name="formatCulture">The format's culture.</param>
@@ -158,14 +158,14 @@ public sealed class MCString
     {
         var text = s.FormattedString.Format( format );
         var mc = new MCString( text, s, formatCulture );
-        if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnMCStringCreated( in format, mc );
+        if( GlobalizationAgent.Track.IsOpen ) GlobalizationAgent.OnMCStringCreated( in format, mc );
         return mc;
     }
 
     /// <summary>
     /// Initializes a non translated string. The <see cref="FormatCulture"/> is the
     /// <see cref="NormalizedCultureInfo.CodeDefault"/>: no translation has been done.
-    /// Translation issues are tracked if <see cref="GlobalizationIssues.Track"/> is opened.
+    /// Translation issues are tracked if <see cref="GlobalizationAgent.Track"/> is opened.
     /// <para>
     /// There's no real reason to create a MCString directly: only a translation service
     /// should call this.
@@ -176,7 +176,7 @@ public sealed class MCString
     public static MCString Create( CodeString s )
     {
         var mc = new MCString( s );
-        if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnMCStringCreated( mc );
+        if( GlobalizationAgent.Track.IsOpen ) GlobalizationAgent.OnMCStringCreated( mc );
         return mc;
     }
 

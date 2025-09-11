@@ -1,5 +1,4 @@
 using CK.Core;
-using Shouldly;
 using NUnit.Framework;
 using static CK.Testing.MonitorTestHelper;
 
@@ -50,7 +49,7 @@ public class GlobalizationFileHelperTests
 
         static CurrentCultureInfo CreateFor( string name )
         {
-            ExtendedCultureInfo? c = ExtendedCultureInfo.FindExtendedCultureInfo( name );
+            ExtendedCultureInfo? c = ExtendedCultureInfo.All.FindExtendedCultureInfo( name );
             Throw.DebugAssert( c != null );
             return new CurrentCultureInfo( new TranslationService(), c );
         }

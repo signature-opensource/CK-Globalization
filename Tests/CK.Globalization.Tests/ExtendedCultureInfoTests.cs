@@ -11,6 +11,7 @@ using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests;
 
+
 [TestFixture]
 public partial class ExtendedCultureInfoTests
 {
@@ -132,9 +133,9 @@ public partial class ExtendedCultureInfoTests
     public void id_clash_detection_test( int idClash, string name1, string name2 )
     {
         // Listen to the issues. There must be only IdentifierClash.
-        GlobalizationIssues.CultureIdentifierClash? clashDetected = null;
-        PerfectEvent.SequentialEventHandler<GlobalizationIssues.Issue> detector = ( m, issue ) => clashDetected = (GlobalizationIssues.CultureIdentifierClash)issue;
-        GlobalizationIssues.OnNewIssue.Sync += detector;
+        GlobalizationAgent.CultureIdentifierClash? clashDetected = null;
+        PerfectEvent.SequentialEventHandler<GlobalizationAgent.Issue> detector = ( m, issue ) => clashDetected = (GlobalizationAgent.CultureIdentifierClash)issue;
+        GlobalizationAgent.OnNewIssue.Sync += detector;
         try
         {
             var c1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name1 );
@@ -148,14 +149,14 @@ public partial class ExtendedCultureInfoTests
             c2.Id.ShouldBe( idClash + 1 );
             // Wait for detection.
             while( clashDetected == null ) ;
-            var clash = GlobalizationIssues.IdentifierClashes.Single( i => i.Name == name2 );
+            var clash = GlobalizationAgent.IdentifierClashes.Single( i => i.Name == name2 );
             clash.Id.ShouldBe( idClash + 1 );
             clash.Clashes.ShouldBe( new[] { name1 } );
             clash.ShouldBeSameAs( clashDetected );
         }
         finally
         {
-            GlobalizationIssues.OnNewIssue.Sync -= detector;
+            GlobalizationAgent.OnNewIssue.Sync -= detector;
         }
     }
 
@@ -168,7 +169,7 @@ public partial class ExtendedCultureInfoTests
     {
         foreach( var c in registered ) NormalizedCultureInfo.EnsureNormalizedCultureInfo( c );
         var def = NormalizedCultureInfo.EnsureNormalizedCultureInfo( defaultCulture );
-        var best = ExtendedCultureInfo.FindBestExtendedCultureInfo( candidate, def );
+        var best = ExtendedCultureInfo.All.FindBestExtendedCultureInfo( candidate, def );
         best.Name.ShouldBe( expectedBest );
     }
 
@@ -191,7 +192,7 @@ public partial class ExtendedCultureInfoTests
 
         foreach( var culture in CultureInfo.GetCultures( CultureTypes.AllCultures ).Select( c => NormalizedCultureInfo.EnsureNormalizedCultureInfo( c ) ) )
         {
-            if( culture.IsFakeSpecificCulture )
+            if( culture.HasFakeSpecificCulture )
             {
                 issues.Add( $"{culture.Name} -> {culture.SpecificCulture.Name}" );
             }

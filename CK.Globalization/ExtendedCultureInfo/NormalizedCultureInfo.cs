@@ -21,10 +21,10 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     // The neutral for Invariant is the CodeDefault "en".
     readonly NormalizedCultureInfo _neutral;
     // The worst case for .Net is Invariant... (that is Neutral!).
-    // Our worst case is is the "en-US" that is the CodeDefault "en" specific:
+    // Our worst case is the "en-US" that is the CodeDefault "en" specific:
     // we force the "specific aspect" but expose the IsFakeSpecificCulture. 
     NormalizedCultureInfo? _specificCulture;
-    bool _isFakeSpecificCulture;
+    bool _hasFakeSpecificCulture;
     Dictionary<string, PositionalCompositeFormat> _translations;
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     ///     <item>Is not considered neutral (<see cref="IsNeutralCulture"/> is false).</item>
     ///     <item>Its <see cref="NeutralCulture"/> is the <see cref="CodeDefault"/>.</item>
     ///     <item>Its <see cref="SpecificCulture"/> is "en-US".</item>
-    ///     <item><see cref="IsFakeSpecificCulture"/> is false: there's nothing surprising in the SpecificCulture to be "en-US".</item>
+    ///     <item><see cref="HasFakeSpecificCulture"/> is false: there's nothing surprising in the SpecificCulture to be "en-US".</item>
     /// </list>
     /// <para>
     /// It exists almost only to represent the <see cref="CultureInfo.InvariantCulture"/> in the NormalizedCulture world.
@@ -73,7 +73,8 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// Gets the predefined associated specific culture if this is a neutral culture
     /// or this culture if it is already specific.
     /// <para>
-    /// Unfortunately, some neutral cultures have NO associated specific culture, see <see cref="IsFakeSpecificCulture"/>
+    /// Unfortunately, some neutral cultures have NO associated specific culture: in such case, this specific
+    /// culture is the "en-us", see <see cref="HasFakeSpecificCulture"/>
     /// </para>
     /// </summary>
     public NormalizedCultureInfo SpecificCulture
@@ -98,12 +99,12 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// CodeDefault "en" specific culture).
     /// </para>
     /// </summary>
-    public bool IsFakeSpecificCulture
+    public bool HasFakeSpecificCulture
     {
         get
         {
             _specificCulture ??= ObtainSpecificCulture();
-            return _isFakeSpecificCulture;
+            return _hasFakeSpecificCulture;
         }
     }
 
@@ -123,7 +124,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
                 }
                 else
                 {
-                    _isFakeSpecificCulture = true;
+                    _hasFakeSpecificCulture = true;
                     return CodeDefault.SpecificCulture;
                 }
             }
@@ -131,7 +132,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
             {
                 // This should not happen as our initial _culture.Name is valid (already a culture name)
                 // and the (.Net internal) _cultureData.SpecificCultureName is necessarily set.
-                _isFakeSpecificCulture = true;
+                _hasFakeSpecificCulture = true;
                 return CodeDefault.SpecificCulture;
             }
         }
@@ -149,8 +150,8 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// string formats. See <see cref="SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
     /// </summary>
     /// <param name="map">The map.</param>
-    /// <returns>0 issues or one or more <see cref="GlobalizationIssues.TranslationFormatError"/> or <see cref="GlobalizationIssues.TranslationDuplicateResource"/>.</returns>
-    public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<KeyValuePair<string, string>> map )
+    /// <returns>0 issues or one or more <see cref="GlobalizationAgent.TranslationFormatError"/> or <see cref="GlobalizationAgent.TranslationDuplicateResource"/>.</returns>
+    public IReadOnlyList<GlobalizationAgent.Issue> SetCachedTranslations( IEnumerable<KeyValuePair<string, string>> map )
     {
         return SetCachedTranslations( map.Select( kv => (kv.Key, kv.Value) ) );
     }
@@ -160,42 +161,42 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// This must not be called for <see cref="ExtendedCultureInfo.IsDefault"/> otherwise
     /// an <see cref="InvalidOperationException"/> is thrown.
     /// <para>
-    /// When the static gate <see cref="GlobalizationIssues.Track"/> is opened, the returned issues are also emitted and logged.
+    /// When the static gate <see cref="GlobalizationAgent.Track"/> is opened, the returned issues are also emitted and logged.
     /// </para>
     /// <para>
     /// Duplicates can exist in the <paramref name="map"/>: the first resource name is kept, the subsequent
-    /// ones are discarded and a <see cref="GlobalizationIssues.TranslationDuplicateResource"/> is emitted (when
-    /// the static gate <see cref="GlobalizationIssues.Track"/> is opened).
+    /// ones are discarded and a <see cref="GlobalizationAgent.TranslationDuplicateResource"/> is emitted (when
+    /// the static gate <see cref="GlobalizationAgent.Track"/> is opened).
     /// </para>
     /// </summary>
     /// <param name="map">The map.</param>
-    /// <returns>0 issues or one or more <see cref="GlobalizationIssues.TranslationFormatError"/> or <see cref="GlobalizationIssues.TranslationDuplicateResource"/>.</returns>
-    public IReadOnlyList<GlobalizationIssues.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
+    /// <returns>0 issues or one or more <see cref="GlobalizationAgent.TranslationFormatError"/> or <see cref="GlobalizationAgent.TranslationDuplicateResource"/>.</returns>
+    public IReadOnlyList<GlobalizationAgent.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
     {
         Throw.CheckState( IsDefault is false );
-        List<GlobalizationIssues.Issue>? issues = null;
+        List<GlobalizationAgent.Issue>? issues = null;
         var d = new Dictionary<string, PositionalCompositeFormat>();
         foreach( var (n, f) in map )
         {
             if( !PositionalCompositeFormat.TryParse( f, out var p, out var error ) )
             {
-                issues = AddIssue( issues, new GlobalizationIssues.TranslationFormatError( this, n, f, error ) );
+                issues = AddIssue( issues, new GlobalizationAgent.TranslationFormatError( this, n, f, error ) );
             }
             else if( !d.TryAdd( n, p ) )
             {
-                issues = AddIssue( issues, new GlobalizationIssues.TranslationDuplicateResource( this, n, p, d[n] ) );
+                issues = AddIssue( issues, new GlobalizationAgent.TranslationDuplicateResource( this, n, p, d[n] ) );
             }
         }
         _translations = d;
-        return issues ?? new List<GlobalizationIssues.Issue>();
+        return issues ?? new List<GlobalizationAgent.Issue>();
 
-        static List<GlobalizationIssues.Issue> AddIssue( List<GlobalizationIssues.Issue>? issues, GlobalizationIssues.Issue issue )
+        static List<GlobalizationAgent.Issue> AddIssue( List<GlobalizationAgent.Issue>? issues, GlobalizationAgent.Issue issue )
         {
-            issues ??= new List<GlobalizationIssues.Issue>();
+            issues ??= new List<GlobalizationAgent.Issue>();
             issues.Add( issue );
-            if( GlobalizationIssues.Track.IsOpen )
+            if( GlobalizationAgent.Track.IsOpen )
             {
-                GlobalizationIssues.OnTranslation( issue );
+                GlobalizationAgent.OnTranslation( issue );
             }
 
             return issues;
@@ -270,10 +271,10 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     // we also test in Release (no #if DEBUG).
     static void ClearCache()
     {
-        GlobalizationIssues.Track.IsOpen = false;
+        GlobalizationAgent.Track.IsOpen = false;
         var all = new Dictionary<object, ExtendedCultureInfo>( _all.Where( IsUnremovable ) );
         _all = all;
-        GlobalizationIssues.ClearIssueCache();
+        GlobalizationAgent.ClearIssueCache();
 
         Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
 
@@ -343,22 +344,20 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         // Unfortunately, non read only CultureInfo seems common: the NUnit [SetCulture(...)] attribute for instance
         // sets a non readonly culture.
         // So we drop any check here (and pray).
+        NormalizedCultureInfo c;
+        AllCultureSnapshot snapshot;
         lock( _all )
         {
             var all = new Dictionary<object, ExtendedCultureInfo>( _all );
-            var c = DoRegister( name, cultureInfo, all );
+            c = DoRegister( name, cultureInfo, all );
             _all = all;
-            return c;
+            snapshot = new AllCultureSnapshot( all );
         }
+        // Obviously don't raise the event in the lock but also avoid submitting the job
+        // to the queue while the lock is taken.
+        GlobalizationAgent.OnNewCulture( snapshot, c );
+        return c;
     }
-
-    /// <summary>
-    /// Tries to retrieve an already registered <see cref="NormalizedCultureInfo"/> from its <see cref="Name"/>
-    /// or returns null.
-    /// </summary>
-    /// <param name="name">Culture name.</param>
-    /// <returns>The culture if found, null otherwise.</returns>
-    public static NormalizedCultureInfo? FindNormalizedCultureInfo( string name ) => DoFindExtendedCultureInfo( ref name ) as NormalizedCultureInfo;
 
     /// <summary>
     /// Basic check of a BCP47 language tag (see https://www.rfc-editor.org/rfc/rfc5646.txt).
@@ -412,56 +411,19 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         return newOne;
     }
 
-    internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( int id ) => _all.GetValueOrDefault( id );
-
-    internal static IEnumerable<ExtendedCultureInfo> GetAll() => _all.Values;
-
-    internal static ExtendedCultureInfo? DoFindExtendedCultureInfo( ref string commaSeparatedNames )
-    {
-        Throw.CheckNotNullArgument( commaSeparatedNames );
-        // Fast path.
-        if( !_all.TryGetValue( commaSeparatedNames, out var e ) )
-        {
-            // Let a chance to a very basic preprocessing.
-            commaSeparatedNames = commaSeparatedNames.ToLowerInvariant().Replace( " ", "" );
-            _all.TryGetValue( commaSeparatedNames, out e );
-        }
-        return e;
-    }
-
-    internal static ExtendedCultureInfo DoFindBestExtendedCultureInfo( string commaSeparatedNames, NormalizedCultureInfo defaultCulture )
-    {
-        Throw.CheckNotNullArgument( defaultCulture );
-
-        var best = DoFindExtendedCultureInfo( ref commaSeparatedNames );
-        if( best != null ) return best;
-
-        var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
-        for( int i = 0; i < fullNames.Length; i++ )
-        {
-            string? one = fullNames[i];
-            if( _all.TryGetValue( one, out best ) ) return best;
-            var idx = one.LastIndexOf( '-' );
-            while( idx > 1 )
-            {
-                one = one.Substring( 0, idx );
-                if( _all.TryGetValue( one, out best ) ) return best;
-                idx = one.LastIndexOf( '-' );
-            }
-        }
-        return defaultCulture;
-    }
+    internal static AllCultureSnapshot GetAll() => new AllCultureSnapshot( _all );
 
     internal static ExtendedCultureInfo DoEnsureExtendedCultureInfo( string commaSeparatedNames )
     {
-        var e = DoFindExtendedCultureInfo( ref commaSeparatedNames );
+        var e = new AllCultureSnapshot( _all ).DoFindExtendedCultureInfo( ref commaSeparatedNames );
         if( e != null ) return e;
         var fullNames = commaSeparatedNames.Split( ',', StringSplitOptions.RemoveEmptyEntries );
-        // Single name: use the GetNormalizedCultureInfo.
+        // Single name: use the EnsureNormalizedCultureInfo.
         if( fullNames.Length == 1 )
         {
             return EnsureNormalizedCultureInfo( fullNames[0] );
         }
+        Dictionary<object, ExtendedCultureInfo>? snapshotForEvent = null; 
         lock( _all )
         {
             var allCultures = new List<NormalizedCultureInfo>();
@@ -541,10 +503,17 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
                 e = new ExtendedCultureInfo( allCultures, names, id );
                 all.Add( e.Name, e );
                 all.Add( id, e );
+                snapshotForEvent = all;
             }
             _all = all;
-            return e;
         }
+        // Obviously don't raise the event in the lock but also avoid submitting the job
+        // to the queue while the lock is taken.
+        if( snapshotForEvent != null )
+        {
+            GlobalizationAgent.OnNewCulture( new AllCultureSnapshot( snapshotForEvent ), e );
+        }
+        return e;
 
         static int FallbackDepth( NormalizedCultureInfo spec, NormalizedCultureInfo gen ) => spec.Fallbacks.IndexOf( gen );
 
@@ -583,7 +552,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
                 ++id;
             }
             while( all.TryGetValue( id, out clash ) );
-            GlobalizationIssues.OnIdentifierClash( name, id, clashes );
+            GlobalizationAgent.OnIdentifierClash( name, id, clashes );
         }
         return id;
     }

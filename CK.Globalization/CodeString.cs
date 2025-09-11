@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace CK.Core;
@@ -30,12 +29,6 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
 
     /// <summary>
     /// Initializes a <see cref="CodeString"/> with a plain string (no <see cref="Placeholders"/>).
-    /// <para>
-    /// The <see cref="ExtendedCultureInfo.PrimaryCulture"/> is used to format the placeholders, but this
-    /// captures the whole <see cref="ExtendedCultureInfo.Fallbacks"/> so that the best translation of the
-    /// "enveloppe" can be found when the <paramref name="culture"/> is a "user preference" (a mere ExtendedCultureInfo) rather
-    /// than a specialized <see cref="NormalizedCultureInfo"/> with its default fallbacks.
-    /// </para>
     /// </summary>
     /// <param name="culture">The culture of this formatted string.</param>
     /// <param name="plainText">The plain text.</param>
@@ -50,7 +43,7 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     {
         _f = new FormattedString( culture, plainText );
         _resName = resName ?? _f.GetSHA1BasedResName();
-        if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
+        if( GlobalizationAgent.Track.IsOpen ) GlobalizationAgent.OnCodeStringCreated( this, filePath, lineNumber );
     }
 
     /// <summary>
@@ -85,7 +78,7 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     {
         _f = FormattedString.Create( ref text, culture );
         _resName = resName ?? _f.GetSHA1BasedResName();
-        if( GlobalizationIssues.Track.IsOpen ) GlobalizationIssues.OnCodeStringCreated( this, filePath, lineNumber );
+        if( GlobalizationAgent.Track.IsOpen ) GlobalizationAgent.OnCodeStringCreated( this, filePath, lineNumber );
     }
 
     CodeString( in FormattedString formattedString, string resName )
@@ -185,7 +178,7 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     /// <inheritdoc />
     public void Write( ICKBinaryWriter w )
     {
-        Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( GetType() ) == 0 );
+        Throw.DebugAssert( SerializationVersionAttribute.GetRequiredVersion( GetType() ) == 0 );
         w.WriteNonNegativeSmallInt32( 0 );
         WriteData( w );
     }
@@ -205,7 +198,6 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     /// <inheritdoc />
     public void WriteData( ICKBinaryWriter w )
     {
-        Debug.Assert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );
         // 0 version also for FormattedString: let's use the more efficient versioned serializable interface.
         // This is called by tests. The 2 versions should always be aligned.
         Throw.DebugAssert( SerializationVersionAttribute.GetRequiredVersion( typeof( FormattedString ) ) == 0 );

@@ -4,13 +4,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace CK.Core;
 
 /// <summary>
-/// Tracks and collects globalization issues:
+/// Micro Agent that handles background works and events for cultures.
+/// This tracks and collects globalization issues:
 /// <list type="bullet">
 ///     <item>
 ///     Calls to <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/> can raise <see cref="TranslationDuplicateResource"/>
@@ -29,12 +31,22 @@ namespace CK.Core;
 ///     </item>
 /// </list>
 /// </summary>
-public static partial class GlobalizationIssues
+public static partial class GlobalizationAgent
 {
     /// <summary>
     /// The "CK.Core.GlobalizationIssues.Track" static gate is closed by default.
     /// </summary>
     public static readonly StaticGate Track;
+
+    /// <summary>
+    /// Raised whenever a new <see cref="ExtendedCultureInfo"/> is registered. This event is raised sequentially: this
+    /// allows to track culture registrations without concurrency issues. See <see cref="ExtendedCultureInfoTracker"/>.
+    /// <para>
+    /// When a new Culture appears, more than one culture can be created under the hood. The <see cref="Fallbacks"/>
+    /// or the <see cref="PrimaryCulture"/> may have been created but only the registered one surfaces here.
+    /// </para>
+    /// </summary>
+    public static PerfectEvent<ExtendedCultureInfoCreatedEvent> CultureCreated => _onNewCulture.PerfectEvent;
 
     /// <summary>
     /// Raised whenever a new issue occurs.
@@ -46,6 +58,17 @@ public static partial class GlobalizationIssues
     /// These are always collected, regardless of whether <see cref="Track"/> is opened or not.
     /// </summary>
     public static IReadOnlyList<CultureIdentifierClash> IdentifierClashes => _identifierClashes;
+
+    /// <summary>
+    /// Waits for any pending internal work. 
+    /// </summary>
+    /// <returns>The awaitable.</returns>
+    public static Task WaitForPendingWorkAsync()
+    {
+        var tcs = new TaskCompletionSource();
+        _channel.Writer.TryWrite( tcs );
+        return tcs.Task;
+    }
 
     /// <summary>
     /// Gets the source locations where a <see cref="CodeString"/> format has been created.
@@ -67,9 +90,10 @@ public static partial class GlobalizationIssues
         public int GetHashCode( byte[] obj ) => obj.GetDjb2HashCode();
     }
 
-    static readonly Channel<Issue?> _channel;
+    static readonly Channel<object?> _channel;
     static readonly IActivityMonitor _monitor;
     static readonly PerfectEventSender<Issue> _onNewIssue;
+    static readonly PerfectEventSender<ExtendedCultureInfoCreatedEvent> _onNewCulture;
     internal readonly record struct ResKey( NormalizedCultureInfo Culture, string ResName );
     static Dictionary<ResKey, CodeString>? _missingTranslations;
     static Dictionary<ResKey, FormatArgumentCountError>? _formatArgumentError;
@@ -85,13 +109,14 @@ public static partial class GlobalizationIssues
         _formatArgumentError = null;
     }
 
-    static GlobalizationIssues()
+    static GlobalizationAgent()
     {
         Track = new StaticGate( "CK.Core.GlobalizationIssues.Track", false );
-        _channel = Channel.CreateUnbounded<Issue?>( new UnboundedChannelOptions { SingleReader = true } );
-        _monitor = new ActivityMonitor( nameof( GlobalizationIssues ) );
+        _channel = Channel.CreateUnbounded<object?>( new UnboundedChannelOptions { SingleReader = true } );
+        _monitor = new ActivityMonitor( "CK.Globalization Micro Agent" );
         _monitor.AutoTags = ActivityMonitor.Tags.Register( "Globalization" );
         _onNewIssue = new PerfectEventSender<Issue>();
+        _onNewCulture = new PerfectEventSender<ExtendedCultureInfoCreatedEvent>();
         _identifierClashes = Array.Empty<CultureIdentifierClash>();
         _codeSringOccurrence = new ConcurrentDictionary<byte[], CodeStringSourceLocation[]>( new SHAComparer() );
         _ = Task.Run( RunAsync );
@@ -101,44 +126,97 @@ public static partial class GlobalizationIssues
 
         static async Task RunAsync()
         {
-            Issue? o;
+            object? o;
             while( (o = await _channel.Reader.ReadAsync().ConfigureAwait( false )) != null )
             {
                 try
                 {
-                    switch( o )
+                    if( o is Issue issue )
                     {
-                        case PrivateCodeStringCreated s:
-                            HandleStringCreated( s.String, s.FilePath, s.LineNumber );
-                            // This one emits no issue.
-                            continue;
-                        case PrivateMissingTranslationResource m:
-                            // May emit one MissingTranslationResource issue and may be one FormatArgumentCountError issue.
-                            await HandleMissingTranslationResourceAsync( m.Format, m.MCString );
-                            continue;
-                        case PrivateFormatArgumentCountError d:
-                            // May emit a FormatArgumentCountError issue.
-                            await HandleFormatArgumentCountErrorAsync( d.Format, d.MCString );
-                            continue;
-                        case CultureIdentifierClash c:
-                            Util.InterlockedAdd( ref _identifierClashes, c );
-                            _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
-                                                    ActivityMonitor.Tags.ToBeInvestigated,
-                                                    c.ToString(),
-                                                    null );
-                            break;
-                        default:
-                            Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource );
-                            _monitor.Warn( o.ToString() );
-                            break;
+                        switch( issue )
+                        {
+                            case PrivateCodeStringCreated s:
+                                HandleStringCreated( s.String, s.FilePath, s.LineNumber );
+                                // This one emits no issue.
+                                continue;
+                            case PrivateMissingTranslationResource m:
+                                // May emit one MissingTranslationResource issue and may be one FormatArgumentCountError issue.
+                                await HandleMissingTranslationResourceAsync( m.Format, m.MCString );
+                                continue;
+                            case PrivateFormatArgumentCountError d:
+                                // May emit a FormatArgumentCountError issue.
+                                await HandleFormatArgumentCountErrorAsync( d.Format, d.MCString );
+                                continue;
+                            case CultureIdentifierClash c:
+                                Util.InterlockedAdd( ref _identifierClashes, c );
+                                _monitor.UnfilteredLog( LogLevel.Warn | LogLevel.IsFiltered,
+                                                        ActivityMonitor.Tags.ToBeInvestigated,
+                                                        c.ToString(),
+                                                        null );
+                                break;
+                            default:
+                                Throw.DebugAssert( issue is TranslationFormatError || issue is TranslationDuplicateResource );
+                                _monitor.Warn( issue.ToString() );
+                                break;
+                        }
+                        Throw.DebugAssert( issue is TranslationFormatError || issue is TranslationDuplicateResource || issue is CultureIdentifierClash );
+                        await _onNewIssue.SafeRaiseAsync( _monitor, issue ).ConfigureAwait( false );
                     }
-                    Throw.DebugAssert( o is TranslationFormatError || o is TranslationDuplicateResource || o is CultureIdentifierClash );
-                    await _onNewIssue.SafeRaiseAsync( _monitor, o ).ConfigureAwait( false );
+                    else
+                    {
+                        switch( o )
+                        {
+                            case ExtendedCultureInfoCreatedEvent newOne:
+                                await _onNewCulture.SafeRaiseAsync( _monitor, newOne ).ConfigureAwait( false );
+                                break;
+                            case StartTrackerRequest tracker:
+                                try
+                                {
+                                    await tracker.Tracker.DoStartAsync( _monitor, ExtendedCultureInfo.All, tracker.CancellationToken ).ConfigureAwait( false );
+                                    tracker.TCS.SetResult();
+                                }
+                                catch( OperationCanceledException ) when (tracker.CancellationToken.IsCancellationRequested)
+                                {
+                                    tracker.TCS.SetCanceled();
+                                }
+                                catch( Exception ex )
+                                {
+                                    tracker.TCS.SetException( ex );
+                                }
+                                break;
+                            case StopTrackerRequest disposeTracker:
+                                try
+                                {
+                                    await disposeTracker.Tracker.DoStopAsync( _monitor ).ConfigureAwait( false );
+                                    disposeTracker.TCS.SetResult();
+                                }
+                                catch( Exception ex )
+                                {
+                                    disposeTracker.TCS.SetException( ex );
+                                }
+                                break;
+                            case IssuesReportRequest report:
+                                HandleGetIssuesReport( report );
+                                break;
+                            case TaskCompletionSource sync:
+                                sync.SetResult();
+                                break;
+                            default:
+                                Throw.NotSupportedException( o.ToString() );
+                                break;
+                        }
+                    }
                 }
                 catch( Exception ex )
                 {
                     _monitor.Error( "Unhandled exception in GlobalizationIssues.", ex );
                 }
+            }
+            _channel.Writer.Complete();
+            // Free any WaitForPendingWorkAsync.
+            while( _channel.Reader.TryRead( out o ) )
+            {
+                if( o is TaskCompletionSource tcs ) tcs.SetResult();
             }
         }
     }
@@ -269,141 +347,30 @@ public static partial class GlobalizationIssues
         }
     }
 
-    /// <summary>
-    /// Generalizes all globalization issues.
-    /// </summary>
-    public abstract record Issue { }
-
-    /// <summary>
-    /// Identifier clashes are always tracked (the static gate <see cref="Track"/> is ignored).
-    /// This MUST be handled by specifically registering the exception. 
-    /// </summary>
-    /// <param name="Name">
-    /// The culture name or names that couldn't be identified by the DBJ2 hash code of its name because its hash
-    /// is the same as the first <paramref name="Clashes"/> name.
-    /// </param>
-    /// <param name="Id">The final identifier that has been eventually assigned to <paramref name="Name"/>.</param>
-    /// <param name="Clashes">One or more clashing names that shifted the <paramref name="Id"/> by 1.</param>
-    public sealed record CultureIdentifierClash( string Name, int Id, IReadOnlyList<string> Clashes ) : Issue
+    internal static void OnNewCulture( AllCultureSnapshot snapshot, ExtendedCultureInfo e )
     {
-        /// <summary>
-        /// Provides the description.
-        /// </summary>
-        /// <returns>This issue description.</returns>
-        public override string ToString()
-            => $"CultureInfo name identifier clash: '{Name}' has been associated to '{Id}' because of '{Clashes.Concatenate( "', '" )}'.";
-
+        _channel.Writer.TryWrite( new ExtendedCultureInfoCreatedEvent( snapshot, e ) );
     }
 
-    /// <summary>
-    /// Describes a resource format error emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
-    /// This issue is logged (but not collected) only if the <see cref="Track"/> static gate is opened.
-    /// </summary>
-    /// <param name="Culture">The culture that contains the resource.</param>
-    /// <param name="ResName">The resource name.</param>
-    /// <param name="Format">The invalid format.</param>
-    /// <param name="Error">The error message that contains the invalid <see cref="Format"/>.</param>
-    public sealed record TranslationFormatError( NormalizedCultureInfo Culture, string ResName, string Format, string Error ) : Issue
+    internal static Task StartTrackerAsync( ExtendedCultureInfoTracker tracker, CancellationToken cancellationToken = default )
     {
-        /// <summary>
-        /// Provides the description.
-        /// </summary>
-        /// <returns>This issue description.</returns>
-        public override string ToString() => $"Invalid format for '{ResName}' in '{Culture.Name}': {Error}";
+        var tcs = new TaskCompletionSource();
+        _channel.Writer.TryWrite( new StartTrackerRequest( tcs, tracker, cancellationToken ) );
+        return tcs.Task;
     }
 
-    /// <summary>
-    /// Describes a duplicate resource. Emitted by <see cref="NormalizedCultureInfo.SetCachedTranslations(IEnumerable{ValueTuple{string, string}})"/>.
-    /// This issue is logged (but not collected) only if the <see cref="Track"/> static gate is opened.
-    /// </summary>
-    /// <param name="Culture">The culture that duplicates the resource.</param>
-    /// <param name="ResName">The resource name.</param>
-    /// <param name="Skipped">The skipped format.</param>
-    /// <param name="Registered">The already registered format.</param>
-    public sealed record TranslationDuplicateResource( NormalizedCultureInfo Culture,
-                                                       string ResName,
-                                                       PositionalCompositeFormat Skipped,
-                                                       PositionalCompositeFormat Registered ) : Issue
+    internal static Task StopTrackerAsync( ExtendedCultureInfoTracker tracker )
     {
-        /// <summary>
-        /// Provides the description.
-        /// </summary>
-        /// <returns>This issue description.</returns>
-        public override string ToString() => $"Duplicate resource '{ResName}' in '{Culture.Name}'. Skipped: '{Skipped.GetFormatString()}'.";
-    }
-
-    /// <summary>
-    /// A missing resource has been detected.
-    /// This is emitted when quality is <see cref="MCString.Quality.Bad"/> or <see cref="MCString.Quality.Awful"/>.
-    /// </summary>
-    /// <param name="Instance">
-    /// The first instance with the <see cref="FormattedString"/> that lacks a translation.
-    /// The same format may be shared by multiple <see cref="CodeStringSourceLocation"/>.
-    /// </param>
-    public sealed record MissingTranslationResource( CodeString Instance ) : Issue
-    {
-        /// <summary>
-        /// The culture in which the resource should be defined.
-        /// </summary>
-        public NormalizedCultureInfo MissingCulture => Instance.TargetCulture.PrimaryCulture;
-
-        /// <summary>
-        /// The resource name to be defined.
-        /// </summary>
-        public string ResName => Instance.ResName;
-
-        /// <summary>
-        /// Provides the description.
-        /// </summary>
-        /// <returns>This issue description.</returns>
-        public override string ToString()
-            => $"Missing translation for '{ResName}' in '{MissingCulture.FullName}' at {GetSourceLocation( Instance ).Select( l => l.ToString() ).Concatenate()}.";
-    }
-
-    /// <summary>
-    /// A <see cref="PositionalCompositeFormat"/> has not the same number of expected arguments as the code
-    /// string has <see cref="FormattedString.Placeholders"/>.
-    /// </summary>
-    /// <param name="Format">The invalid format.</param>
-    /// <param name="Instance">
-    /// The first translated that raised the issue.
-    /// The same format may be shared by multiple <see cref="CodeStringSourceLocation"/>.
-    /// </param>
-    public sealed record FormatArgumentCountError( PositionalCompositeFormat Format, MCString Instance ) : Issue
-    {
-        /// <summary>
-        /// The resource culture.
-        /// </summary>
-        public NormalizedCultureInfo FormatCulture => Instance.FormatCulture;
-
-        /// <summary>
-        /// The resource name.
-        /// </summary>
-        public string ResName => Instance.CodeString.ResName;
-
-        /// <summary>
-        /// The number of arguments that <see cref="Format"/> expects.
-        /// </summary>
-        public int ExpectedArgumentCount => Format.ExpectedArgumentCount;
-
-        /// <summary>
-        /// The number of actual placeholders in the CodeString.
-        /// </summary>
-        public int PlaceholderCount => Instance.CodeString.FormattedString.Placeholders.Count;
-
-        /// <summary>
-        /// Provides the description.
-        /// </summary>
-        /// <returns>This issue description.</returns>
-        public override string ToString()
-            => $"Translation '{ResName}' in '{FormatCulture}' expects {ExpectedArgumentCount} arguments " +
-               $"but CodeString has {PlaceholderCount} placeholders at {GetSourceLocation( Instance.CodeString ).Select( l => l.ToString() ).Concatenate()}.";
+        var tcs = new TaskCompletionSource();
+        _channel.Writer.TryWrite( new StopTrackerRequest( tcs, tracker ) );
+        return tcs.Task;
     }
 
     // Private only.
     sealed record PrivateCodeStringCreated( CodeString String, string? FilePath, int LineNumber ) : Issue;
     sealed record PrivateMissingTranslationResource( PositionalCompositeFormat? Format, MCString MCString ) : Issue;
     sealed record PrivateFormatArgumentCountError( PositionalCompositeFormat Format, MCString MCString ) : Issue;
-    sealed record PrivateGetReport( TaskCompletionSource<Report> TCS, bool Reset ) : Issue;
-
+    sealed record IssuesReportRequest( TaskCompletionSource<IssuesReport> TCS, bool Reset );
+    sealed record StartTrackerRequest( TaskCompletionSource TCS, ExtendedCultureInfoTracker Tracker, CancellationToken CancellationToken );
+    sealed record StopTrackerRequest( TaskCompletionSource TCS, ExtendedCultureInfoTracker Tracker );
 }
