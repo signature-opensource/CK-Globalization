@@ -45,6 +45,7 @@ public class GlobalizationFileHelperTests
         MCString.Create( frFR, "a page title", "Page.Title" ).Text.ShouldBe( "Titre de la page en France" );
         MCString.Create( frCA, "a page title", "Page.Title" ).Text.ShouldBe( "Titre de la page" );
         MCString.Create( de, "a page title", "Page.Title" ).Text.ShouldBe( "a page title" );
+        MCString.Create( fr, "no place holder!", "Page.SubPage.Title" ).Text.ShouldBe( "Titre de la section." );
 
 
         static CurrentCultureInfo CreateFor( string name )
