@@ -97,7 +97,7 @@ public static class GlobalizationFileHelper
                     r.ReadWithMoreData( context );
                     if( r.TokenType == JsonTokenType.StartObject )
                     {
-                        ReadObject( ref r, context, target, parentPath + propertyName + '.' );
+                        ReadObject( ref r, context, target, propertyName + '.' );
                     }
                     else
                     {
