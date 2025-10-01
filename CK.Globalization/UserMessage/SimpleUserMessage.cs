@@ -15,7 +15,7 @@ namespace CK.Core;
 [SerializationVersion( 0 )]
 public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<SimpleUserMessage>, ISpanParsable<SimpleUserMessage>
 {
-    readonly string _message;
+    readonly string? _message;
     readonly byte _level;
     readonly byte _depth;
 
@@ -35,8 +35,10 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     }
 
 
-    SimpleUserMessage( byte depth, string message, byte level )
+    internal SimpleUserMessage( byte depth, string message, byte level )
     {
+        Throw.DebugAssert( level != 0 );
+        Throw.DebugAssert( message != null );
         _level = level;
         _message = message;
         _depth = depth;
@@ -50,6 +52,7 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     public SimpleUserMessage With( UserMessageLevel level )
     {
         Throw.CheckArgument( level != UserMessageLevel.None );
+        Throw.CheckState( IsValid );
         return new SimpleUserMessage( _depth, _message, (byte)level );
     }
 
@@ -60,6 +63,7 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     /// <returns>The same <see cref="Message"/> with the <paramref name="depth"/>.</returns>
     public SimpleUserMessage With( byte depth )
     {
+        Throw.CheckState( IsValid );
         return new SimpleUserMessage( depth, _message, _level );
     }
 
@@ -80,7 +84,15 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     /// Gets whether this message is valid.
     /// Invalid message is the <c>default</c> value.
     /// </summary>
-    public bool IsValid => _message != null;
+    [MemberNotNullWhen(true, nameof(_message))]
+    public bool IsValid
+    {
+        get
+        {
+            Throw.DebugAssert( _level == 0 || _message != null );
+            return _level != 0;
+        }
+    }
 
     /// <summary>
     /// Gets this result message's level (<see cref="UserMessageLevel.Info"/>, <see cref="UserMessageLevel.Warn"/>
@@ -124,14 +136,19 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     /// Gets the <c>"Level - Message"</c> string. The Depth indents the Message.
     /// </summary>
     /// <returns>This message's level and message indented by Depth.</returns>
-    public override string ToString() => _depth switch
+    public override string ToString()
     {
-        0 => $"{Level} - {Message}",
-        1 => $"{Level} -  {Message}",
-        2 => $"{Level} -   {Message}",
-        3 => $"{Level} -    {Message}",
-        _ => $"{Level} - {new string( ' ', Depth )}{Message}",
-    };
+        return _level == 0
+            ? ""
+            : _depth switch
+            {
+                0 => $"{Level} - {_message}",
+                1 => $"{Level} -  {_message}",
+                2 => $"{Level} -   {_message}",
+                3 => $"{Level} -    {_message}",
+                _ => $"{Level} - {new string( ' ', _depth )}{_message}",
+            };
+    }
 
     /// <summary>
     /// Implements value equality semantics.
@@ -249,6 +266,7 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
         w.Write( _level );
         if( _level != 0 )
         {
+            Throw.DebugAssert( _message != null );
             w.Write( _depth );
             w.Write( _message );
         }

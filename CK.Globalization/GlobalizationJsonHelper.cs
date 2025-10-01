@@ -171,6 +171,21 @@ public static partial class GlobalizationJsonHelper
     #endregion
 
     #region UserMessage
+
+    /// <summary>
+    /// Writes the ultimate simplified form of a <see cref="UserMessage"/>:
+    /// "Level - Text" string value where the Depth indents the Text (uses <see cref="SimpleUserMessage.ToString()"/>.
+    /// <para>
+    /// <see cref="ReadSimpleUserMessage(ref Utf8JsonReader, IUtf8JsonReaderContext)"/> can read it back.
+    /// </para>
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    public static void WriteAsString( Utf8JsonWriter w, ref readonly UserMessage v )
+    {
+        w.WriteStringValue( v.ToString() );
+    }
+
     /// <summary>
     /// Writes a 8-cells Json array.
     /// </summary>

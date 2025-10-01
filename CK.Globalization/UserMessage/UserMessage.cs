@@ -41,7 +41,7 @@ public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBi
     /// Gets whether this message is valid.
     /// Invalid message is the <c>default</c> value.
     /// </summary>
-    public bool IsValid => _message != null;
+    public bool IsValid => _level != 0;
 
     /// <summary>
     /// Returns a new message with a given <see cref="Level"/>.
@@ -51,6 +51,7 @@ public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBi
     public UserMessage With( UserMessageLevel level )
     {
         Throw.CheckArgument( level != UserMessageLevel.None );
+        Throw.CheckState( IsValid );
         return new UserMessage( level, Message, _depth );
     }
 
@@ -61,6 +62,7 @@ public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBi
     /// <returns>The same <see cref="Message"/> with the <paramref name="depth"/>.</returns>
     public UserMessage With( byte depth )
     {
+        Throw.CheckState( IsValid );
         return new UserMessage( (UserMessageLevel)_level, Message, depth );
     }
 
@@ -107,7 +109,7 @@ public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBi
     /// </para>
     /// </summary>
     /// <returns>A <see cref="SimpleUserMessage"/>.</returns>
-    public SimpleUserMessage AsSimpleUserMessage() => IsValid ? new SimpleUserMessage( Level, Message, Depth ) : default;
+    public SimpleUserMessage AsSimpleUserMessage() => IsValid ? new SimpleUserMessage( _depth, Message, _level ) : default;
 
     /// <summary>
     /// Implicit cast into <see cref="SimpleUserMessage"/>.
@@ -455,11 +457,8 @@ public readonly struct UserMessage : ICKSimpleBinarySerializable, ICKVersionedBi
     }
     #endregion
 
-    /// <summary>
-    /// Gets the <c>"Level - ResName - Text message"</c> string.
-    /// </summary>
-    /// <returns>This message's Level, ResName and Text.</returns>
-    public override string ToString() => $"{Level} - {ResName} - {Text}";
+    /// <inheritdoc cref="SimpleUserMessage.ToString" />
+    public override string ToString() => IsValid ? new SimpleUserMessage( Level, _message, _depth ).ToString() : "";
 
     /// <summary>
     /// Implements equality on <see cref="Level"/>, <see cref="Text"/> and <see cref="Depth"/>.
