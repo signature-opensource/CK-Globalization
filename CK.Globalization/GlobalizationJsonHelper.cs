@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core;
 
@@ -45,6 +46,20 @@ public static partial class GlobalizationJsonHelper
     #region SimpleUserMessage
 
     /// <summary>
+    /// Writes the ultimate simplified form of a <see cref="SimpleUserMessage"/>:
+    /// "Level - Text" string value where the Depth indents the Text (uses <see cref="SimpleUserMessage.ToString()"/>.
+    /// <para>
+    /// <see cref="ReadSimpleUserMessage(ref Utf8JsonReader, IUtf8JsonReaderContext)"/> can read it back.
+    /// </para>
+    /// </summary>
+    /// <param name="w">The writer.</param>
+    /// <param name="v">The value to write.</param>
+    public static void WriteAsString( Utf8JsonWriter w, ref readonly SimpleUserMessage v )
+    {
+        w.WriteStringValue( v.ToString() );
+    }
+
+    /// <summary>
     /// Writes a 3-cells Json array [level,text,depth].
     /// </summary>
     /// <param name="w">The writer.</param>
@@ -65,6 +80,33 @@ public static partial class GlobalizationJsonHelper
             w.WriteStringValue( v.Message );
             w.WriteNumberValue( (int)v.Depth );
         }
+    }
+
+    /// <summary>
+    /// Reads a SimpleUserMessage either from a string, a 3-cells array or from the bigger 8-cells array of a UserMessage.
+    /// The string form must have been written by <see cref="WriteAsString(Utf8JsonWriter, ref readonly SimpleUserMessage)"/>.
+    /// <para>
+    public static SimpleUserMessage ReadSimpleUserMessage( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
+    {
+        if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
+        if( r.TokenType == JsonTokenType.StartArray )
+        {
+            r.ReadWithMoreData( context );
+            var m = ReadSimpleUserMessageFromJsonArrayContent( ref r, context );
+            ReadEndArray( ref r, context, "SimpleUserMessage" );
+            return m;
+        }
+        if( r.TokenType != JsonTokenType.String )
+        {
+            r.ThrowExpectedJsonException( $"string or SimpleUserMessage array" );
+        }
+        var text = r.GetString() ?? string.Empty;
+        r.ReadWithMoreData( context );
+        if( !SimpleUserMessage.TryParse( text, null, out var message ) )
+        {
+            r.ThrowExpectedJsonException( $"Invalid SimpleUserMessage string" );
+        }
+        return message;
     }
 
     /// <summary>

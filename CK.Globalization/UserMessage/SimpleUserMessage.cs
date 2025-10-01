@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CK.Core;
 
@@ -11,7 +13,7 @@ namespace CK.Core;
 /// </para>
 /// </summary>
 [SerializationVersion( 0 )]
-public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<SimpleUserMessage>
+public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersionedBinarySerializable, IEquatable<SimpleUserMessage>, ISpanParsable<SimpleUserMessage>
 {
     readonly string _message;
     readonly byte _level;
@@ -119,10 +121,17 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     public override int GetHashCode() => HashCode.Combine( _level, _depth, _message );
 
     /// <summary>
-    /// Gets the <c>"Level - Message"</c> string.
+    /// Gets the <c>"Level - Message"</c> string. The Depth indents the Message.
     /// </summary>
-    /// <returns>This message's level and text.</returns>
-    public override string ToString() => $"{Level} - {Message}";
+    /// <returns>This message's level and message indented by Depth.</returns>
+    public override string ToString() => _depth switch
+    {
+        0 => $"{Level} - {Message}",
+        1 => $"{Level} -  {Message}",
+        2 => $"{Level} -   {Message}",
+        3 => $"{Level} -    {Message}",
+        _ => $"{Level} - {new string( ' ', Depth )}{Message}",
+    };
 
     /// <summary>
     /// Implements value equality semantics.
@@ -140,6 +149,60 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
     /// <returns>True if they differ, false otherwise.</returns>
     public static bool operator !=( SimpleUserMessage left, SimpleUserMessage right ) => !(left == right);
 
+    /// <summary>
+    /// Calls <see cref="TryParse(ReadOnlySpan{char}, IFormatProvider?, out SimpleUserMessage)"/> and throws a <see cref="FormatException"/>
+    /// if it returns false.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <param name="provider">The format provider (unused).</param>
+    /// <returns>The SimpleUserMessage with a <see cref="Level"/> that is not None.</returns>
+    public static SimpleUserMessage Parse( ReadOnlySpan<char> s, IFormatProvider? provider )
+    {
+        if( !TryParse( s, provider, out var m ) ) Throw.FormatException( $"Invalid SimpleUserMessage: '{s}'." );
+        return m;
+    }
+
+    /// <summary>
+    /// Tries to parse a string as a SimpleUserMessage.
+    /// The text must follow the <see cref="ToString()"/> pattern (starts with "Error", "Warn" or "Info").
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <param name="provider">The format provider (unused).</param>
+    /// <param name="result">The result.</param>
+    /// <returns>True on success, false otherwise.</returns>
+    public static bool TryParse( ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen( false )] out SimpleUserMessage result )
+    {
+        UserMessageLevel level = UserMessageLevel.None;
+        byte depth = 0;
+        if( s.TryMatch( "Error" ) ) level = UserMessageLevel.Error;
+        else if( s.TryMatch( "Warn" ) ) level = UserMessageLevel.Warn;
+        else if( s.TryMatch( "Info" ) ) level = UserMessageLevel.Info;
+        else
+        {
+            result = default;
+            return false;
+        }
+        s.SkipWhiteSpaces();
+        s.TryMatch( '-' );
+        int i = 0;
+        for( ; i < 255; ++i )
+        {
+            if( s[i] != ' ' )
+            {
+                depth = (byte)(i-1);
+                break;
+            }
+        }
+        var text = new string( s.Slice( i ) );
+        result = new SimpleUserMessage( level, text, depth );
+        return level != UserMessageLevel.None;
+    }
+
+    /// <inheritdoc cref="Parse(ReadOnlySpan{char}, IFormatProvider?)"/>
+    public static SimpleUserMessage Parse( string s, IFormatProvider? provider ) => Parse( s.AsSpan(), provider );
+
+    /// <inheritdoc cref="TryParse(ReadOnlySpan{char}, IFormatProvider?, out SimpleUserMessage)"/>
+    public static bool TryParse( [NotNullWhen( true )] string? s, IFormatProvider? provider, [MaybeNullWhen( false )] out SimpleUserMessage result ) => TryParse( s.AsSpan(), provider, out result );
 
     #region Binary Serialization
     /// <summary>
@@ -190,6 +253,7 @@ public readonly struct SimpleUserMessage : ICKSimpleBinarySerializable, ICKVersi
             w.Write( _message );
         }
     }
+
     #endregion
 
 

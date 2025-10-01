@@ -27,6 +27,33 @@ public class GlobalizationJsonHelperTests
         messageBack.ShouldBe( message );
     }
 
+    [TestCase( UserMessageLevel.Info, "some info", 0, "Info - some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 0, "Warn - Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 0, "Error - EText" )]
+
+    [TestCase( UserMessageLevel.Info, "some info", 1, "Info -  some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 2, "Warn -   Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 3, "Error -    EText" )]
+    [TestCase( UserMessageLevel.Info, "some info", 4, "Info -     some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 5, "Warn -      Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 6, "Error -       EText" )]
+
+    public void SimpleUserMessage_as_string_tests( UserMessageLevel level, string text, byte depth, string expectedJson )
+    {
+        var message = new SimpleUserMessage( level, text, depth );
+        using var mem = Util.RecyclableStreamManager.GetStream();
+        using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem ) )
+        {
+            GlobalizationJsonHelper.WriteAsString( w, ref message );
+        }
+        var jsonString = Encoding.UTF8.GetString( mem.GetReadOnlySequence() );
+        jsonString.ShouldBe( '"' + expectedJson + '"' );
+
+        var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
+        var messageBack = GlobalizationJsonHelper.ReadSimpleUserMessage( ref r, IUtf8JsonReaderContext.Empty );
+        messageBack.ShouldBe( message );
+    }
+
     static UserMessage WriteTestUserMessage( RecyclableMemoryStream mem )
     {
         var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
