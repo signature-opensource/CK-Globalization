@@ -4,6 +4,7 @@ using NUnit.Framework;
 using NUnit.Framework.Internal;
 using System.Buffers;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace CK.Globalization.Tests;
@@ -26,16 +27,60 @@ public class GlobalizationJsonHelperTests
         messageBack.ShouldBe( message );
     }
 
+    [TestCase( UserMessageLevel.Info, "some info", 0, "Info - some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 0, "Warn - Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 0, "Error - EText" )]
+
+    [TestCase( UserMessageLevel.Info, "some info", 1, "Info -  some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 2, "Warn -   Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 3, "Error -    EText" )]
+    [TestCase( UserMessageLevel.Info, "some info", 4, "Info -     some info" )]
+    [TestCase( UserMessageLevel.Warn, "Text", 5, "Warn -      Text" )]
+    [TestCase( UserMessageLevel.Error, "EText", 6, "Error -       EText" )]
+
+    public void SimpleUserMessage_as_string_tests( UserMessageLevel level, string text, byte depth, string expectedJson )
+    {
+        var message = new SimpleUserMessage( level, text, depth );
+        using var mem = Util.RecyclableStreamManager.GetStream();
+        using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem ) )
+        {
+            GlobalizationJsonHelper.WriteAsString( w, ref message );
+        }
+        var jsonString = Encoding.UTF8.GetString( mem.GetReadOnlySequence() );
+        jsonString.ShouldBe( '"' + expectedJson + '"' );
+
+        var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
+        var messageBack = GlobalizationJsonHelper.ReadSimpleUserMessage( ref r, IUtf8JsonReaderContext.Empty );
+        messageBack.ShouldBe( message );
+    }
+
     static UserMessage WriteTestUserMessage( RecyclableMemoryStream mem )
     {
-        var current = new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault );
-        var message = UserMessage.Warn( current, $"The {nameof(mem)} text with {current} placeholders.", resName: "Test.Res" ).With( 37 );
-        using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem ) )
+        var frFR = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "fr-FR" );
+        frFR.Fallbacks[0].SetCachedTranslations( [("Test.Res", "S'il n'y pas {1}, alors il n'y a pas {0}.")] );
+
+        var c1 = "Bird";
+        var c2 = "Animal";
+        var current = new CurrentCultureInfo( new TranslationService(), frFR );
+        var message = UserMessage.Warn( current, $"Concept {c1} requires {c2}.", resName: "Test.Res" ).With( 37 );
+
+        // First, the SimpleUserMessage form:
+        using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping } ) )
+        {
+            var simple = message.AsSimpleUserMessage();
+            GlobalizationJsonHelper.WriteAsJsonArray( w, ref simple );
+        }
+        Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).ShouldBe( """
+            [8,"S'il n'y pas Animal, alors il n'y a pas Bird.",37]
+            """ );
+        // Now in the buffer, the full message:
+        mem.SetLength( 0 );
+        using( var w = new Utf8JsonWriter( (IBufferWriter<byte>)mem, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping } ) )
         {
             GlobalizationJsonHelper.WriteAsJsonArray( w, ref message );
         }
         Encoding.UTF8.GetString( mem.GetReadOnlySequence() ).ShouldBe( """
-            [8,37,"The mem text with CK.Core.CurrentCultureInfo placeholders.","en","Test.Res","The mem text with CK.Core.CurrentCultureInfo placeholders.","en",[4,3,18,26]]
+            [8,37,"S'il n'y pas Animal, alors il n'y a pas Bird.","fr","Test.Res","Concept Bird requires Animal.","fr-fr",[8,4,22,6]]
             """ );
         return message;
     }
