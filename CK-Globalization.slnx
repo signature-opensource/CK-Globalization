@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="appveyor.yml" />
+    <File Path="Directory.Build.props" />
+    <File Path="NuGet.config" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/CK.Globalization.Tests/CK.Globalization.Tests.csproj" />
+  </Folder>
+  <Project Path="CK.Globalization/CK.Globalization.csproj" />
+</Solution>
