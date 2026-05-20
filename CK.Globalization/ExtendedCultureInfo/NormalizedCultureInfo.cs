@@ -392,7 +392,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
             fallbacks.Add( DoRegister( parent.Name.ToLowerInvariant(), parent, all ) );
             parent = parent.Parent;
         }
-        int id = ComputeId( all, name );
+        int id = ComputeId( all, name, isExtended: false );
         var newOne = new NormalizedCultureInfo( cultureInfo, name, id, fallbacks != null ? fallbacks.DrainToImmutable() : ImmutableArray<NormalizedCultureInfo>.Empty );
         // Register with the single normalized name.
         all.Add( name, newOne );
@@ -500,7 +500,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
             var names = nameBuilder.ToString();
             if( !all.TryGetValue( names, out e ) )
             {
-                int id = ComputeId( all, names );
+                int id = ComputeId( all, names, isExtended: true );
                 e = new ExtendedCultureInfo( allCultures, names, id );
                 all.Add( e.Name, e );
                 all.Add( id, e );
@@ -541,9 +541,10 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         }
     }
 
-    static int ComputeId( Dictionary<object, ExtendedCultureInfo> all, string name )
+    static int ComputeId( Dictionary<object, ExtendedCultureInfo> all, string name, bool isExtended )
     {
         int id = GetZeroBasedDbj2HashCode( name );
+        if( isExtended ) id = -id;
         if( all.TryGetValue( id, out var clash ) )
         {
             var clashes = new List<string>();

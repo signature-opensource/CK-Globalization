@@ -48,6 +48,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     internal ExtendedCultureInfo( string name, int id )
     {
         Throw.DebugAssert( name != null && name.Length == 0 || name == "en" );
+        Throw.DebugAssert( id >= 0 );
         _name = name;
         _fullName = name;
         _primary = (NormalizedCultureInfo)this;
@@ -65,6 +66,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     {
         Throw.DebugAssert( name.Length > 0 && !name.Contains( ',' ) && !fallbacks.Contains( this ) );
         Throw.DebugAssert( !fallbacks.Contains( this ) && !fallbacks.Contains( NormalizedCultureInfo.Invariant ) );
+        Throw.DebugAssert( id >= 0 );
         _name = name;
         _fullName = fallbacks.Length > 0
                         ? string.Join( ',', fallbacks.Select( n => n.Name ).Prepend( name ) )
@@ -83,6 +85,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     internal ExtendedCultureInfo( List<NormalizedCultureInfo> allCultures, string names, int id )
     {
         Throw.DebugAssert( allCultures.Count > 1 );
+        Throw.DebugAssert( id < 0 );
         _name = names;
         _fullName = string.Join( ',', allCultures.Select( n => n.Name ) );
         _id = id;
@@ -127,7 +130,9 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 
     /// <summary>
     /// Gets a unique identifier for this culture.
-    /// It is the <see cref="GetZeroBasedDbj2HashCode(string)"/> hash value.
+    /// It is based on the <see cref="GetZeroBasedDbj2HashCode(string)"/> hash value: this is zero (invariant) or
+    /// a positive value for <see cref="NormalizedCultureInfo"/>. Pure <see cref="ExtendedCultureInfo"/> have
+    /// necessarily a negative identifier.
     /// </summary>
     public int Id => _id;
 
@@ -163,5 +168,5 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     /// <param name="s">The string.</param>
     /// <returns>The Djb2 value minus 5381 for the input <see cref="string"/> instance.</returns>
     [MethodImpl( MethodImplOptions.AggressiveInlining )]
-    public static int GetZeroBasedDbj2HashCode( string s ) => unchecked(s.GetDjb2HashCode() - 5381);
+    public static int GetZeroBasedDbj2HashCode( string s ) => unchecked(s.GetDjb2HashCode() - 5381) & int.MaxValue;
 }
