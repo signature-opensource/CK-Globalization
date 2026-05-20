@@ -246,18 +246,19 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         _noTranslations = new Dictionary<string, PositionalCompositeFormat>();
         var cInv = CultureInfo.InvariantCulture;
         var cEn = CultureInfo.GetCultureInfo( "en" );
-        var en = new NormalizedCultureInfo( _noTranslations, "en", 221277614, cEn, null );
+        var en = new NormalizedCultureInfo( _noTranslations, "en", 221272233, cEn, null );
         Invariant = new NormalizedCultureInfo( _noTranslations, string.Empty, 0, cInv, en );
         bool isInvariantModeWithPredefinedOnly = cEn == cInv;
 
-        Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
+        Throw.DebugAssert( GetZeroBasedDbj2HashCode( "en" ) == 221272233 );
+        Throw.DebugAssert( GetZeroBasedDbj2HashCode( "" ) == 0 );
         _all = new Dictionary<object, ExtendedCultureInfo>()
         {
             { "", Invariant },
             { 0, Invariant },
             { Invariant, Invariant },
             { "en", en },
-            { 221277614, en }
+            { 221272233, en }
         };
         if( !isInvariantModeWithPredefinedOnly )
         {
@@ -276,7 +277,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         _all = all;
         GlobalizationAgent.ClearIssueCache();
 
-        Throw.DebugAssert( "en".GetDjb2HashCode() == 221277614 );
+        Throw.DebugAssert( GetZeroBasedDbj2HashCode( "en" ) == 221272233 );
 
         static bool IsUnremovable( KeyValuePair<object, ExtendedCultureInfo> c )
         {
@@ -284,7 +285,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
                    ||
                    (c.Key is CultureInfo i && (i.Name == "" || i.Name == "en"))
                    ||
-                   (c.Key is int id && (id == 0 || id == 221277614));
+                   (c.Key is int id && (id == 0 || id == 221272233));
         }
     }
 
@@ -542,7 +543,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
 
     static int ComputeId( Dictionary<object, ExtendedCultureInfo> all, string name )
     {
-        int id = name.GetDjb2HashCode();
+        int id = GetZeroBasedDbj2HashCode( name );
         if( all.TryGetValue( id, out var clash ) )
         {
             var clashes = new List<string>();

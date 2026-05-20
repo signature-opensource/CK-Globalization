@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace CK.Core;
 
@@ -126,7 +127,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 
     /// <summary>
     /// Gets a unique identifier for this culture.
-    /// It is the <see cref="StringExtensions.GetDjb2HashCode(string)"/> hash value.
+    /// It is the <see cref="GetZeroBasedDbj2HashCode(string)"/> hash value.
     /// </summary>
     public int Id => _id;
 
@@ -153,4 +154,14 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
     public override string ToString() => _name;
 
     object? IFormatProvider.GetFormat( Type? formatType ) => _primary.Culture.GetFormat( formatType );
+
+
+    /// <summary>
+    /// Returns the <see cref="SpanExtensions.GetDjb2HashCode{T}(Span{T})"/> minus 5381: the empty string
+    /// hash code is 0.
+    /// </summary>
+    /// <param name="s">The string.</param>
+    /// <returns>The Djb2 value minus 5381 for the input <see cref="string"/> instance.</returns>
+    [MethodImpl( MethodImplOptions.AggressiveInlining )]
+    public static int GetZeroBasedDbj2HashCode( string s ) => unchecked(s.GetDjb2HashCode() - 5381);
 }

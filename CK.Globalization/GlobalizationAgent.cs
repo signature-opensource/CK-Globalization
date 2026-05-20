@@ -87,6 +87,7 @@ public static partial class GlobalizationAgent
     {
         public bool Equals( byte[]? x, byte[]? y ) => x.AsSpan().SequenceEqual( y );
 
+        // Use the original (no offset by 5381) DBJ2 hash code here.
         public int GetHashCode( byte[] obj ) => obj.GetDjb2HashCode();
     }
 

@@ -60,7 +60,7 @@ public partial class ExtendedCultureInfoTests
         }
     }
 
-    // Make then static so we cath ALL occurences.
+    // Make then static so we catch ALL occurrences.
     static ClashDetector dbJ2Clashes = new ClashDetector();
     static ClashDetector sha1Clashes = new ClashDetector();
 
@@ -83,7 +83,7 @@ public partial class ExtendedCultureInfoTests
             // Skip the 0 => Invariant exception.
             if( n.Length > 0 )
             {
-                int hash = n.GetDjb2HashCode();
+                int hash = ExtendedCultureInfo.GetZeroBasedDbj2HashCode( n );
                 dbJ2Clashes.Add( hash, n );
                 sha1Clashes.Add( hash, n );
                 allNames.Add( n );
@@ -103,7 +103,7 @@ public partial class ExtendedCultureInfoTests
             var extName = Enumerable.Range( 0, len ).Select( i => allNames[r.Next( oCount )] ).Concatenate( ',' );
             var cExt = ExtendedCultureInfo.EnsureExtendedCultureInfo( extName );
 
-            dbJ2Clashes.Add( cExt.Name.GetDjb2HashCode(), cExt.Name );
+            dbJ2Clashes.Add( ExtendedCultureInfo.GetZeroBasedDbj2HashCode( cExt.Name ), cExt.Name );
 
             sha1.AppendData( Encoding.ASCII.GetBytes( cExt.Name ) );
             var sh = MemoryMarshal.Cast<byte, int>( sha1.GetHashAndReset() );
