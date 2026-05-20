@@ -16,16 +16,16 @@ The "current" culture is an injected scoped service (the `CurrentCultureInfo`) o
 > **Important:** This library doesn't use the static (and async local) [CultureInfo.CurrentCulture](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.currentculture).
 
 We currently don't exploit the .NET 8 [CompositeFormat](https://learn.microsoft.com/en-us/dotnet/api/system.text.compositeformat).
-Using it requires more work from the developper: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
+Using it requires more work from the developer: to emit a text, a CompositeFormat in the appropriate culture (the "current" one)
 must be located first and then written/formatted with an array of objects. These objects must be compatible in terms of types
 and cardinality with the CompositeFormat (possible runtime errors here).
 Even if solutions that involve code generation exist like [TypealizR](https://github.com/earloc/TypealizR)
-that secures this process by enforcing type safety, this is always more work for the developper.
+that secures this process by enforcing type safety, this is always more work for the developer.
 
-Our approach is different. Instead of trying to obtain a format (the "enveloppe" of the text) *before* formatting,
+Our approach is different. Instead of trying to obtain a format (the "envelope" of the text) *before* formatting,
 we always format a text with a "en" (our default) format but with placeholders rendered in the culture (provided by the DI)
 and captures the resulting `Text`, the "current" `TargetCulture` and the placeholders text ranges. Armed with this, we can
-*later* applies another format/enveloppe to this text and obtains the "translated" text.
+*later* applies another format/envelope to this text and obtains the "translated" text.
 
 An interesting side-effect of this deferred translation is that the "translation" is not required to be executed on
 the original system: the dictionary of translations can reside on a different system in a distributed system, freeing the
@@ -37,7 +37,7 @@ CultureInfo have a [`Parent`](https://learn.microsoft.com/en-us/dotnet/api/syste
 a more "general culture". This forms a tree with the [`CultureInfo.Invariant`](https://learn.microsoft.com/en-us/dotnet/api/system.globalization.cultureinfo.invariantculture)
 at its root.
 
-The path from a CutureInfo to the Invariant root acts as fallback chain:
+The path from a CultureInfo to the Invariant root acts as fallback chain:
 ```
 pa-Guru-IN - Punjabi (Gurmukhi, India)
 pa-Guru - Punjabi (Gurmukhi)
@@ -60,7 +60,7 @@ CultureInfo can be created freely as long as the name is valid according to the 
 
 The .NET cache behavior is far from perfect. One cannot create a new CultureInfo out of the blue, configure it and then cache it (which
 should freeze it). The name management is surprising: the above name is "normalized" to 'a-VALID-NAME' but cache lookup is always case
-insentitive.
+insensitive.
 
 The `static bool NormalizedCultureInfo.IsValidCultureName( ReadOnlySpan<char> name )` helper is available to check culture
 name syntax but ultimately the framework's `CultureInfo.GetCultureInfo( string name )` decides (and may throw
@@ -112,10 +112,13 @@ since collisions can occur but our tests have shown that they are quite exceptio
 detected and an explicit identifier assignation is done in such case.
 
 > If this happens, this HAS TO BE HANDLED quickly and the clash must be hard coded in this library order
-for the identifier to be shared accross systems.
+for the identifier to be shared across systems.
 
 This mechanism is a bet. Clashes should occur if a really big number of cultures are used. If managing the
 "exceptions" happens to be unbearable, then we may extend the int identifier to a long (64 bits).
+
+*Note:* The `Id` is the DBJ2 hash minus 5381 so that the empty string is 0 (and this is the invariant) and is made positive for
+`NormalizedCultureInfo` and negative for "pure" `ExtendedCultureInfo` (see below).
 
 ## Culture fallbacks
 ### ExtendedCultureInfo and NormalizedCultureInfo 
@@ -127,7 +130,7 @@ concept) if there's one, but I'm fine with any translation in my language (.NET 
 
 We call "pure" `ExtendedCultureInfo` the cultures that are not `NormalizedCultureInfo`: these ones are
 defined by their fallbacks and represent a "user preference list" (comma separated list of normalized
-culture names): "jp,es,fr" is japanese first, then spanish and then french before giving up and use
+culture names): "jp,es,fr" is Japanese first, then Spanish and then French before giving up and use
 the "en" default. This capability introduces some complexity and needs some design decisions discussed
 below.
 
@@ -145,7 +148,7 @@ fallback names.
 
 ### Discussion: Translation vs. Selection, fallbacks normalization 
 Our goal with the `ExtendedCultureInfo` is to support both scenario, even if our primary focus is about
-translations. Unfortunately, these two usages possibly require/imply different interprations of the "user
+translations. Unfortunately, these two usages possibly require/imply different interpretations of the "user
 preference list".
 
 #### Fallbacks semantics
@@ -177,7 +180,7 @@ Let's consider this user preference: "pa-guru-in,es,fr-ca".
 
 We previously stated that a "more general" culture cannot precede a specific one ("fr,fr-ca" is "fr"). Now let's
 consider the "more than one specific cultures" case: "fr-ca, fr-ch". This makes sense: before falling back to the general "fr", the user would
-like to have a canadian or switzerland specific resource. But what about this: "fr-ca, es, fr-ch"? This doesn't make sense
+like to have a Canadian or Switzerland specific resource. But what about this: "fr-ca, es, fr-ch"? This doesn't make sense
 for translations (and is rather strange for selection) but "fr-ch" appears, it would be annoying to purely ignore it.
 
 The normalization described below handles all these case.
@@ -185,7 +188,7 @@ The normalization described below handles all these case.
 #### Normalization
 Normalization of a preference list can be done by applying the following rules:
 - First, cultures are grouped by common parent, preserving the relative order of the children: groups are ordered based on
-  the first occurence of itself or one of its more specific cultures.
+  the first occurrence of itself or one of its more specific cultures.
 - Then, groups are written, specific culture names coming first, ending with the parent cultures' name.
 
 _Note:_ This normalization process is not based on the string names but on the hierarchy provided by the
@@ -199,7 +202,7 @@ This process is sound: it corrects what can be seen as "stupid input" (without l
 for translations and selections provided that for translations, we consider the "en" culture to
 end the list (only "fr-fr,fr,es-bo,es,en-gb" will be considered for translations).
 
-## NormalizedCulture cached transtations
+## NormalizedCulture cached translations
 All NormalizedCulture (except the "en" and Invariant default ones) can have a cached translation set of resources.
 It can always be set (the new one replaces the current one). This is a thread safe atomic operation:
 
@@ -207,7 +210,7 @@ It can always be set (the new one replaces the current one). This is a thread sa
 public IReadOnlyList<GlobalizationAgent.Issue> SetCachedTranslations( IEnumerable<(string ResName, string Format)> map )
 ```
 The `Format` string is a positional-only composite format (see https://learn.microsoft.com/en-us/dotnet/standard/base-types/composite-formatting):
-only `{0}`, `{1}` etc. placeholders are allowed, without alignement nor format specifier. This format string is parsed and kept as a structure
+only `{0}`, `{1}` etc. placeholders are allowed, without alignment nor format specifier. This format string is parsed and kept as a structure
 optimized to generate strings. If the format cannot be parsed successfully, a `GlobalizationAgent.ResourceFormatError` is emitted.
 
 As discussed before, translations must be "compact": a resource defined in "es-es" MUST be defined in "es" but because translations can be
@@ -275,7 +278,7 @@ directly translated:
 ```csharp
 return MCString.Create( culture, $"Hello {name}!", "SayHello" );
 ```
-If the `culture` is a `CurrentCultureInfo` with a french culture and the cached translation on the 'fr'
+If the `culture` is a `CurrentCultureInfo` with a French culture and the cached translation on the 'fr'
 `NormalizedCulture` contains the mapping {"SayHello","Bonjour {0}!"}, then the string is immediately
 translated.
 
@@ -292,10 +295,10 @@ and `ResultMessage` are serializable both with the simple and versioned simple b
 
 However, we don't always want to carry all the information these types hold. In such case, these types
 can be "simplified":
-- The culture informations are are always marshalled by their name (simple string): calling
+- The culture information are always marshalled by their name (simple string): calling
   `ExtendedCultureInfo.GetExtendedCultureInfo( name )` restores the corresponding culture info (be it
   a `NormalizedCultureInfo` or not).
-- The formatted and code strings can be considered as simple strings, they can be implictly cast into string
+- The formatted and code strings can be considered as simple strings, they can be implicitly cast into string
   (that is their respective `Text` property).
 - `UserMessage` can be implicitly cast into `SimpleUserMessage` that holds the `Level`, `Depth` and
   the `Message` as a mere string.
@@ -325,24 +328,24 @@ public static List<UserMessage> GetUserMessages( this Exception ex,
 The `leakAll` parameter states whether all exceptions must be exposed or only the `MCException` ones. When null, it defaults
 to `CoreApplicationIdentity.IsDevelopmentAndInitialized`: we want to be sure to be in "#Dev" environment to leak the exceptions.
 
-The idea here is that if the developper took the time to emit a `MCException` rather than a mere exception, this exception is then
+The idea here is that if the developer took the time to emit a `MCException` rather than a mere exception, this exception is then
 "safe enough" to be displayed to an end user.
 
 ## The ResName is optional but important.
-When a developper is in a hurry, he may not have time to choose and set a resource name for a CodeString.
+When a developer is in a hurry, he may not have time to choose and set a resource name for a CodeString.
 In this case, an automatic resource name is computed: "SHA.v8xu6U8beqBaBHUJA-Jfk6cYiuA" for instance
 is the default resource name of the plain text "text" (it is the base64url encoding of the SHA1 of the
 format string).
 
-This resource name can perfectly be used in the translation resources: the developper is not required
+This resource name can perfectly be used in the translation resources: the developer is not required
 to choose a resource name. Translations can come later and provided without necessarily updating the
 source code... or never if English is fine.
 
 SHA1 automatic resource names never clash by design. When multiple locations in source code create
-the same CodeString, their SHA1 are equal and the same resource will apply to all of them. If a developper
+the same CodeString, their SHA1 are equal and the same resource will apply to all of them. If a developer
 changes one of them, it will become "untranslated" until a dedicated resource is provided.
 
-Explicit resource names seems better, but the same name can be defined by 2 different developpers (in 2
+Explicit resource names seems better, but the same name can be defined by 2 different developers (in 2
 modules) with a totally different format string.
 
 SHA1 or explicit, managing resource names requires to take care of: 
@@ -373,7 +376,7 @@ Issues that are dynamically analyzed are:
 - `FormatArgumentCountError` is emitted whenever a translation format expects less or more arguments
   than a CodeString placeholders contains.
 - The worst case: `CultureIdentifierClash` is always raised, even if the static gate `Track` is closed.
-  This is a serious issue that must be urgently adressed.
+  This is a serious issue that must be urgently addressed.
 
 `MissingTranslationResource` and `FormatArgumentCountError` events are memorized and the corresponding event
 is raised only once.
@@ -391,7 +394,7 @@ public static Task<IssuesReport> GetIssuesReportAsync( bool reset ) { ... }
 
 The `GlobalizationAgent.IssuesReport` exposes the dynamic issues plus 3 other computed issues:
 
-- `AutomaticResourceNamesCanUseExistingResName` when anutomatic "SHA.XXX" resource name can reuse
+- `AutomaticResourceNamesCanUseExistingResName` when automatic "SHA.XXX" resource name can reuse
   an existing explicit ResName.
 - `ResourceNamesCanBeMerged` when different resource names are used for the same CodeString format:
   they may be merged.

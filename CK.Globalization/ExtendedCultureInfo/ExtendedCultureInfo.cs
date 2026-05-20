@@ -107,7 +107,7 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 
     /// <summary>
     /// Gets the primary, preferred, culture.
-    /// For a ExtendedCultureInfo this is the first prefered culture, for a NormalizedCultureInfo it is itself.
+    /// For a ExtendedCultureInfo this is the first preferred culture, for a NormalizedCultureInfo it is itself.
     /// </summary>
     public NormalizedCultureInfo PrimaryCulture => _primary;
 
@@ -162,11 +162,11 @@ public class ExtendedCultureInfo : IAmbientAutoService, IFormatProvider
 
 
     /// <summary>
-    /// Returns the <see cref="SpanExtensions.GetDjb2HashCode{T}(Span{T})"/> minus 5381: the empty string
-    /// hash code is 0.
+    /// Returns the <see cref="SpanExtensions.GetDjb2HashCode{T}(Span{T})"/> minus 5381 (the empty string
+    /// hash code is 0) without negative values: the sign bit is always cleared.
     /// </summary>
     /// <param name="s">The string.</param>
-    /// <returns>The Djb2 value minus 5381 for the input <see cref="string"/> instance.</returns>
+    /// <returns>The 0 or positive Djb2 value minus 5381 for the input <see cref="string"/> instance.</returns>
     [MethodImpl( MethodImplOptions.AggressiveInlining )]
     public static int GetZeroBasedDbj2HashCode( string s ) => unchecked(s.GetDjb2HashCode() - 5381) & int.MaxValue;
 }
