@@ -267,6 +267,26 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
         CodeDefault = en;
     }
 
+    /// <summary>
+    /// Test/engine support: clears the per-instance cached translations on every registered culture
+    /// (including the surviving Invariant/CodeDefault defaults), forcing re-resolution. Use in test
+    /// SetUp/TearDown to isolate runs that populate the process-global translation cache.
+    /// </summary>
+    public static void ClearCachedTranslations()
+    {
+        lock( _all )
+        {
+            var seen = new HashSet<NormalizedCultureInfo>();
+            foreach( var v in _all.Values )
+            {
+                if( v is NormalizedCultureInfo n && seen.Add( n ) )
+                {
+                    n._translations = _noTranslations;
+                }
+            }
+        }
+    }
+
     // This is for tests only. Tests use reflection to call this.
     // Even if there should be no differences between Debug and Release builds
     // we also test in Release (no #if DEBUG).
