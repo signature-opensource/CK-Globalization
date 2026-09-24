@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using static CK.Testing.MonitorTestHelper;
 
 namespace CK.Globalization.Tests;
@@ -145,8 +146,10 @@ public partial class ExtendedCultureInfoTests
             var c2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name2 );
             Assume.That( c2.Name == name2, $"Resolution differs: '{name2}' has been transformed to '{c2.Name}'." );
             c2.Id.ShouldBe( idClash + 1 );
-            // Wait for detection.
-            while( clashDetected == null ) ;
+            // Wait for detection (raised asynchronously by the GlobalizationAgent).
+            // Volatile.Read prevents the JIT from hoisting the read out of the loop in Release.
+            SpinWait.SpinUntil( () => Volatile.Read( ref clashDetected ) != null, TimeSpan.FromSeconds( 5 ) )
+                    .ShouldBeTrue( "The identifier clash should have been detected." );
             var clash = GlobalizationAgent.IdentifierClashes.Single( i => i.Name == name2 );
             clash.Id.ShouldBe( idClash + 1 );
             clash.Clashes.ShouldBe( new[] { name1 } );
