@@ -2,9 +2,7 @@
 
 [![Licence](https://img.shields.io/github/license/signature-opensource/CK-Globalization.svg)](LICENSE)
 
-Contains [CK.Globalization](CK.Globalization/README.md): normalized cultures with their fallbacks, the
-active culture as an ambient service, and messages that keep their placeholders so they can be
-translated after the fact.
+Globalization (cultures and translations) for the CK stack.
 
 | Package | Description | Latest stable |
 |---------|-------------|---------------|
