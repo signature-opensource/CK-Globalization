@@ -1,7 +1,7 @@
 namespace CK.Core;
 
 /// <summary>
-/// Event arguments for <see cref="ExtendedCultureInfo.CultureCreated"/> event.
+/// Event arguments for <see cref="GlobalizationAgent.CultureCreated"/> event.
 /// <para>
 /// This event contains the snapshot of the current existing cultures. This can be used to track
 /// cultures in a thread safe manner because this event is raised sequentially. The <see cref="ExtendedCultureInfoTracker"/>

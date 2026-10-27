@@ -28,7 +28,7 @@ namespace CK.Core;
 /// provide a default value).
 /// </para>
 /// <para>
-/// The static <see cref="All"/> properties exposes all the registered cultures and the <see cref="CultureCreated"/>
+/// The static <see cref="All"/> properties exposes all the registered cultures and the <see cref="GlobalizationAgent.CultureCreated"/>
 /// event is raised when a new culture is registered.
 /// </para>
 /// </summary>

@@ -208,7 +208,7 @@ public sealed partial class NormalizedCultureInfo : ExtendedCultureInfo
     /// </summary>
     /// <param name="resourceName">The resource name.</param>
     /// <param name="format">The format to apply on sucess.</param>
-    /// <returns>False if the <paramref name="resourceName"/> has an associated format, false otherwise.</returns>
+    /// <returns>True if the <paramref name="resourceName"/> has an associated format, false otherwise.</returns>
     public bool TryGetCachedTranslation( string resourceName, out PositionalCompositeFormat format )
     {
         return _translations.TryGetValue( resourceName, out format );

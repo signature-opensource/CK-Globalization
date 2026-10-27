@@ -96,7 +96,7 @@ public sealed class CodeString : ICKSimpleBinarySerializable, ICKVersionedBinary
     /// Gets the resource name that identifies this string.
     /// This is the empty string for the <see cref="Empty"/> string.
     /// <para>
-    /// The prefix "SHA." is reserved: it is the prefix for Base64Url SHA1 of the <see cref="FormattedString.GetFormatString"/>
+    /// The prefix "SHA." is reserved: it is the prefix for the Base64Url SHA1 of the format (see <see cref="FormattedString.GetSHA1BasedResName"/>)
     /// used when no resource name is provided.
     /// </para>
     /// </summary>

@@ -186,7 +186,9 @@ public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersion
     public static implicit operator string( FormattedString f ) => f._text ?? String.Empty;
 
     /// <summary>
-    /// Writes the 20 bytes SHA1 of the <see cref="GetFormatString()"/> (without computing it).
+    /// Writes the 20 bytes SHA1 of the format of this formatted string (without computing <see cref="GetFormatString()"/>):
+    /// the hash is computed over the UTF-16 bytes of the text segments between placeholders, with a single 0 byte
+    /// in place of each placeholder. For a default (uninitialized) instance, the zero SHA1 is written.
     /// </summary>
     /// <param name="destination">Must be at least 20 bytes length.</param>
     public void WriteFormatSHA1( Span<byte> destination )
@@ -253,10 +255,10 @@ public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersion
     public static bool operator !=( FormattedString left, FormattedString right ) => !(left == right);
 
     /// <summary>
-    /// Gets the "Sha.XXX....XXX" automatic resource name that can be used to identify
-    /// the format of this formatted string (regardless of the placeholder values).
+    /// Gets the "SHA.XXX....XXX" automatic resource name (the Base64Url SHA1 written by <see cref="WriteFormatSHA1(Span{byte})"/>)
+    /// that can be used to identify the format of this formatted string (regardless of the placeholder values).
     /// </summary>
-    /// <returns>A default resource name based on this <see cref="GetFormatString"/>.</returns>
+    /// <returns>A default resource name based on the format of this formatted string.</returns>
     public string GetSHA1BasedResName()
     {
         Throw.DebugAssert( Base64.GetMaxEncodedToUtf8Length( 20 ) == 28 );
