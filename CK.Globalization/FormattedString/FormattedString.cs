@@ -428,7 +428,8 @@ public readonly struct FormattedString : ICKSimpleBinarySerializable, ICKVersion
                 s.Length = r.ReadNonNegativeSmallInt32();
             }
             var n = r.ReadNullableString();
-            _culture = n != null ? NormalizedCultureInfo.EnsureNormalizedCultureInfo( n ) : null;
+            // The name of a pure ExtendedCultureInfo is a comma separated list of culture names.
+            _culture = n != null ? ExtendedCultureInfo.EnsureExtendedCultureInfo( n ) : null;
         }
     }
 

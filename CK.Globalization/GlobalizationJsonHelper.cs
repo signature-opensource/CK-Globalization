@@ -37,7 +37,7 @@ public static partial class GlobalizationJsonHelper
     {
         if( context is IMCDeserializationOptions o )
         {
-            if( o.CreateUnexistingCultures ) return NormalizedCultureInfo.EnsureNormalizedCultureInfo( name );
+            if( o.CreateUnexistingCultures ) return ExtendedCultureInfo.EnsureExtendedCultureInfo( name );
             return ExtendedCultureInfo.All.FindBestExtendedCultureInfo( name, o.DefaultCulture ?? NormalizedCultureInfo.CodeDefault );
         }
         return ExtendedCultureInfo.All.FindBestExtendedCultureInfo( name, NormalizedCultureInfo.CodeDefault );

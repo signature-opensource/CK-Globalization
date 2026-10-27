@@ -8,7 +8,7 @@ public interface IMCDeserializationOptions
 {
     /// <summary>
     /// Gets whether <see cref="ExtendedCultureInfo.EnsureExtendedCultureInfo(string)"/> is used instead
-    /// of the safer <see cref="ExtendedCultureInfo.FindBestExtendedCultureInfo(string, NormalizedCultureInfo)"/>.
+    /// of the safer <see cref="AllCultureSnapshot.FindBestExtendedCultureInfo(string, NormalizedCultureInfo)"/>.
     /// <para>
     /// Setting this to true must be used only for trusted inputs.
     /// </para>

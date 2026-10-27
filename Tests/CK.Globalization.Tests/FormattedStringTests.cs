@@ -301,6 +301,31 @@ public class FormattedStringTests
     }
 
     [Test]
+    public void binary_serialization_of_FormattedString_keeps_its_ExtendedCultureInfo()
+    {
+        var ext = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-ca,es" );
+        ext.ShouldNotBeAssignableTo<NormalizedCultureInfo>();
+        var f = new FormattedString( ext, "some text" );
+
+        var back = SimpleSerializable.DeserializeVersioned<FormattedString>( f.SerializeVersioned() );
+        back.Culture.ShouldBeSameAs( ext );
+    }
+
+    [Test]
+    public void json_ResolveCulture_creates_ExtendedCultureInfo_when_CreateUnexistingCultures_is_true()
+    {
+        var create = new TestOptions { CreateUnexistingCultures = true };
+
+        var ext = ExtendedCultureInfo.EnsureExtendedCultureInfo( "fr-ca,es" );
+        GlobalizationJsonHelper.ResolveCulture( "fr-ca,es", create ).ShouldBeSameAs( ext );
+
+        // A list of cultures that is not yet registered.
+        var created = GlobalizationJsonHelper.ResolveCulture( "is-is,mt", create );
+        created.ShouldNotBeAssignableTo<NormalizedCultureInfo>();
+        created.Name.ShouldBe( "is-is,mt" );
+    }
+
+    [Test]
     public void safe_json_deserialization_of_FormattedString_thanks_to_IMCDeserializationOptions()
     {
         var arTN = NormalizedCultureInfo.EnsureNormalizedCultureInfo( "ar-tn" );
