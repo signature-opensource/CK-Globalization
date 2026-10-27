@@ -27,7 +27,6 @@ public static class UserMessageExceptionExtensions
                                                      byte depth = 0,
                                                      bool? leakAll = null )
     {
-        Throw.CheckNotNullArgument( culture != null );
         List<UserMessage> messages = new List<UserMessage>();
         GetUserMessages( ex, messages.Add, culture, depth, defaultGenericMessage, leakAll );
         return messages;
@@ -69,7 +68,6 @@ public static class UserMessageExceptionExtensions
                                        string? defaultGenericMessage = "An unhandled error occurred.",
                                        bool? leakAll = null )
     {
-        Throw.CheckNotNullArgument( culture != null );
         Throw.CheckNotNullArgument( collector );
 
         var all = leakAll ?? CoreApplicationIdentity.IsDevelopmentAndInitialized;
