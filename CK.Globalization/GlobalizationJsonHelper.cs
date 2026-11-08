@@ -231,7 +231,9 @@ public static partial class GlobalizationJsonHelper
     }
 
     /// <summary>
-    /// Reads a UserMessage from a 8-cells array.
+    /// Reads a UserMessage from a 8-cells array or from the 3-cells array of a <see cref="SimpleUserMessage"/>
+    /// (written by <see cref="WriteAsJsonArray(Utf8JsonWriter, ref readonly UserMessage, bool)"/> with asSimpleUserMessage):
+    /// the message is then a non translatable text in the <see cref="NormalizedCultureInfo.Invariant"/> culture.
     /// </summary>
     /// <param name="r">The reader.</param>
     /// <param name="context">The reader context (can be <see cref="IUtf8JsonReaderContext.Empty"/>).</param>
@@ -252,6 +254,18 @@ public static partial class GlobalizationJsonHelper
         r.ReadWithMoreData( context );
         if( level == UserMessageLevel.None ) return default;
         r.SkipComments( context );
+        // The 3-cells SimpleUserMessage form [level,text,depth] is recognized by its string at the 2nd position
+        // (the 8-cells form is [level,depth,text,...]): it is read as a non translatable text, without culture
+        // (the invariant one) nor resource name.
+        if( r.TokenType == JsonTokenType.String )
+        {
+            var text = r.GetString() ?? string.Empty;
+            r.ReadWithMoreData( context );
+            r.SkipComments( context );
+            var simpleDepth = (byte)r.GetInt32();
+            r.ReadWithMoreData( context );
+            return new UserMessage( level, MCString.CreateNonTranslatable( NormalizedCultureInfo.Invariant, text ), simpleDepth );
+        }
         var depth = (byte)r.GetInt32();
         r.ReadWithMoreData( context );
         var s = ReadMCStringFromJsonArrayContent( ref r, context );

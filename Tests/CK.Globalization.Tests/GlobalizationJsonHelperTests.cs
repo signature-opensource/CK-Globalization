@@ -95,6 +95,24 @@ public class GlobalizationJsonHelperTests
         messageBack.ShouldBe( message );
     }
 
+    [TestCase( """[8,"The text.",3]""", UserMessageLevel.Warn, "The text.", 3 )]
+    [TestCase( """[16,"Error!",0]""", UserMessageLevel.Error, "Error!", 0 )]
+    [TestCase( """[0]""", UserMessageLevel.None, "", 0 )]
+    public void UserMessage_can_be_read_from_the_SimpleUserMessage_array( string json, UserMessageLevel level, string text, int depth )
+    {
+        var r = new Utf8JsonReader( Encoding.UTF8.GetBytes( json ) );
+        var m = GlobalizationJsonHelper.ReadUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
+        m.Level.ShouldBe( level );
+        m.Text.ShouldBe( text );
+        m.Depth.ShouldBe( (byte)depth );
+        if( level != UserMessageLevel.None )
+        {
+            // The simple form has no culture nor resource: a non translatable text.
+            m.Message.FormatCulture.ShouldBe( NormalizedCultureInfo.Invariant );
+            m.AsSimpleUserMessage().ShouldBe( new SimpleUserMessage( level, text, (byte)depth ) );
+        }
+    }
+
     [Test]
     public void SimpleUserMessage_can_be_read_back_from_the_UserMessage_serialized_array()
     {
