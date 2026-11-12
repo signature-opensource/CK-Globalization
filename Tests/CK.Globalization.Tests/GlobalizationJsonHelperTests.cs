@@ -2,6 +2,7 @@ using CK.Core;
 using Microsoft.IO;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
+using Shouldly;
 using System.Buffers;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -122,5 +123,33 @@ public class GlobalizationJsonHelperTests
         var r = new Utf8JsonReader( mem.GetReadOnlySequence() );
         var simpleMessageBack = GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
         simpleMessageBack.ShouldBe( message.AsSimpleUserMessage() );
+    }
+
+    [TestCase( """[8.0,"The text.",3e0]""", UserMessageLevel.Warn, "The text.", 3 )]
+    [TestCase( """[16,"Error!",2.00]""", UserMessageLevel.Error, "Error!", 2 )]
+    [TestCase( """[4,"Info.",255]""", UserMessageLevel.Info, "Info.", 255 )]
+    public void the_integers_can_be_any_integral_JSON_number( string json, UserMessageLevel level, string text, int depth )
+    {
+        var r = new Utf8JsonReader( Encoding.UTF8.GetBytes( json ) );
+        var m = GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
+        m.ShouldBe( new SimpleUserMessage( level, text, (byte)depth ) );
+
+        var f = Encoding.UTF8.GetBytes( """["Hello!","en",[0.0,5e0]]""" );
+        r = new Utf8JsonReader( f );
+        var s = GlobalizationJsonHelper.ReadFormattedStringFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
+        s.Placeholders.ShouldHaveSingleItem().ShouldBe( (0, 5) );
+    }
+
+    [TestCase( """[8,"The text.",1.5]""" )]
+    [TestCase( """[8,"The text.",256]""" )]
+    [TestCase( """[8,"The text.",-1]""" )]
+    [TestCase( """[8.5,"The text.",0]""" )]
+    public void a_non_integral_or_out_of_range_number_is_refused( string json )
+    {
+        Util.Invokable( () =>
+        {
+            var r = new Utf8JsonReader( Encoding.UTF8.GetBytes( json ) );
+            GlobalizationJsonHelper.ReadSimpleUserMessageFromJsonArray( ref r, IUtf8JsonReaderContext.Empty );
+        } ).ShouldThrow<JsonException>();
     }
 }

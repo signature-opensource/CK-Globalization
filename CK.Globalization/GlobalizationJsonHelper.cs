@@ -16,6 +16,20 @@ public static partial class GlobalizationJsonHelper
         r.ReadWithMoreData( context );
     }
 
+    // JSON has a single number type: 1, 1.0 and 1e0 are the same value (and a JSON Schema "integer" accepts them all).
+    // The plain integer token is read directly; any other number is accepted when its value is integral and in range.
+    static int ReadInt32( ref Utf8JsonReader r, int min = int.MinValue, int max = int.MaxValue )
+    {
+        if( r.TryGetInt32( out var v ) && v >= min && v <= max ) return v;
+        if( !r.TryGetDecimal( out var d ) || d != decimal.Truncate( d ) || d < min || d > max )
+        {
+            r.ThrowJsonException( $"Expected an integral number between {min} and {max}." );
+        }
+        return (int)d;
+    }
+
+    static byte ReadByte( ref Utf8JsonReader r ) => (byte)ReadInt32( ref r, byte.MinValue, byte.MaxValue );
+
     static void ReadStartArray( ref Utf8JsonReader r, IUtf8JsonReaderContext context, string typeName )
     {
         if( r.TokenType == JsonTokenType.None ) r.ReadWithMoreData( context );
@@ -133,7 +147,7 @@ public static partial class GlobalizationJsonHelper
     public static SimpleUserMessage ReadSimpleUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         r.SkipComments( context );
-        var level = (UserMessageLevel)r.GetInt32();
+        var level = (UserMessageLevel)ReadInt32( ref r );
         r.ReadWithMoreData( context );
         if( level == UserMessageLevel.None ) return default;
         r.SkipComments( context );
@@ -143,7 +157,7 @@ public static partial class GlobalizationJsonHelper
         // If we have a number at the 2nd position, then it is the UserMessage's Depth.
         if( r.TokenType == JsonTokenType.Number )
         {
-            depth = (byte)r.GetInt32();
+            depth = ReadByte( ref r );
             r.ReadWithMoreData( context );
             r.SkipComments( context );
             text = r.GetString() ?? string.Empty;
@@ -163,7 +177,7 @@ public static partial class GlobalizationJsonHelper
             text = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             r.SkipComments( context );
-            depth = (byte)r.GetInt32();
+            depth = ReadByte( ref r );
             r.ReadWithMoreData( context );
         }
         return new SimpleUserMessage( level, text, depth );
@@ -250,7 +264,7 @@ public static partial class GlobalizationJsonHelper
     public static UserMessage ReadUserMessageFromJsonArrayContent( ref Utf8JsonReader r, IUtf8JsonReaderContext context )
     {
         r.SkipComments( context );
-        var level = (UserMessageLevel)r.GetInt32();
+        var level = (UserMessageLevel)ReadInt32( ref r );
         r.ReadWithMoreData( context );
         if( level == UserMessageLevel.None ) return default;
         r.SkipComments( context );
@@ -262,11 +276,11 @@ public static partial class GlobalizationJsonHelper
             var text = r.GetString() ?? string.Empty;
             r.ReadWithMoreData( context );
             r.SkipComments( context );
-            var simpleDepth = (byte)r.GetInt32();
+            var simpleDepth = ReadByte( ref r );
             r.ReadWithMoreData( context );
             return new UserMessage( level, MCString.CreateNonTranslatable( NormalizedCultureInfo.Invariant, text ), simpleDepth );
         }
-        var depth = (byte)r.GetInt32();
+        var depth = ReadByte( ref r );
         r.ReadWithMoreData( context );
         var s = ReadMCStringFromJsonArrayContent( ref r, context );
         return new UserMessage( level, s, depth );
@@ -389,10 +403,10 @@ public static partial class GlobalizationJsonHelper
         while( r.TokenType == JsonTokenType.Number )
         {
             r.SkipComments( context );
-            var start = r.GetInt32();
+            var start = ReadInt32( ref r );
             r.ReadWithMoreData( context );
             r.SkipComments( context );
-            var length = r.GetInt32();
+            var length = ReadInt32( ref r );
             r.ReadWithMoreData( context );
             r.SkipComments( context );
             placeholders.Add( (start, length) );
