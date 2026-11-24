@@ -77,8 +77,12 @@ public partial class ExtendedCultureInfoTests
     [Test]
     public void inventing_cultures()
     {
-        Util.Invokable( () => new CultureInfo( "fr-fr-development" ) )
-            .ShouldThrow<CultureNotFoundException>( "An invalid name (the 'development' subtag is longer than 8 characters) is the only way to not found a culture." );
+        // This holds on Windows only: on Linux, ICU accepts this name (the culture is named "fr-FR-DEVELOPMENT").
+        if( OperatingSystem.IsWindows() )
+        {
+            Util.Invokable( () => new CultureInfo( "fr-fr-development" ) )
+                .ShouldThrow<CultureNotFoundException>( "An invalid name (the 'development' subtag is longer than 8 characters) is the only way to not found a culture." );
+        }
 
         // Not cached CultureInfo can be created by newing it.
         {

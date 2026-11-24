@@ -172,12 +172,13 @@ public class FormattedStringTests
         var inAmerica = new FormattedString( enUS, $"Date: {d:F}, V: {value:C}" );
         var inFrance = new FormattedString( frFR, $"Date: {d:F}, V: {value:C}" );
 
-        inAmerica.Text.ShouldBe( "Date: Thursday, July 27, 2023 11:59:59 PM, V: $37.12" );
+        // Recent ICU data (CLDR 42) put a narrow no-break space (U+202F) before AM and PM: it is read as a space here.
+        inAmerica.Text.Replace( '\u202F', ' ' ).ShouldBe( "Date: Thursday, July 27, 2023 11:59:59 PM, V: $37.12" );
         inFrance.Text.ShouldBe( "Date: jeudi 27 juillet 2023 23:59:59, V: 37,12 €" );
         inAmerica.GetFormatString().ShouldBe( "Date: {0}, V: {1}" );
         inAmerica.GetFormatString().ShouldBe( inFrance.GetFormatString() );
 
-        inAmerica.GetPlaceholderContents().Select( a => a.ToString() )
+        inAmerica.GetPlaceholderContents().Select( a => a.ToString().Replace( '\u202F', ' ' ) )
                 .ShouldBe( new[] { "Thursday, July 27, 2023 11:59:59 PM", "$37.12" } );
 
         inFrance.GetPlaceholderContents().Select( a => a.ToString() )
