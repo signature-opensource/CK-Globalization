@@ -54,7 +54,7 @@ public partial class ExtendedCultureInfoTests
     [TestCase( "st-ls,sl-si", "st-ls,st,sl-si,sl", true, "st-ls,sl-si" )]
     public void ExtendedCultureInfo_normalization( string names, string expectedFullName, bool isExtended, string expectedName )
     {
-        // On Appveyor "pa-Guru-IN" resolves to "pa-IN".
+        // On some machines "pa-Guru-IN" resolves to "pa-IN" (it depends on the culture data of the system).
         var n = ExtendedCultureInfo.EnsureExtendedCultureInfo( names );
         if( n.Name.Contains( "pa-in" ) )
         {
@@ -94,7 +94,7 @@ public partial class ExtendedCultureInfoTests
             if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
             {
                 // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
-                // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                // ...but on some machines, DEV is not uppercase (but FR is)...
                 if( cDevFR.Name == "fr-FR-dev" )
                 {
                     TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by new CultureInfo() to {cDevFR.Name}." );
@@ -115,7 +115,7 @@ public partial class ExtendedCultureInfoTests
             if( cDevFR.Name == "fr-FR-DEV" || cDevFR.Name == "fr-FR-dev" )
             {
                 // Name is normalized according to BCP47 rules and the tag DEV should be uppercase...
-                // ...but on Appveyor, DEV is not uppercase (but FR is)...
+                // ...but on some machines, DEV is not uppercase (but FR is)...
                 if( cDevFR.Name == "fr-FR-dev" )
                 {
                     TestHelper.Monitor.Warn( $"fr-fr-dev has been normalized by CultureInfo.GetCultureInfo to {cDevFR.Name}." );
@@ -144,7 +144,7 @@ public partial class ExtendedCultureInfoTests
         try
         {
             var c1 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name1 );
-            // Resolution differ on Appveyor. This only works if the resolution respects the original string.
+            // The resolution depends on the machine. This only works if the resolution respects the original string.
             Assume.That( c1.Name == name1, $"Resolution differs: '{name1}' has been transformed to '{c1.Name}'." );
             c1.Id.ShouldBe( idClash );
             var c2 = ExtendedCultureInfo.EnsureExtendedCultureInfo( name2 );
@@ -208,7 +208,7 @@ public partial class ExtendedCultureInfoTests
         NormalizedCultureInfo.CodeDefault.SpecificCulture.FullName.ShouldBe( "en-us,en" );
         NormalizedCultureInfo.Invariant.SpecificCulture.ShouldBeSameAs( NormalizedCultureInfo.CodeDefault.SpecificCulture );
 
-        // On Appveyor, "ccp" and "ceb" don't exist.
+        // On some machines, "ccp" and "ceb" don't exist.
         if( issues.Count == 3 )
         {
             issues.ShouldBe( ["ckb", "pa-guru", "qu"] );
